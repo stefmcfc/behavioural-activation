@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: behaviouralactivation
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/behaviouralactivation}
+    username: ${DB_USERNAME:behaviouralactivation}
+    password: ${DB_PASSWORD:behaviouralactivation}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173
