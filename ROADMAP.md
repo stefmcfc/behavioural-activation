@@ -18,7 +18,7 @@ git-workflow "one spec pair in flight at a time" rule) — a single feature row 
 matches how the work is actually planned and reviewed, rather than splitting one feature across two
 disconnected rows.
 
-Last full audit: 2026-08-27 (project creation — nothing specced yet).
+Last full audit: 2026-08-27 (V1 high-level planning session — spec pair 1 of 3 written).
 
 ---
 
@@ -28,16 +28,15 @@ Last full audit: 2026-08-27 (project creation — nothing specced yet).
 
 ## Specced, coming soon
 
-*(none yet)*
-
-The first specs to write are the V1 items in `.claude/HIGH_LEVEL_DESIGN.md`'s Epic 1 (Activity
-management) and Epic 2 (Weekly planning) — those are the user stories (US-001 onward) that define
-the core planner. Use the `spec-writer` agent / `ears-spec` skill to turn each into a real
-`planner_spec_00N_*.md` and/or `frontend_spec_00N_*.md`, then add a row here.
+Per the V1 high-level plan (2026-08-27): 3 spec pairs cover all of V1 (Auth → Activity Bank → Week
+Planning). Only pair 1 is written so far; pairs 2 and 3 aren't specced yet — not blocked, just not
+next in the queue until pair 1 ships (per the "one spec pair in flight at a time" rule).
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(example — remove once real rows exist)* | `planner_spec_001_activity_entity.md` | `frontend_spec_001_activity_bank.md` | ⬜ Not started |
+| Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | ⬜ Not started — 16 backend ACs, 12 frontend ACs, all unchecked |
+| Activity bank (US-001/002) | not yet written | not yet written | ⬜ Not started — blocked by pair 1 (needs an authenticated principal) |
+| Week planning (US-003–009) | not yet written | not yet written | ⬜ Not started — blocked by pairs 1 and 2 |
 
 ## Internal / maintenance specs
 
