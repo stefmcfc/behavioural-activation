@@ -18,7 +18,7 @@ git-workflow "one spec pair in flight at a time" rule) — a single feature row 
 matches how the work is actually planned and reviewed, rather than splitting one feature across two
 disconnected rows.
 
-Last full audit: 2026-08-27 (V1 high-level planning session — spec pair 1 of 3 written).
+Last full audit: 2026-08-27 (spec pair 1 of 3 implemented — see status note below).
 
 ---
 
@@ -29,12 +29,13 @@ Last full audit: 2026-08-27 (V1 high-level planning session — spec pair 1 of 3
 ## Specced, coming soon
 
 Per the V1 high-level plan (2026-08-27): 3 spec pairs cover all of V1 (Auth → Activity Bank → Week
-Planning). Only pair 1 is written so far; pairs 2 and 3 aren't specced yet — not blocked, just not
-next in the queue until pair 1 ships (per the "one spec pair in flight at a time" rule).
+Planning). Pair 1 is implemented on `feature/auth` (not yet merged to `main`); pairs 2 and 3 aren't
+specced yet — not blocked, just not next in the queue until pair 1 merges (per the "one spec pair
+in flight at a time" rule).
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | ⬜ Not started — 16 backend ACs, 12 frontend ACs, all unchecked |
+| Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | 🟡 Implemented on `feature/auth`, pending merge — 15/16 backend ACs verified (AC-15, `SameSite=Lax` cookie, is `[MANUAL]` and needs a real running app + Docker/Postgres, unavailable in this dev environment), all 12 frontend ACs verified |
 | Activity bank (US-001/002) | not yet written | not yet written | ⬜ Not started — blocked by pair 1 (needs an authenticated principal) |
 | Week planning (US-003–009) | not yet written | not yet written | ⬜ Not started — blocked by pairs 1 and 2 |
 

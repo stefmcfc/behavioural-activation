@@ -127,15 +127,15 @@ describe('FRONTEND-001-AC-07: blank fields validate without calling the API', ()
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-001-AC-01 — axios instance sends credentials
-- [ ] FRONTEND-001-AC-02 — request wrapper throws typed ApiError
-- [ ] FRONTEND-001-AC-03 — valid submit calls authApi.login()
-- [ ] FRONTEND-001-AC-04 — success leaves unauthenticated state
-- [ ] FRONTEND-001-AC-05 — 401 shows alert, stays on form
-- [ ] FRONTEND-001-AC-06 — in-flight state disables submit + shows loading
-- [ ] FRONTEND-001-AC-07 — blank fields validate client-side, no API call
-- [ ] FRONTEND-001-AC-08 — App calls authApi.me() on mount
-- [ ] FRONTEND-001-AC-09 — loading state while session check is in flight
-- [ ] FRONTEND-001-AC-10 — success renders authenticated placeholder
-- [ ] FRONTEND-001-AC-11 — 401 renders LoginPage
-- [ ] FRONTEND-001-AC-12 — logout calls authApi.logout() and returns to LoginPage
+- [x] FRONTEND-001-AC-01 — axios instance sends credentials
+- [x] FRONTEND-001-AC-02 — request wrapper throws typed ApiError
+- [x] FRONTEND-001-AC-03 — valid submit calls authApi.login()
+- [x] FRONTEND-001-AC-04 — success leaves unauthenticated state
+- [x] FRONTEND-001-AC-05 — 401 shows alert, stays on form
+- [x] FRONTEND-001-AC-06 — in-flight state disables submit + shows loading
+- [x] FRONTEND-001-AC-07 — blank fields validate client-side, no API call
+- [x] FRONTEND-001-AC-08 — App calls authApi.me() on mount
+- [x] FRONTEND-001-AC-09 — loading state while session check is in flight
+- [x] FRONTEND-001-AC-10 — success renders authenticated placeholder
+- [x] FRONTEND-001-AC-11 — 401 renders LoginPage
+- [x] FRONTEND-001-AC-12 — logout calls authApi.logout() and returns to LoginPage

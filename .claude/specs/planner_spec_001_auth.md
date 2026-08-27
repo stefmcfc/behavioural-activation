@@ -1,6 +1,11 @@
 # Backend Spec 001: Authentication — Seeded Single User, Session Login
 
-**Status**: Not started
+**Status**: Implemented — `backend/src/main/java/uk/co/stefirby/behaviouralactivation/{model/User.java,
+repository/UserRepository.java, security/, config/CorsConfig.java, controller/AuthController.java,
+dto/, exception/}`, `backend/src/main/resources/db/migration/V001__create_users_table.sql`. All
+`[AUTO]` ACs verified by Spock specs under `backend/src/test/groovy/.../{model,security,config,
+controller,exception}/`; PLANNER-001-AC-15 remains unchecked — `[MANUAL]`, not verifiable without a
+running app + real browser/curl (no Docker/Postgres in the dev environment this was built in).
 **Priority**: P0 — blocks every other V1 endpoint, which all require an authenticated principal
 **Depends on**: none
 **Area**: Backend Task
@@ -77,7 +82,9 @@ As the user, I want every other API endpoint to require my session, so that my p
 reachable by anyone without it.
 
 - **PLANNER-001-AC-12** [AUTO]: The `SecurityFilterChain` shall require an authenticated session
-  for every request under `/api/v1/**` except `POST /api/v1/auth/login`.
+  for every request under `/api/v1/**` except `POST /api/v1/auth/login` and
+  `POST /api/v1/auth/logout` (logout must stay reachable with no session — see AC-09's idempotency
+  requirement, which is impossible to satisfy if logout itself demanded an existing session).
 - **PLANNER-001-AC-13** [AUTO]: If an unauthenticated request is made to a protected endpoint, then
   the `SecurityFilterChain` shall respond `401` — not a redirect, since there is no server-rendered
   login page to redirect to.
@@ -185,19 +192,24 @@ def "PLANNER-001-AC-16: an error response never leaks a stack trace"() {
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-001-AC-01 — bootstrap seeds exactly one user from env vars
-- [ ] PLANNER-001-AC-02 — password stored as BCrypt hash
-- [ ] PLANNER-001-AC-03 — bootstrap is idempotent (no duplicate seeding)
-- [ ] PLANNER-001-AC-04 — startup fails clearly if unseedable
-- [ ] PLANNER-001-AC-05 — successful login authenticates, stores session, returns username
-- [ ] PLANNER-001-AC-06 — failed login returns 401, generic message
-- [ ] PLANNER-001-AC-07 — malformed login body returns 400
-- [ ] PLANNER-001-AC-08 — logout invalidates session
-- [ ] PLANNER-001-AC-09 — logout with no session is idempotent (still 200)
-- [ ] PLANNER-001-AC-10 — /auth/me returns username when authenticated
-- [ ] PLANNER-001-AC-11 — /auth/me returns 401 when not authenticated
-- [ ] PLANNER-001-AC-12 — all of /api/v1/** except login requires a session
-- [ ] PLANNER-001-AC-13 — unauthenticated access returns 401, not a redirect
-- [ ] PLANNER-001-AC-14 — CORS allows credentials only from the configured allow-list
-- [ ] PLANNER-001-AC-15 — session cookie is SameSite=Lax [MANUAL]
-- [ ] PLANNER-001-AC-16 — error responses share one JSON shape, no stack traces
+- [x] PLANNER-001-AC-01 — bootstrap seeds exactly one user from env vars
+- [x] PLANNER-001-AC-02 — password stored as BCrypt hash
+- [x] PLANNER-001-AC-03 — bootstrap is idempotent (no duplicate seeding)
+- [x] PLANNER-001-AC-04 — startup fails clearly if unseedable
+- [x] PLANNER-001-AC-05 — successful login authenticates, stores session, returns username
+- [x] PLANNER-001-AC-06 — failed login returns 401, generic message
+- [x] PLANNER-001-AC-07 — malformed login body returns 400
+- [x] PLANNER-001-AC-08 — logout invalidates session
+- [x] PLANNER-001-AC-09 — logout with no session is idempotent (still 200)
+- [x] PLANNER-001-AC-10 — /auth/me returns username when authenticated
+- [x] PLANNER-001-AC-11 — /auth/me returns 401 when not authenticated
+- [x] PLANNER-001-AC-12 — all of /api/v1/** except login and logout requires a session (verified against
+  `/api/v1/auth/me` — the only other `/api/v1/**` endpoint that exists yet; also implemented
+  `POST /api/v1/auth/logout` as a second permitAll exception, needed to satisfy AC-09's idempotent-
+  logout-with-no-session requirement)
+- [x] PLANNER-001-AC-13 — unauthenticated access returns 401, not a redirect
+- [x] PLANNER-001-AC-14 — CORS allows credentials only from the configured allow-list
+- [ ] PLANNER-001-AC-15 — session cookie is SameSite=Lax [MANUAL] — not verified in this
+  environment; no Docker/Postgres available to run the app and inspect a real `Set-Cookie` header
+  (per the spec's own MANUAL marker, this needs a real browser/curl check)
+- [x] PLANNER-001-AC-16 — error responses share one JSON shape, no stack traces
