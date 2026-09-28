@@ -43,7 +43,8 @@ frontend/
 │   └── test-setup.ts               # (built) Wires up @testing-library/jest-dom matchers
 │
 ├── public/                         # (built) favicon.svg
-├── vite.config.ts                  # (built) React plugin + /api → :8080 dev-server proxy
+├── vite.config.ts                  # (built) React plugin, dev server on :4321 (strictPort),
+│                                    #   /api → :8420 dev-server proxy
 ├── vitest.config.ts                # (built) jsdom env, globals, test-setup.ts, merged with vite.config
 ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json  # (built)
 ├── .oxlintrc.json                  # (built) oxlint config — see note below on why not ESLint
@@ -93,7 +94,7 @@ Centralized in `src/types/`. Nullable backend fields are `T | null`, not `T | un
 
 ```
 # frontend/.env.local (git-ignored)
-VITE_API_BASE=http://localhost:8080/api/v1
+VITE_API_BASE=http://localhost:8420/api/v1
 ```
 
 ## Testing Setup

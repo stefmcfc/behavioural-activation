@@ -1,9 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { authApi } from '../services/authApi'
 import { ApiError } from '../types/api'
 
 interface LoginPageProps {
-  onLoginSuccess: (username: string) => void
+  readonly onLoginSuccess: (username: string) => void
 }
 
 function getErrorMessage(error: unknown): string {
@@ -28,7 +28,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 
@@ -78,7 +78,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
         {validationError && <p>{validationError}</p>}
         {submitError && <p role="alert">{submitError}</p>}
-        {isSubmitting && <p role="status">Logging in…</p>}
+        {isSubmitting && <output>Logging in…</output>}
 
         <button type="submit" disabled={isSubmitting}>
           Log in

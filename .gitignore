@@ -20,6 +20,8 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # backend/ and frontend/ each carry their own .gitignore for build output
 # (build/, node_modules/, dist/, etc.) — this file only covers what's outside both.
+/.sonar_report/

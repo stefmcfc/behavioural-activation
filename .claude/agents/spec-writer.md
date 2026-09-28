@@ -52,3 +52,10 @@ repo-wide tooling/CI/build-config work that isn't backend or frontend feature wo
 implement the feature yourself — hand off to `backend-dev` or `frontend-dev` once the spec is
 approved. Add a row to `ROADMAP.md`'s "Specced, coming soon" table for the new spec as part of the
 same change (see that file's own maintenance rule).
+
+**Before calling `Write` on the target path, confirm it doesn't already exist** (`Read` or `Glob`
+it) — don't rely on another spec's cross-reference table or your own assumption that a given number
+is unused. A blind `Write` silently destroys an existing draft and its already-committed, immutable
+AC IDs (see `.claude/steering/ears_format.md`'s "Before writing a new spec file" section — this has
+happened for real in the reference project this process was adapted from). If the path already
+exists, use `Edit` or stop and flag the collision instead of overwriting.

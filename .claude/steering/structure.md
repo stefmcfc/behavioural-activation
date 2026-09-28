@@ -7,19 +7,24 @@ project's `structure.md` tracks its actual `backend/`/`frontend/` trees.
 ## Layout (current + target)
 ```
 behavioural-activation/
-├── .claude/                    # (built) agents/, skills/, steering/, specs/ (empty), ideas/,
+├── .claude/                    # (built) agents/, skills/, steering/, specs/, ideas/,
 │                                #   HIGH_LEVEL_DESIGN.md, HIGH_LEVEL_DESIGN_FEEDBACK.md
-├── backend/                    # (built, scaffold only) Spring Boot application
-├── frontend/                   # (built, scaffold only) React + Vite application
+├── backend/                    # (built) Spring Boot application
+├── frontend/                   # (built) React + Vite application
+├── scripts/                    # (built) start-dev.sh/stop-dev.sh/restart-dev.sh +
+│                                #   lib/dev-common.sh (port/process helpers), lib/docker-common.sh
+│                                #   (docker preflight checks) — see RUNBOOK.md's "Quick Start
+│                                #   (scripts)" section
 ├── docker/
 │   └── init-test-db.sql        # (built) creates the `_test` DB on first Postgres container init
 ├── docker-compose.yml          # (built) Local Postgres, matches backend's application.yml creds
 ├── CLAUDE.md                   # (built) Root steering entrypoint
-├── API.md                      # (built, empty template) Endpoint reference, grouped by area
-├── ROADMAP.md                  # (built, empty template) Delivered / specced / internal-maintenance
+├── API.md                      # (built) Endpoint reference, grouped by area
+├── ROADMAP.md                  # (built) Delivered / specced / internal-maintenance
+├── CHANGELOG.md                 # (built)
 ├── .gitignore                  # (built)
-├── README.md                   # not yet created
-└── RUNBOOK.md                  # not yet created
+├── README.md                   # (built)
+└── RUNBOOK.md                  # (built)
 ```
 
 ## Backend structure (current + target)
@@ -79,7 +84,7 @@ frontend/
 │   ├── types/            # Centralized TypeScript types (none yet)
 │   ├── App.tsx           # (built) Placeholder shell
 │   └── main.tsx           # (built)
-├── vite.config.ts        # (built) React plugin + /api proxy to :8080
+├── vite.config.ts        # (built) React plugin, dev server on :4321, /api proxy to :8420
 ├── vitest.config.ts       # (built)
 ├── package.json            # (built)
 └── .gitignore               # (built, Vite default)
@@ -120,6 +125,17 @@ include now:
 
 Everything else (per-tenant schemas, admin tooling, billing, invite flows) waits until there's a
 concrete second user.
+
+## Groovy spec conventions
+
+- **Import types rather than using inline fully-qualified references.** Write `import
+  org.hamcrest.Matchers` + `Matchers.containsString(x)`, not `org.hamcrest.Matchers.containsString(x)`
+  inline — same for any other type (e.g. `ActivityCategory.ROUTINE`, not the fully-qualified form).
+  An inline fully-qualified reference bypasses the import, which IntelliJ's Groovy inspector then
+  flags as an unused-import warning even though the class is genuinely used elsewhere in the file
+  (verified as a real, repo-wide cleanup need in the reference project this convention was adapted
+  from). Keep specs import-clean from the start rather than accumulating this and needing a later
+  sweep.
 
 ## Where tests live
 

@@ -2,7 +2,7 @@ import axios, { isAxiosError } from 'axios'
 import type { User, LoginCredentials } from '../types/auth'
 import { ApiError, type ApiErrorResponse } from '../types/api'
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080/api/v1'
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8420/api/v1'
 
 const client = axios.create({
   baseURL: API_BASE,

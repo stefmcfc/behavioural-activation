@@ -139,17 +139,36 @@ scan) once there's code to run it against. Model it on the reference project's
 - If a variable needs documenting for other developers, add it to a checked-in `.env.example` with
   a placeholder value, never the real one.
 
+## Local ports
+
+Backend and frontend dev servers are pinned to static, non-default ports rather than Spring Boot's
+`8080`/Vite's `5173` defaults, since those are common enough that another app on the machine is
+likely already holding them:
+
+- **Backend**: `8420` (`server.port` in `application.yml`, overridable via `SERVER_PORT`)
+- **Frontend**: `4321` (`server.port` in `vite.config.ts`, with `strictPort: true` so Vite fails
+  loudly instead of silently picking a different port if `4321` is taken, rather than masking a real
+  conflict)
+
+`app.cors.allowed-origins` (backend) and the Vite dev-server proxy target both point at these ports.
+If either ever needs to change, update both together plus `frontend/src/services/*Api.ts`'s
+`VITE_API_BASE` fallback — see `RUNBOOK.md` for the full list of places a port change touches.
+
 ## Common Commands
+
+See also `scripts/start-dev.sh`/`stop-dev.sh`/`restart-dev.sh` (RUNBOOK.md's "Quick Start (scripts)"
+section) for launching both dev servers in the background with health-check-based readiness
+reporting, instead of the manual commands below in separate terminals.
 
 ```bash
 # Backend (from backend/)
-gradlew.bat bootRun            # start dev server
+gradlew.bat bootRun            # start dev server on :8420
 gradlew.bat test               # run Spock tests
 gradlew.bat build              # full build
 
 # Frontend (from frontend/)
 npm install
-npm run dev                    # Vite dev server, proxies /api to :8080
+npm run dev                    # Vite dev server on :4321, proxies /api to :8420
 npm test                       # Vitest, single run
 npm run test:watch             # Vitest watch mode
 npm run lint                   # oxlint

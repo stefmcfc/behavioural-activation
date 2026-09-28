@@ -18,24 +18,26 @@ git-workflow "one spec pair in flight at a time" rule) — a single feature row 
 matches how the work is actually planned and reviewed, rather than splitting one feature across two
 disconnected rows.
 
-Last full audit: 2026-08-27 (spec pair 1 of 3 implemented — see status note below).
+Last full audit: 2026-09-28 (spec pair 1 of 3 fully verified against a real Docker/Postgres
+environment for the first time — see status note below).
 
 ---
 
 ## Delivered
 
-*(none yet)*
+| Feature | Backend Spec | Frontend Spec | Status |
+|---|---|---|---|
+| Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | ✅ All 16 backend ACs + all 12 frontend ACs verified (2026-09-28, once Docker became available — including AC-15's `SameSite=Lax` cookie, `[MANUAL]`), full login→/auth/me→logout cycle confirmed through a real browser against real Postgres. Two real gaps found and fixed during this pass: `SameSite=Lax` was actually missing (`server.servlet.session.cookie.same-site` had never been set), and the backend's `@SpringBootTest` smoke test failed against a real DB (`UserBootstrapRunner` needs bootstrap credentials; test profile now has safe defaults). On `feature/auth`, pending merge — not yet on `main`. |
 
 ## Specced, coming soon
 
 Per the V1 high-level plan (2026-08-27): 3 spec pairs cover all of V1 (Auth → Activity Bank → Week
-Planning). Pair 1 is implemented on `feature/auth` (not yet merged to `main`); pairs 2 and 3 aren't
+Planning). Pair 1 is delivered (see above, still pending merge to `main`); pairs 2 and 3 aren't
 specced yet — not blocked, just not next in the queue until pair 1 merges (per the "one spec pair
 in flight at a time" rule).
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | 🟡 Implemented on `feature/auth`, pending merge — 15/16 backend ACs verified (AC-15, `SameSite=Lax` cookie, is `[MANUAL]` and needs a real running app + Docker/Postgres, unavailable in this dev environment), all 12 frontend ACs verified |
 | Activity bank (US-001/002) | not yet written | not yet written | ⬜ Not started — blocked by pair 1 (needs an authenticated principal) |
 | Week planning (US-003–009) | not yet written | not yet written | ⬜ Not started — blocked by pairs 1 and 2 |
 

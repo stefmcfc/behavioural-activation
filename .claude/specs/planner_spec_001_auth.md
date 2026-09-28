@@ -1,11 +1,21 @@
 # Backend Spec 001: Authentication — Seeded Single User, Session Login
 
-**Status**: Implemented — `backend/src/main/java/uk/co/stefirby/behaviouralactivation/{model/User.java,
+**Status**: Implemented and fully verified — `backend/src/main/java/uk/co/stefirby/behaviouralactivation/{model/User.java,
 repository/UserRepository.java, security/, config/CorsConfig.java, controller/AuthController.java,
 dto/, exception/}`, `backend/src/main/resources/db/migration/V001__create_users_table.sql`. All
 `[AUTO]` ACs verified by Spock specs under `backend/src/test/groovy/.../{model,security,config,
-controller,exception}/`; PLANNER-001-AC-15 remains unchecked — `[MANUAL]`, not verifiable without a
-running app + real browser/curl (no Docker/Postgres in the dev environment this was built in).
+controller,exception}/`. PLANNER-001-AC-15 (`[MANUAL]`) is now verified too (2026-09-28, once Docker
+became available): `curl -i` against a real running instance confirmed `Set-Cookie: ...; SameSite=Lax`
+— it was actually **missing** until this check (`server.servlet.session.cookie.same-site: lax` had
+never been set), so this verification pass caught and fixed a real gap, not just confirmed one.
+Also fixed during this same pass: the backend's full `@SpringBootTest` context-loads smoke test
+(`BehaviouralActivationApplicationSpec`) failed against a real database because `UserBootstrapRunner`
+fails startup when no user exists and no bootstrap credentials are set — `AuthControllerSpec`'s
+`@WebMvcTest` slice tests never hit this since they don't boot the full context. Fixed by giving
+`src/test/resources/application.yml` fixed test-only bootstrap credential defaults (still
+overridable), rather than requiring a real secret to be exported just to run `gradlew.bat test`.
+Full login → `/auth/me` → logout cycle additionally verified end-to-end through a real browser
+against a real Postgres instance.
 **Priority**: P0 — blocks every other V1 endpoint, which all require an authenticated principal
 **Depends on**: none
 **Area**: Backend Task
@@ -209,7 +219,7 @@ def "PLANNER-001-AC-16: an error response never leaks a stack trace"() {
   logout-with-no-session requirement)
 - [x] PLANNER-001-AC-13 — unauthenticated access returns 401, not a redirect
 - [x] PLANNER-001-AC-14 — CORS allows credentials only from the configured allow-list
-- [ ] PLANNER-001-AC-15 — session cookie is SameSite=Lax [MANUAL] — not verified in this
-  environment; no Docker/Postgres available to run the app and inspect a real `Set-Cookie` header
-  (per the spec's own MANUAL marker, this needs a real browser/curl check)
+- [x] PLANNER-001-AC-15 — session cookie is SameSite=Lax [MANUAL] — verified 2026-09-28 via `curl -i`
+  against a real running instance; was actually missing until this check, fixed by adding
+  `server.servlet.session.cookie.same-site: lax` to `application.yml`
 - [x] PLANNER-001-AC-16 — error responses share one JSON shape, no stack traces

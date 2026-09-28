@@ -160,6 +160,19 @@ def "PLANNER-005-AC-01: creates and returns a new activity"() {
 
 This applies to every Spock spec in `backend/src/test/groovy/`.
 
+## Before writing a new spec file
+
+**Verify the target file doesn't already exist before calling `Write` on it** — via `Read` or
+`Glob`, not by trusting another spec's cross-reference table or the conversation's own assumption
+that it's "not yet written." A blind `Write` silently clobbers an existing draft, which is
+especially destructive here because reference IDs are immutable (see above) and other specs/tests
+may already point at the ones a clobbered file was carrying. This bit the reference project this
+convention was adapted from for real — a spec file was blind-written over an already-committed
+draft because several other specs' cross-reference tables described it as not yet written, when the
+tables were stale, not the file. Default to `Edit` (which enforces a prior `Read`) for anything that
+might already exist; only use `Write` once you've confirmed, this session, that the path is
+genuinely new.
+
 ## Naming convention for frontend test files
 
 Group tests in one file, using `describe` blocks named after the requirement ID:

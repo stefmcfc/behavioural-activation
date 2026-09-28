@@ -51,12 +51,14 @@ otherwise.
 `.claude/agents/`, `.claude/skills/`, and `.claude/steering/` are set up (2026-08-27), adapted from
 a mature reference project's process. Backend (Spring Boot 4.1.1 + Java 25 + Postgres/Flyway/
 Security/Validation deps + Spock testing) and frontend (React 19 + TS + Vite + Vitest/RTL) are
-scaffolded and verified building/testing (2026-08-27) — see `.claude/steering/structure.md` for
-exactly what's `(built)` vs. still target. `docker-compose.yml` (root) provides local Postgres,
-matching the backend's dev config; Docker itself isn't installed on this machine yet, so
-`docker compose up`/`gradlew.bat test`/`gradlew.bat bootRun` haven't been run end-to-end. No real
-feature (controller, entity, component) exists — that starts with the first EARS spec. CI,
-`README.md`, `RUNBOOK.md`, and `CHANGELOG.md` are not yet set up.
+scaffolded — see `.claude/steering/structure.md` for exactly what's `(built)` vs. still target.
+Spec pair 1 of 3 for V1 (authentication — `planner_spec_001_auth.md`/`frontend_spec_001_login.md`)
+is implemented on `feature/auth`, not yet merged to `main` — see `ROADMAP.md`. Backend and frontend
+dev servers run on static, non-default ports (`8420`/`4321`, not Spring Boot's/Vite's `8080`/`5173`
+defaults) — see `.claude/steering/tech.md`'s "Local ports" section. `README.md` and `RUNBOOK.md`
+now exist (2026-09-28). Docker Desktop's CLI is installed on this machine but the daemon isn't
+always running — `docker compose up`/`gradlew.bat test`/`gradlew.bat bootRun` still need it started
+manually first. CI is not yet set up.
 
 ## Tech stack (see `.claude/steering/tech.md` for full detail and rationale)
 
@@ -98,6 +100,8 @@ Read these when working in the relevant area — don't duplicate their content h
   specs.
 - `API.md` — endpoint reference, grouped by area. Update in the same change as any endpoint
   add/change/delete.
+- `RUNBOOK.md` — local setup, ports, environment variables, running tests, troubleshooting.
+- `README.md` — general project overview; points at the files above rather than duplicating them.
 - `.claude/SPEC_CANDIDATES.md` — ideas confirmed worth a real spec eventually, not yet written.
 - `.claude/ideas/future_ideas.md` — genuinely speculative/deferred ideas, one level earlier than a
   spec candidate.
@@ -111,7 +115,14 @@ Read these when working in the relevant area — don't duplicate their content h
   tracked in `ROADMAP.md`'s "Specced, coming soon" table → implemented, row moves to "Delivered" →
   `CHANGELOG.md` (shipped). An idea moves out of one file and into the next as it progresses —
   never leave the same idea duplicated across two of these at once. Before adding to or editing any
-  of the three tracking files, re-check what it references against the current codebase.
+  of the three tracking files, re-check what it references against the current codebase — referenced
+  classes/components can move (e.g. during a refactor) without the tracking file being updated.
+  **Edits to `future_ideas.md`/`SPEC_CANDIDATES.md` alone (no other files changed) need no git
+  ceremony** — not a branch+PR, not even a direct commit to `main`. Leave the edit sitting
+  uncommitted; it rides along into whatever the next real feature branch commits, and mention it in
+  chat so the state is visible even without a commit to point at. This is narrower than the rest of
+  this section and the git-workflow rules below — those still apply as normal to real specs, code,
+  and `ROADMAP.md`/`CHANGELOG.md` updates tied to a shipped feature.
 - **Keep `ROADMAP.md` current.** Writing a new spec adds a row to "Specced, coming soon"; checking
   off an AC updates that row's status; a spec whose every AC is checked moves its row to
   "Delivered" (with a matching `CHANGELOG.md` entry). Do this as part of the same change that
@@ -135,10 +146,9 @@ Read these when working in the relevant area — don't duplicate their content h
 
 The app is versioned as one unit with [Semantic Versioning](https://semver.org/):
 `backend/build.gradle.kts` (`version`) and `frontend/package.json` (`"version"`) are kept in sync —
-both currently `0.1.0-SNAPSHOT`. Every notable change should be recorded in `CHANGELOG.md`
+both currently `0.1.0-SNAPSHOT`. Every notable change is recorded in `CHANGELOG.md`
 ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format, per this machine's global
-versioning defaults) — not yet created; add it with the first real feature/fix, with an
-`## [Unreleased]` section covering the scaffolding work itself.
+versioning defaults).
 
 - Add an entry under `## [Unreleased]` in `CHANGELOG.md` as part of the same PR that ships a
   user-facing feature or fix — not retroactively.
@@ -162,10 +172,30 @@ versioning defaults) — not yet created; add it with the first real feature/fix
 - **Merging to `main` always needs a check-in first** — never merge without the user's explicit
   go-ahead in that instance, even if the PR is green.
 - **Before that check-in, release hygiene must already be done, not deferred to "after merge."**
-  Confirm: `CHANGELOG.md`'s `[Unreleased]` section has real entries for this change; `ROADMAP.md`
-  reflects the spec's real status (row moved to "Delivered" if fully shipped); `API.md`/`README.md`/
-  `RUNBOOK.md` are updated if this change touches endpoints, features, config, or how the project is
-  run/verified; and the version bump this merge represents has actually been decided.
+  This is **two separate checks, not one** — treating the first as satisfying the second is how this
+  has failed in the reference project this process was adapted from:
+  1. **Did this PR add a `CHANGELOG.md` entry under `[Unreleased]` for its own change?** (Plus
+     `API.md`/`README.md`/`RUNBOOK.md`/`ROADMAP.md` if it touches endpoints, features, config, or how
+     the project is run/verified — see the Definition of Done checklist.)
+  2. **Separately, immediately before running `gh pr merge`: is `[Unreleased]` on `main` (i.e.
+     including this PR's about-to-land entry) now non-empty?** If yes, *this merge* must also cut it
+     into a dated `## [x.y.z] - YYYY-MM-DD` section and bump both version fields — right now, as part
+     of getting this merge ready, not as a follow-up once it's noticed. Passing check 1 on every PR
+     does **not** imply check 2 has been done — re-verify check 2 at every single merge, even several
+     in a row in the same session where the first one already got it right.
+
+  Reason this is called out explicitly: in the reference project, 16 merged PRs in a row once landed
+  on `main` with CHANGELOG content left sitting in `[Unreleased]` and the version never bumped,
+  because "tests are green" was treated as the whole bar — recovering required a dedicated
+  archaeology pass to reconstruct dated CHANGELOG sections after the fact. It recurred at smaller
+  scale later (one PR correctly cut a release; the next three each added a correct per-PR
+  `[Unreleased]` entry without re-cutting at merge time) — narrative instructions alone didn't
+  survive a fast run of consecutive merge approvals in one session there, so treat this as a habit to
+  build now rather than a problem to notice later once this project has its own CI.
+- **Perform the release cut (CHANGELOG section + version bump) as a commit on the feature branch
+  itself, before merging — never as a separate follow-up `chore(release)` branch/PR.** A standalone
+  release-cut PR touching only `CHANGELOG.md` and the two version fields still pays for a full CI run
+  (once this project has one) against a diff with no code in it, for no benefit.
 - **Merge strategy**: squash and delete the branch (`gh pr merge --squash --delete-branch`) once
   approved.
 

@@ -43,7 +43,7 @@ function App() {
   if (session.status === 'checking') {
     return (
       <main>
-        <p role="status">Loading…</p>
+        <output>Loading…</output>
       </main>
     )
   }

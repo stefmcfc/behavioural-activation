@@ -67,11 +67,38 @@ schema ahead of a spec.
   in `ROADMAP.md` (or move it from "Specced, coming soon" to "Delivered" if every AC in the spec is
   now checked, and add the corresponding `CHANGELOG.md` entry).
 
+## Static-analysis / Sonar cleanup patterns
+
+Not yet needed here (no sonar pass has run on this codebase), but carried over from the reference
+project's own cleanup pass (2026-08-25) since the stack matches closely (same Spring Boot 4.1.x /
+Spock-Groovy generation) — reuse rather than re-deriving when `sonar-cleanup` eventually runs here:
+
+- **Cognitive-complexity on a flat/nested sequence of independent guard-clause checks** (e.g. a
+  `validate(...)`/field-copy method with a dozen `if (x != null) ...`): extract each independent
+  check into its own well-named private method; the calling method becomes a straight-line sequence
+  of calls. If one check genuinely depends on another's side effect, keep that call order — don't
+  parallelize/reorder blindly.
+- **Self-invocation of a `@Transactional` method from a sibling public method in the same class
+  bypasses Spring's proxy** (`java:S6809`) even when both carry the same annotation. Fix: extract the
+  shared body into a private, non-`@Transactional` helper that both public entry points call — don't
+  reach for self-injection (`@Lazy` self-reference) unless propagation/isolation genuinely differs.
+- **A wide constructor on a class that's deliberately "one thing backing many endpoints/operations"**
+  is often not a real design smell — inventing an artificial grouping object purely to shrink the
+  parameter count is the over-engineering CLAUDE.md warns against. `@SuppressWarnings("java:S107")`
+  plus a one-line comment explaining the architectural reason is the right call there.
+- **`.collect(Collectors.toList())` → `.toList()`** is only safe when the result is never mutated
+  afterward (`.toList()` is unmodifiable) — check every call site's downstream usage before a bulk
+  replace, don't assume.
+- **Root-cause over per-site patching**: if the same nullable-return concern is flagged at several
+  call sites of one shared method, fix it once at the source (normalize to an empty/default value
+  there) rather than adding a null-check at each flagged call site — it also closes the gap at
+  unflagged call sites sharing the same risk.
+
 ## Commands
 
 ```bash
 cd backend
-gradlew.bat bootRun                                    # dev server on :8080
+gradlew.bat bootRun                                    # dev server on :8420
 gradlew.bat test                                        # full Spock suite
 gradlew.bat test --tests "uk.co.stefirby.behaviouralactivation.service.ActivityServiceSpec"
 gradlew.bat build                                        # full build

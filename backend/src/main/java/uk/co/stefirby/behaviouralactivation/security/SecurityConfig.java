@@ -32,13 +32,16 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
         return configuration.getAuthenticationManager();
     }
 
+    // CSRF disabled deliberately for V1 -- see class javadoc; SameSite=Lax cookies + CORS allow-list
+    // are the practical defense for this single-user, not-yet-public app.
+    @SuppressWarnings("java:S4502")
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource,
-            ObjectMapper objectMapper) throws Exception {
+            ObjectMapper objectMapper) {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
