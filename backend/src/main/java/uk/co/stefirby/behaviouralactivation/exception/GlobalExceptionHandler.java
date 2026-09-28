@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -37,6 +38,15 @@ public class GlobalExceptionHandler {
             fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiError.of("Validation failed", fieldErrors));
+    }
+
+    // Covers a malformed JSON body, including an invalid enum literal (e.g. "category": "FUN") --
+    // without this handler, deserialization failures fall through to the catch-all 500 below.
+    // See PLANNER-002-AC-04/AC-14.
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleMalformedRequest(HttpMessageNotReadableException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ApiError.of("Malformed request body"));
     }
 
     @ExceptionHandler(Exception.class)

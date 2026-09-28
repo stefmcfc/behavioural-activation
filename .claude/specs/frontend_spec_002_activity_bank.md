@@ -1,6 +1,13 @@
 # Activity Bank (Frontend)
 
-**Status**: Not started
+**Status**: Implemented and unit/component-tested — `frontend/src/services/{client.ts,activityApi.ts}`,
+`frontend/src/types/activity.ts`, `frontend/src/components/ActivityBank/{ActivityBank.tsx,
+ActivityForm.tsx,CategoryPicker.tsx}`, wired into `App.tsx`'s authenticated view. All `[AUTO]` ACs
+verified by Vitest + RTL specs (`activityApi.test.ts`, `CategoryPicker.test.tsx`,
+`ActivityForm.test.tsx`, `ActivityBank.test.tsx`) with `activityApi` mocked throughout — the real
+backend from the paired `planner_spec_002_activity_bank.md` wasn't available while this was built, so
+end-to-end verification against a live backend is still outstanding and should happen before/at
+merge once both halves land.
 **Priority**: P1
 **Depends on**: `planner_spec_002_activity_bank.md` (paired backend spec), `frontend_spec_001_login.md`
 (session-aware client pattern, `ApiError`)
@@ -262,31 +269,31 @@ describe('FRONTEND-002-AC-18: edit form prefills from existing activity data', (
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-002-AC-01 — shared `client.ts` extracted, used by both `authApi` and `activityApi`
-- [ ] FRONTEND-002-AC-02 — `getAll()` unwraps `{data, count}` envelope
-- [ ] FRONTEND-002-AC-03 — `create()` posts and returns created activity
-- [ ] FRONTEND-002-AC-04 — `update()` puts and returns updated activity
-- [ ] FRONTEND-002-AC-05 — `remove()` deletes
-- [ ] FRONTEND-002-AC-06 — failures throw typed `ApiError`
-- [ ] FRONTEND-002-AC-07 — list fetched on mount
-- [ ] FRONTEND-002-AC-08 — loading state via `<output>`
-- [ ] FRONTEND-002-AC-09 — empty state message
-- [ ] FRONTEND-002-AC-10 — populated list renders name/category/description
-- [ ] FRONTEND-002-AC-11 — fetch failure shows `role="alert"`
-- [ ] FRONTEND-002-AC-12 — valid create submit calls API
-- [ ] FRONTEND-002-AC-13 — blank name blocks submit
-- [ ] FRONTEND-002-AC-14 — no category blocks submit
-- [ ] FRONTEND-002-AC-15 — success adds to list, clears form
-- [ ] FRONTEND-002-AC-16 — create failure preserves entered values
-- [ ] FRONTEND-002-AC-17 — in-flight create disables submit + shows loading
-- [ ] FRONTEND-002-AC-18 — edit form prefills from existing data
-- [ ] FRONTEND-002-AC-19 — valid edit submit calls API
-- [ ] FRONTEND-002-AC-20 — success replaces list entry
-- [ ] FRONTEND-002-AC-21 — edit failure stays in edit mode
-- [ ] FRONTEND-002-AC-22 — delete uses inline confirm, not `window.confirm()`
-- [ ] FRONTEND-002-AC-23 — confirm calls `remove()`
-- [ ] FRONTEND-002-AC-24 — cancel dismisses without calling `remove()`
-- [ ] FRONTEND-002-AC-25 — success removes from list
-- [ ] FRONTEND-002-AC-26 — failure shows alert, non-optimistic (activity stays)
-- [ ] FRONTEND-002-AC-27 — `CategoryPicker` renders exactly 3 options
-- [ ] FRONTEND-002-AC-28 — `CategoryPicker` shared by create/edit modes
+- [x] FRONTEND-002-AC-01 — shared `client.ts` extracted, used by both `authApi` and `activityApi`
+- [x] FRONTEND-002-AC-02 — `getAll()` unwraps `{data, count}` envelope
+- [x] FRONTEND-002-AC-03 — `create()` posts and returns created activity
+- [x] FRONTEND-002-AC-04 — `update()` puts and returns updated activity
+- [x] FRONTEND-002-AC-05 — `remove()` deletes
+- [x] FRONTEND-002-AC-06 — failures throw typed `ApiError`
+- [x] FRONTEND-002-AC-07 — list fetched on mount
+- [x] FRONTEND-002-AC-08 — loading state via `<output>`
+- [x] FRONTEND-002-AC-09 — empty state message
+- [x] FRONTEND-002-AC-10 — populated list renders name/category/description
+- [x] FRONTEND-002-AC-11 — fetch failure shows `role="alert"`
+- [x] FRONTEND-002-AC-12 — valid create submit calls API
+- [x] FRONTEND-002-AC-13 — blank name blocks submit
+- [x] FRONTEND-002-AC-14 — no category blocks submit
+- [x] FRONTEND-002-AC-15 — success adds to list, clears form
+- [x] FRONTEND-002-AC-16 — create failure preserves entered values
+- [x] FRONTEND-002-AC-17 — in-flight create disables submit + shows loading
+- [x] FRONTEND-002-AC-18 — edit form prefills from existing data
+- [x] FRONTEND-002-AC-19 — valid edit submit calls API
+- [x] FRONTEND-002-AC-20 — success replaces list entry
+- [x] FRONTEND-002-AC-21 — edit failure stays in edit mode
+- [x] FRONTEND-002-AC-22 — delete uses inline confirm, not `window.confirm()`
+- [x] FRONTEND-002-AC-23 — confirm calls `remove()`
+- [x] FRONTEND-002-AC-24 — cancel dismisses without calling `remove()`
+- [x] FRONTEND-002-AC-25 — success removes from list
+- [x] FRONTEND-002-AC-26 — failure shows alert, non-optimistic (activity stays)
+- [x] FRONTEND-002-AC-27 — `CategoryPicker` renders exactly 3 options
+- [x] FRONTEND-002-AC-28 — `CategoryPicker` shared by create/edit modes

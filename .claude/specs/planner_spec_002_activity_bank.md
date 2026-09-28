@@ -1,6 +1,20 @@
 # Activity Bank (Backend)
 
-**Status**: Not started
+**Status**: Implemented and verified — `backend/src/main/java/uk/co/stefirby/behaviouralactivation/
+{model/Activity.java, model/ActivityCategory.java, repository/ActivityRepository.java,
+service/ActivityService.java, controller/ActivityController.java, dto/ActivityRequest.java,
+dto/ActivityResponse.java, dto/ActivityListResponse.java}`,
+`backend/src/main/resources/db/migration/V002__create_activities_table.sql`.
+`GlobalExceptionHandler` extended with an `HttpMessageNotReadableException` → 400 handler (the
+design decision this spec calls out). All `[AUTO]` ACs verified by Spock specs under
+`backend/src/test/groovy/.../{model,service,controller,exception}/` — `ActivitySpec`,
+`ActivityServiceSpec`, `ActivityControllerSpec`, plus an added case in `GlobalExceptionHandlerSpec`.
+Owner-scoping lives entirely in `ActivityService` (resolves the `User` from the authenticated
+username via `UserRepository`, never trusts the request body); not-found and cross-owner access are
+both surfaced as an empty `Optional`/`false` from the service, so the controller's 404 response is
+identical either way with no distinguishing detail (PLANNER-002-AC-18). Full suite: 55 tests, 0
+failures (`gradlew.bat test`, run against the real Postgres instance via Docker Compose — the
+`V002` migration applies cleanly).
 **Priority**: P1 — first feature spec on top of auth; blocks Week Planning (pair 3), which
 references `Activity`
 **Depends on**: `planner_spec_001_auth.md` (authenticated principal, `SecurityFilterChain`,
@@ -321,22 +335,22 @@ def "PLANNER-002-AC-19: an unauthenticated request to /api/v1/activities returns
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-002-AC-01 — POST creates and returns activity, 201
-- [ ] PLANNER-002-AC-02 — owner assigned from principal, never from request body
-- [ ] PLANNER-002-AC-03 — blank/missing name → 400
-- [ ] PLANNER-002-AC-04 — missing/invalid category → 400
-- [ ] PLANNER-002-AC-05 — optional description stored or null
-- [ ] PLANNER-002-AC-06 — category is exactly one of 3 fixed enum values
-- [ ] PLANNER-002-AC-07 — category is changeable via PUT
-- [ ] PLANNER-002-AC-08 — list scoped to owner only
-- [ ] PLANNER-002-AC-09 — list response is `{data, count}` envelope
-- [ ] PLANNER-002-AC-10 — list sorted alphabetically by name
-- [ ] PLANNER-002-AC-11 — empty bank returns `{data: [], count: 0}`, not an error
-- [ ] PLANNER-002-AC-12 — PUT updates name/category/description, 200
-- [ ] PLANNER-002-AC-13 — PUT blank name → 400
-- [ ] PLANNER-002-AC-14 — PUT invalid category → 400
-- [ ] PLANNER-002-AC-15 — PUT on another owner's activity → 404
-- [ ] PLANNER-002-AC-16 — DELETE removes activity, 204
-- [ ] PLANNER-002-AC-17 — DELETE on another owner's activity → 404
-- [ ] PLANNER-002-AC-18 — not-found and not-yours are indistinguishable (404 both)
-- [ ] PLANNER-002-AC-19 — existing SecurityFilterChain rule already covers new endpoints (regression test, no SecurityConfig change)
+- [x] PLANNER-002-AC-01 — POST creates and returns activity, 201
+- [x] PLANNER-002-AC-02 — owner assigned from principal, never from request body
+- [x] PLANNER-002-AC-03 — blank/missing name → 400
+- [x] PLANNER-002-AC-04 — missing/invalid category → 400
+- [x] PLANNER-002-AC-05 — optional description stored or null
+- [x] PLANNER-002-AC-06 — category is exactly one of 3 fixed enum values
+- [x] PLANNER-002-AC-07 — category is changeable via PUT
+- [x] PLANNER-002-AC-08 — list scoped to owner only
+- [x] PLANNER-002-AC-09 — list response is `{data, count}` envelope
+- [x] PLANNER-002-AC-10 — list sorted alphabetically by name
+- [x] PLANNER-002-AC-11 — empty bank returns `{data: [], count: 0}`, not an error
+- [x] PLANNER-002-AC-12 — PUT updates name/category/description, 200
+- [x] PLANNER-002-AC-13 — PUT blank name → 400
+- [x] PLANNER-002-AC-14 — PUT invalid category → 400
+- [x] PLANNER-002-AC-15 — PUT on another owner's activity → 404
+- [x] PLANNER-002-AC-16 — DELETE removes activity, 204
+- [x] PLANNER-002-AC-17 — DELETE on another owner's activity → 404
+- [x] PLANNER-002-AC-18 — not-found and not-yours are indistinguishable (404 both)
+- [x] PLANNER-002-AC-19 — existing SecurityFilterChain rule already covers new endpoints (regression test, no SecurityConfig change)

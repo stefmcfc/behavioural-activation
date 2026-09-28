@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+- Added the Activity Bank: create, list, edit, and delete activities with a Routine/Necessary/
+  Pleasurable category (`planner_spec_002_activity_bank.md`/`frontend_spec_002_activity_bank.md`).
+  Every activity is scoped to its owner; a cross-owner or nonexistent `id` returns `404` in both
+  cases identically, never `403`.
+- Fixed: an invalid `category` value in a request body (e.g. `"FUN"`) returned `500` instead of
+  `400` — `GlobalExceptionHandler` now maps `HttpMessageNotReadableException` to `400`.
+- Extracted a shared `frontend/src/services/client.ts` (axios instance + `request<T>()` wrapper) out
+  of `authApi.ts`, so `activityApi.ts` doesn't duplicate the session-cookie client setup. No
+  behavior change to existing auth requests.
+
 ## [0.1.0] - 2026-09-28
 
 - Fixed new SonarQube findings on `SecurityConfig.java`: removed an unnecessary `throws Exception`
