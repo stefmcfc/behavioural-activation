@@ -3,10 +3,10 @@
 **Maintenance rule**: update this file in the same change that creates, amends, or deletes an
 endpoint — don't defer it to a later documentation pass.
 
-**Status**: `Auth` below is the first real section — everything else is still pending its own spec.
-This file establishes where endpoint documentation lives from the start (see `PROCESS_CHANGES.md`
-for why: a per-endpoint table/list belongs in its own file, not folded into `README.md`, since it's
-high-churn and unrelated to a general project overview).
+**Status**: `Auth` and `Activities` below are real, implemented sections — the rest are still pending
+their own spec. This file establishes where endpoint documentation lives from the start (see
+`PROCESS_CHANGES.md` for why: a per-endpoint table/list belongs in its own file, not folded into
+`README.md`, since it's high-churn and unrelated to a general project overview).
 
 ## Format
 
@@ -51,7 +51,24 @@ Error responses (auth or otherwise) share one shape: `{ "message": "...", "detai
 
 ## Activities
 
-*(none yet)*
+All endpoints below require an authenticated session (see Auth above) and are scoped to the
+authenticated user — an `id` that doesn't exist or belongs to a different user returns `404` in
+both cases identically, never `403`.
+
+- **`GET /api/v1/activities`** — returns `200` with `{ "data": [...], "count": N }`, the
+  authenticated user's activities ordered alphabetically by name. Empty bank returns `{ "data": [],
+  "count": 0 }`, not an error.
+- **`POST /api/v1/activities`** — body `{ "name": "...", "category": "ROUTINE" | "NECESSARY" |
+  "PLEASURABLE", "description": "..." | null }`. Returns `201` with the created activity. `400` if
+  `name` is blank/missing or `category` is missing/invalid.
+- **`PUT /api/v1/activities/{id}`** — same body shape as create; full replace of `name`, `category`,
+  `description`. Returns `200` with the updated activity, `400` on the same validation failures as
+  create, `404` if `id` isn't owned by the authenticated user.
+- **`DELETE /api/v1/activities/{id}`** — permanently deletes the activity. Returns `204`, or `404`
+  if `id` isn't owned by the authenticated user.
+
+No `GET /api/v1/activities/{id}` endpoint — the frontend prefills its edit form from the
+already-fetched list.
 
 ## Planner / Weekly Grid
 

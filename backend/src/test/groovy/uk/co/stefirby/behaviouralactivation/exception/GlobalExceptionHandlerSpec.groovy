@@ -1,6 +1,8 @@
 package uk.co.stefirby.behaviouralactivation.exception
 
+import org.springframework.http.HttpInputMessage
 import org.springframework.http.HttpStatus
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.validation.BeanPropertyBindingResult
@@ -40,5 +42,19 @@ class GlobalExceptionHandlerSpec extends Specification {
         and: "the body carries the field-level details"
             response.body.message() == "Validation failed"
             response.body.details() == [username: "username is required"]
+    }
+
+    def "PLANNER-002 design decision: renders a malformed JSON body (e.g. an invalid enum literal) as 400, not the 500 catch-all"() {
+        given: "a message-not-readable exception, as Jackson throws for an invalid enum literal like category: FUN"
+            def ex = new HttpMessageNotReadableException("JSON parse error", Stub(HttpInputMessage))
+
+        when: "the exception is handled"
+            def response = handler.handleMalformedRequest(ex)
+
+        then: "the status is 400, not 500"
+            response.statusCode == HttpStatus.BAD_REQUEST
+
+        and: "the body has a message and no stack trace field"
+            response.body.message() != null
     }
 }

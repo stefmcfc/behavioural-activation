@@ -3,14 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from './App'
 import { authApi } from './services/authApi'
+import { activityApi } from './services/activityApi'
 import type { User } from './types/auth'
 
 vi.mock('./services/authApi')
+vi.mock('./services/activityApi')
 
 describe('App', () => {
   beforeEach(() => {
     vi.mocked(authApi.me).mockReset()
     vi.mocked(authApi.logout).mockReset()
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
   })
 
   describe('FRONTEND-001-AC-08/AC-09: session check on mount', () => {
