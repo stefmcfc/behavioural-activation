@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
 - Added the Activity Bank: create, list, edit, and delete activities with a Routine/Necessary/
   Pleasurable category (`planner_spec_002_activity_bank.md`/`frontend_spec_002_activity_bank.md`).
   Every activity is scoped to its owner; a cross-owner or nonexistent `id` returns `404` in both
