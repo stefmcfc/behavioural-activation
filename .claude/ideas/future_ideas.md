@@ -60,6 +60,28 @@ integration, therapy-worksheet import, therapist-facing export, multiple activit
 natural-language activity entry, voice input, local/on-device AI, more sophisticated trend
 analysis, activity effectiveness scoring, social/connection activity tracking.
 
+## Split an activity into smaller sub-tasks
+
+**Status**: Not specced. Raised 2026-09-28, after the Activity Bank (pair 2) shipped. Idea: let a
+user break one activity down into a checklist of smaller tasks — e.g. "Organise a birthday party"
+decomposed into main tasks (Create a guest list, Send invitations, Plan the menu, Decorate the
+venue, Arrange entertainment), each of which could itself have smaller steps (e.g. "Create a guest
+list" → decide on numbers, list friends/family, finalise the list). Distinct from two related ideas
+already noted elsewhere — don't conflate:
+- The V3 AI-suggestion scenario in `HIGH_LEVEL_DESIGN.md` ("I keep postponing cleaning the
+  bathroom" → the app suggests breaking it into a smaller task) is an ephemeral, in-the-moment
+  *suggestion*, not a persisted structural feature — no data is created or tracked from it.
+- "Multiple activity templates" (feasibility review, below) means reusable presets for creating
+  *similar* activities, not decomposing *one* activity into a hierarchy.
+
+Real open questions if this is ever pursued, not yet answered: whether sub-tasks are a
+self-referential relationship on `Activity` itself or a new child entity; whether a sub-task needs
+its own category or inherits the parent's; and — the one with the most forward-reaching
+consequence — whether Week Planning (pair 3, not yet specced) plans/completes the parent activity
+or the individual sub-tasks, since that shapes `PlannedOccurrence`'s reference target. If this idea
+progresses to a spec candidate, it should be resolved before or alongside pair 3, not after, since
+pair 3's schema would otherwise need to be redesigned rather than extended.
+
 ## Self-hosted/local LLM inference for AI features
 
 **Status**: Not specced — deliberately deferred, not rejected. See
