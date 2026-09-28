@@ -1,3 +1,12 @@
+server:
+  port: ${SERVER_PORT:8420}
+  servlet:
+    session:
+      cookie:
+        # PLANNER-001-AC-15: CSRF is disabled (see the spec's Non-functional notes), so this is the
+        # practical CSRF defense for the session cookie, alongside the CORS allow-list.
+        same-site: lax
+
 spring:
   application:
     name: behaviouralactivation
@@ -14,4 +23,7 @@ spring:
 
 app:
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins: http://localhost:4321
+  bootstrap:
+    username: ${APP_BOOTSTRAP_USERNAME:}
+    password: ${APP_BOOTSTRAP_PASSWORD:}

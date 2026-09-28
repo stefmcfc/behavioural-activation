@@ -30,6 +30,13 @@ directly if this drifts, the same way the reference project's `tech.md` does.
   yet — only the starter dependency, added at scaffolding time so it's never bolted on later.
 - **No Lombok** — plain Java, explicit constructors/getters, records for small immutable DTOs (per
   global Java defaults)
+- **Jackson 3.x, not 2.x** — Boot 4.1's default JSON binding pulls in `tools.jackson.core:jackson-databind`
+  (Jackson 3), not the classic `com.fasterxml.jackson.databind` (2.x) artifact. `ObjectMapper` and
+  friends live under the `tools.jackson.databind`/`tools.jackson.core` package root now — only
+  `jackson-annotations` (used for `@JsonProperty` etc.) stays under the old `com.fasterxml.jackson.annotation`
+  package for compatibility. Discovered while wiring `planner_spec_001_auth.md`'s custom
+  `AuthenticationEntryPoint`, which needed `ObjectMapper` directly — check actual imports compile
+  rather than assuming the Jackson 2 package names from habit.
 
 ### Frontend
 - **React 19**: component-based UI
@@ -73,6 +80,10 @@ Compose) and there's no later migration surprise. Run locally via Docker Compose
   the `groovy` Gradle plugin.
 - **JUnit Platform** as the underlying test runner (`useJUnitPlatform()`), same as the reference
   project — Spock runs on top of it, tests just aren't written in raw JUnit/Mockito style.
+- **Test-slice annotation packages moved in Boot 4.1's modular split** — e.g. `@WebMvcTest` now
+  lives at `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest` (from
+  `spring-boot-webmvc-test`), not the old `org.springframework.boot.test.autoconfigure.web.servlet`
+  package. Verify the actual import compiles rather than assuming Boot 2/3-era package paths.
 
 ### Frontend
 - **Vitest** (Vite-native) + **React Testing Library** + **@testing-library/user-event**
@@ -128,17 +139,36 @@ scan) once there's code to run it against. Model it on the reference project's
 - If a variable needs documenting for other developers, add it to a checked-in `.env.example` with
   a placeholder value, never the real one.
 
+## Local ports
+
+Backend and frontend dev servers are pinned to static, non-default ports rather than Spring Boot's
+`8080`/Vite's `5173` defaults, since those are common enough that another app on the machine is
+likely already holding them:
+
+- **Backend**: `8420` (`server.port` in `application.yml`, overridable via `SERVER_PORT`)
+- **Frontend**: `4321` (`server.port` in `vite.config.ts`, with `strictPort: true` so Vite fails
+  loudly instead of silently picking a different port if `4321` is taken, rather than masking a real
+  conflict)
+
+`app.cors.allowed-origins` (backend) and the Vite dev-server proxy target both point at these ports.
+If either ever needs to change, update both together plus `frontend/src/services/*Api.ts`'s
+`VITE_API_BASE` fallback — see `RUNBOOK.md` for the full list of places a port change touches.
+
 ## Common Commands
+
+See also `scripts/start-dev.sh`/`stop-dev.sh`/`restart-dev.sh` (RUNBOOK.md's "Quick Start (scripts)"
+section) for launching both dev servers in the background with health-check-based readiness
+reporting, instead of the manual commands below in separate terminals.
 
 ```bash
 # Backend (from backend/)
-gradlew.bat bootRun            # start dev server
+gradlew.bat bootRun            # start dev server on :8420
 gradlew.bat test               # run Spock tests
 gradlew.bat build              # full build
 
 # Frontend (from frontend/)
 npm install
-npm run dev                    # Vite dev server, proxies /api to :8080
+npm run dev                    # Vite dev server on :4321, proxies /api to :8420
 npm test                       # Vitest, single run
 npm run test:watch             # Vitest watch mode
 npm run lint                   # oxlint

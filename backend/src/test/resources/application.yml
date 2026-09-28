@@ -6,3 +6,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+app:
+  cors:
+    allowed-origins: http://localhost:4321
+  bootstrap:
+    # UserBootstrapRunner fails startup if unset and no User row exists yet -- unlike
+    # application.yml (dev/prod), the test profile needs a self-contained default so
+    # gradlew.bat test passes reproducibly without a developer/CI first exporting real
+    # secrets. Fixed test-only values, not a real credential; still overridable.
+    username: ${APP_BOOTSTRAP_USERNAME:test-user}
+    password: ${APP_BOOTSTRAP_PASSWORD:test-password}

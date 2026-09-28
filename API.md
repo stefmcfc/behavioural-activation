@@ -3,9 +3,10 @@
 **Maintenance rule**: update this file in the same change that creates, amends, or deletes an
 endpoint — don't defer it to a later documentation pass.
 
-**Status**: empty — no backend exists yet. This file establishes where endpoint documentation lives
-from the start (see `PROCESS_CHANGES.md` for why: a per-endpoint table/list belongs in its own file,
-not folded into `README.md`, since it's high-churn and unrelated to a general project overview).
+**Status**: `Auth` below is the first real section — everything else is still pending its own spec.
+This file establishes where endpoint documentation lives from the start (see `PROCESS_CHANGES.md`
+for why: a per-endpoint table/list belongs in its own file, not folded into `README.md`, since it's
+high-churn and unrelated to a general project overview).
 
 ## Format
 
@@ -28,6 +29,25 @@ reasonable later addition; a mechanical one-example-per-endpoint expansion is no
 
 Cross-cutting API behavior that isn't a specific endpoint (sorting semantics, CORS configuration,
 auth requirements) belongs in this file too, not scattered into `README.md`.
+
+## Auth
+
+Every `/api/v1/**` endpoint requires an authenticated session, except `POST /api/v1/auth/login` and
+`POST /api/v1/auth/logout` (see `.claude/specs/planner_spec_001_auth.md`). There is no
+self-registration — exactly one user is bootstrap-seeded on first startup from
+`APP_BOOTSTRAP_USERNAME`/`APP_BOOTSTRAP_PASSWORD`. Auth is session-cookie based (not token-based);
+CSRF is disabled, so cross-origin cookie support relies on `app.cors.allowed-origins` (never a
+wildcard) plus a `SameSite=Lax` session cookie.
+
+- **`POST /api/v1/auth/login`** — body `{ "username": "...", "password": "..." }`. On success,
+  authenticates and stores the session, returns `200` with `{ "username": "..." }`. Returns `401`
+  with a generic message on bad credentials, `400` if either field is missing/blank.
+- **`POST /api/v1/auth/logout`** — invalidates the current session if one exists. Always returns
+  `200`, even with no active session (idempotent).
+- **`GET /api/v1/auth/me`** — returns `200` with `{ "username": "..." }` if the session is
+  authenticated, `401` otherwise.
+
+Error responses (auth or otherwise) share one shape: `{ "message": "...", "details": null | {...} }`.
 
 ## Activities
 
