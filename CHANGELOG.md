@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-28
+
 - Fixed new SonarQube findings on `SecurityConfig.java`: removed an unnecessary `throws Exception`
   from the `authenticationManager`/`securityFilterChain` beans (Spring Security 7.1.1 no longer
   declares a checked exception there — `java:S112`/`java:S1130`), and suppressed `java:S4502` (CSRF
