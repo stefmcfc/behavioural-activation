@@ -14,28 +14,62 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-09-29 (frontend styling pass added).
+Last updated: 2026-09-29 (header nav restructure + account/profile menu added).
 
 ---
 
 ## Candidates
 
-## Frontend styling pass
+## Header restructure: Settings + Account/Profile icons, tabs demoted to a second row
 
-**Status**: Confirmed, not yet specced. Raised 2026-09-29 after noticing the app still renders with
-no real styling (login/activity-bank/sub-tasks all shipped against Vite's default `index.css` only
-— `.claude/steering/frontend_conventions.md`'s "Styling" section has flagged this as an undecided
-placeholder, leaning CSS Modules, since project creation, but the decision was never actually made
-or recorded when the first component shipped as that section says it should be).
+**Status**: Confirmed, not yet specced. Raised 2026-09-29 while reviewing the visual refresh —
+"Logged in as steve" as static text plus a separate "Log out" button in the page body was flagged
+as not really adding anything. Proposed replacement: a top nav row of **Title | Settings icon |
+Account/profile icon**, with the Activities/Weekly planner tabs demoted to a second row beneath it.
+Settings and Account/Profile are two separate icons/menus, not combined — confirmed with the user
+2026-09-29: they're different categories (Settings = how the app looks/behaves; Account/Profile =
+who I am), and starting separated avoids re-splitting a combined menu later once Account/Profile
+grows past just a username.
 
-Explicitly sequenced **after Week Planning (pair 4) ships**, not before — confirmed with the user
-2026-09-29: functionality first, one deliberate styling pass afterward rather than restyling
-piecemeal as each spec pair lands. When this is picked up: resolve the CSS Modules decision for
-real (one `*.module.css` per component, Vite scopes it automatically), introduce shared theme
-custom properties (`--text`, `--bg`, `--border`, `--accent`, etc. per `frontend_conventions.md`)
-rather than hardcoded hex values so light/dark mode and contrast stay correct, and apply it
-retroactively across the existing login, activity bank, and sub-task checklist UI in one pass
-rather than only new components going forward.
+Account/Profile menu content, V1: just the username (replacing "Logged in as X") and the Log out
+action (replacing the standalone button). Explicitly designed with room to grow: notifications/email
+preferences, change password, etc. are plausible later additions to this same menu, not this
+candidate's scope — don't build those ahead of a concrete need, per this project's usual
+not-ahead-of-need rule.
+
+Touches `TabNav` (`frontend_spec_005_navigation_and_theme.md`), `App.tsx`'s header markup, and
+likely wants two new small icon-triggered menu/dropdown components (Settings, Account) — the
+existing `/settings` route's content (theme, category colours) would move into the Settings icon's
+menu rather than being its own tab. Needs its own real design pass (icon choice, menu/dropdown
+interaction pattern, keyboard/focus handling) before writing ACs, not just a markup reshuffle.
+
+## Weekly grid orientation toggle (Settings)
+
+**Status**: Confirmed, not yet specced. Raised 2026-09-29 while reviewing the "Quiet Room" visual
+refresh (`frontend_spec_007_visual_refresh.md`). Two layout directions for the weekly grid were
+mocked up (published as a Claude.ai Artifact, not part of the repo) — **A**: Morning/Afternoon/
+Evening as rows with Monday-Friday as a shared column-header row; **B**: each day as its own
+row/section with Morning/Afternoon/Evening boxes side by side within it. Both variants show the
+slot label as small mono/uppercase text *inside* each box (confirmed better than either variant's
+original shared-header treatment for that axis — already implemented as the interim default,
+`PlannerGrid.tsx`/`.module.css`, using orientation A's day-columns structure).
+
+The user hasn't decided between A and B and wants a **Settings toggle** to switch between them
+(matching the theme-preference mechanism already in `frontend_spec_005`'s `Settings`/
+`utils/theme.ts` — likely `localStorage`, no backend). Real work, not a quick CSS tweak: `PlannerGrid`
+needs both layouts implemented and gated by the setting, not just a visual swap — the underlying
+grouping (which axis is "major") differs structurally between A and B. Sequence this whenever picked
+up: the interim single-orientation implementation already ships in spec 007, so this candidate is
+purely additive (a second layout + the toggle), not a redo.
+
+## Frontend button visual hierarchy (primary/secondary)
+
+**Status**: Confirmed, not yet specced. Deferred scope from `frontend_spec_007_visual_refresh.md`'s
+Requirement 3 (documented in that spec's Out-of-scope section): every button currently gets an
+identical pill+shadow treatment, with no visual distinction between a primary action (e.g. "Add
+activity", "Log in") and a secondary one (e.g. "Delete", "Cancel"). Fixing this means adding
+`className`/variant props across every component that renders a button, not just a CSS change —
+real scope, deliberately not bundled into the visual-refresh pass.
 
 The V1–V5 roadmap in `.claude/HIGH_LEVEL_DESIGN.md` §3 already lists the major themes and user
 stories (US-001 through US-018) with acceptance criteria at the epic level — those are the initial
