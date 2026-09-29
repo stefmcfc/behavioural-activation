@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-29
+
+- Added sub-tasks: split an activity into a flat checklist of child tasks that inherit the parent's
+  category as a one-time snapshot (`planner_spec_003_sub_tasks.md`/
+  `frontend_spec_003_sub_tasks.md`). New nested endpoints under
+  `/api/v1/activities/{activityId}/sub-tasks` (create/list/rename/delete); deleting an activity
+  cascades to delete its sub-tasks. Frontend adds an expandable checklist under each activity in the
+  Activity Bank, with the same inline add/rename/delete-confirm pattern as activities themselves.
+
 ## [0.2.0] - 2026-09-28
 
 - Added the Activity Bank: create, list, edit, and delete activities with a Routine/Necessary/

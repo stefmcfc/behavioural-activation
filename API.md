@@ -70,6 +70,35 @@ both cases identically, never `403`.
 No `GET /api/v1/activities/{id}` endpoint — the frontend prefills its edit form from the
 already-fetched list.
 
+### Sub-tasks
+
+Lets an activity be broken down into a checklist of smaller sub-tasks (one level deep only — no
+recursive sub-sub-tasks). All endpoints below are nested under the parent activity, require an
+authenticated session, and are scoped to the authenticated user: an `activityId` or sub-task `id`
+that doesn't exist or belongs to a different user returns `404` in every case identically, never
+`403`. A sub-task's `category` is copied from its parent activity once, at creation time, and is
+never client-supplied or editable afterward — it does not track later changes to the parent
+activity's own category.
+
+- **`GET /api/v1/activities/{activityId}/sub-tasks`** — returns `200` with `{ "data": [...], "count":
+  N }`, the parent activity's sub-tasks ordered by `createdAt` ascending. An activity with no
+  sub-tasks yet returns `{ "data": [], "count": 0 }`, not an error. `404` if `activityId` isn't owned
+  by the authenticated user.
+- **`POST /api/v1/activities/{activityId}/sub-tasks`** — body `{ "name": "..." }` (no `category`
+  field — it is always copied from the parent activity's current category). Returns `201` with the
+  created sub-task. `400` if `name` is blank/missing, `404` if `activityId` isn't owned by the
+  authenticated user.
+- **`PATCH /api/v1/activities/{activityId}/sub-tasks/{id}`** — body `{ "name": "..." }`; renames the
+  sub-task (category can never be changed via this endpoint). Returns `200` with the updated
+  sub-task, `400` if `name` is blank/missing, `404` if `activityId` or `id` isn't owned by the
+  authenticated user.
+- **`DELETE /api/v1/activities/{activityId}/sub-tasks/{id}`** — permanently deletes the sub-task.
+  Returns `204`, or `404` if `activityId` or `id` isn't owned by the authenticated user.
+
+No `GET /api/v1/activities/{activityId}/sub-tasks/{id}` single-item endpoint — the frontend renders
+and edits sub-tasks from the already-fetched list. Deleting an activity cascade-deletes its
+sub-tasks automatically (database-level `ON DELETE CASCADE`), not via any explicit endpoint call.
+
 ## Planner / Weekly Grid
 
 *(none yet)*

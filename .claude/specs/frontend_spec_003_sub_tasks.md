@@ -1,6 +1,21 @@
 # Split an Activity into Smaller Sub-Tasks (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — `types/subTask.ts`, `services/subTaskApi.ts`,
+`components/ActivityBank/{SubTaskList.tsx, SubTaskForm.tsx}` (new), `components/ActivityBank/
+ActivityBank.tsx` (extended with per-row expand/collapse). All `[AUTO]` ACs verified by Vitest/RTL
+specs colocated with each file (`subTaskApi.test.ts`, `SubTaskForm.test.tsx`, `SubTaskList.test.tsx`,
+plus two new `describe` blocks in `ActivityBank.test.tsx` for the expand/collapse wiring). Full
+frontend suite: 66 tests, 0 failures (`npm test`); `npm run lint` clean (oxlint, 0 warnings after
+fixing a `react/set-state-in-effect` warning); `npm run build` and `tsc -b --noEmit` clean. Also
+verified end-to-end against the real backend (`gradlew.bat bootRun` + `docker compose up -d`) via
+direct HTTP calls matching the exact `subTaskApi` request/response shapes (create, list, rename,
+delete, blank-name 400, CORS preflight from the `:4321` origin with credentials) — see
+`planner_spec_003_sub_tasks.md`'s Status field for the backend half, now both implemented. This
+spec pair (`planner_spec_003_sub_tasks.md` + this file) is fully done as of 2026-09-29. Note: no
+in-session browser-automation tool was available to drive an actual Chrome instance for this pass,
+so real-browser interaction (click-through of expand/add/rename/delete) was verified via the Vitest/
+RTL suite (jsdom) plus a full curl-based API round-trip against the running backend, not a live
+screenshot/click-through — flagged for a follow-up manual browser check before this ships.
 **Priority**: P1
 **Depends on**: `planner_spec_003_sub_tasks.md` (paired backend spec), `frontend_spec_002_activity_bank.md`
 (existing `ActivityBank`/`ActivityForm`/`CategoryPicker` components, `client.ts`/`request<T>()`
@@ -264,25 +279,25 @@ describe('FRONTEND-003-AC-22: category is shown read-only, never inside a picker
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-003-AC-01 — expand control renders `SubTaskList` for that activity
-- [ ] FRONTEND-003-AC-02 — activating expand again collapses/unmounts it
-- [ ] FRONTEND-003-AC-03 — `SubTaskList` fetches on mount
-- [ ] FRONTEND-003-AC-04 — loading state via `<output>`
-- [ ] FRONTEND-003-AC-05 — valid add submit calls `create()`
-- [ ] FRONTEND-003-AC-06 — blank name blocks add submit
-- [ ] FRONTEND-003-AC-07 — successful create adds to checklist, clears form
-- [ ] FRONTEND-003-AC-08 — in-flight create disables submit + shows loading
-- [ ] FRONTEND-003-AC-09 — rename form prefills from existing sub-task name
-- [ ] FRONTEND-003-AC-10 — valid rename submit calls `update()`
-- [ ] FRONTEND-003-AC-11 — blank name blocks rename submit
-- [ ] FRONTEND-003-AC-12 — successful rename replaces checklist entry, exits rename mode
-- [ ] FRONTEND-003-AC-13 — delete uses inline confirm, not `window.confirm()`
-- [ ] FRONTEND-003-AC-14 — confirm calls `remove()`
-- [ ] FRONTEND-003-AC-15 — cancel dismisses without calling `remove()`
-- [ ] FRONTEND-003-AC-16 — successful delete removes from checklist
-- [ ] FRONTEND-003-AC-17 — empty checklist shows explanatory message
-- [ ] FRONTEND-003-AC-18 — fetch failure shows alert + working Retry control
-- [ ] FRONTEND-003-AC-19 — create failure shows alert, preserves entered name
-- [ ] FRONTEND-003-AC-20 — rename failure shows alert, stays in rename mode
-- [ ] FRONTEND-003-AC-21 — delete failure shows alert, non-optimistic (sub-task stays)
-- [ ] FRONTEND-003-AC-22 — category shown as read-only badge, never in an editable picker
+- [x] FRONTEND-003-AC-01 — expand control renders `SubTaskList` for that activity
+- [x] FRONTEND-003-AC-02 — activating expand again collapses/unmounts it
+- [x] FRONTEND-003-AC-03 — `SubTaskList` fetches on mount
+- [x] FRONTEND-003-AC-04 — loading state via `<output>`
+- [x] FRONTEND-003-AC-05 — valid add submit calls `create()`
+- [x] FRONTEND-003-AC-06 — blank name blocks add submit
+- [x] FRONTEND-003-AC-07 — successful create adds to checklist, clears form
+- [x] FRONTEND-003-AC-08 — in-flight create disables submit + shows loading
+- [x] FRONTEND-003-AC-09 — rename form prefills from existing sub-task name
+- [x] FRONTEND-003-AC-10 — valid rename submit calls `update()`
+- [x] FRONTEND-003-AC-11 — blank name blocks rename submit
+- [x] FRONTEND-003-AC-12 — successful rename replaces checklist entry, exits rename mode
+- [x] FRONTEND-003-AC-13 — delete uses inline confirm, not `window.confirm()`
+- [x] FRONTEND-003-AC-14 — confirm calls `remove()`
+- [x] FRONTEND-003-AC-15 — cancel dismisses without calling `remove()`
+- [x] FRONTEND-003-AC-16 — successful delete removes from checklist
+- [x] FRONTEND-003-AC-17 — empty checklist shows explanatory message
+- [x] FRONTEND-003-AC-18 — fetch failure shows alert + working Retry control
+- [x] FRONTEND-003-AC-19 — create failure shows alert, preserves entered name
+- [x] FRONTEND-003-AC-20 — rename failure shows alert, stays in rename mode
+- [x] FRONTEND-003-AC-21 — delete failure shows alert, non-optimistic (sub-task stays)
+- [x] FRONTEND-003-AC-22 — category shown as read-only badge, never in an editable picker

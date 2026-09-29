@@ -3,6 +3,7 @@ import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
+import { SubTaskList } from './SubTaskList'
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -32,6 +33,7 @@ export function ActivityBank() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -134,7 +136,21 @@ export function ActivityBank() {
                   <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
                     Delete
                   </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedActivityId((current) =>
+                        current === activity.id ? null : activity.id,
+                      )
+                    }
+                  >
+                    {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
+                  </button>
                 </>
+              )}
+
+              {expandedActivityId === activity.id && (
+                <SubTaskList activityId={activity.id} category={activity.category} />
               )}
             </li>
           ))}

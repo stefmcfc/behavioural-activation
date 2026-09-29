@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ActivityBank } from './ActivityBank'
 import { activityApi } from '../../services/activityApi'
+import { subTaskApi } from '../../services/subTaskApi'
 import type { Activity } from '../../types/activity'
 
 vi.mock('../../services/activityApi')
+vi.mock('../../services/subTaskApi')
 
 const walk: Activity = {
   id: '1',
@@ -21,6 +23,7 @@ describe('ActivityBank', () => {
     vi.mocked(activityApi.create).mockReset()
     vi.mocked(activityApi.update).mockReset()
     vi.mocked(activityApi.remove).mockReset()
+    vi.mocked(subTaskApi.getAll).mockReset()
   })
 
   describe('FRONTEND-002-AC-07: fetches the list on mount', () => {
@@ -167,6 +170,21 @@ describe('ActivityBank', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByText('Walk')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-003-AC-01/AC-02: expand/collapse toggles the sub-task checklist', () => {
+    it('renders SubTaskList on expand and removes it on collapse', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+      expect(subTaskApi.getAll).toHaveBeenCalledWith('1')
+      expect(await screen.findByText(/no sub-tasks yet/i)).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /hide sub-tasks/i }))
+      expect(screen.queryByText(/no sub-tasks yet/i)).not.toBeInTheDocument()
     })
   })
 })
