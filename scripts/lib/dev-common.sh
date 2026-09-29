@@ -32,6 +32,26 @@ ensure_logs_dir() {
   mkdir -p "$LOGS_DIR"
 }
 
+# Exports every KEY=VALUE line from the repo-root .env (gitignored) into this shell, if the
+# file exists. Comments (#) and blank lines are skipped. Existing environment variables of the
+# same name are NOT overridden, so `FOO=bar bash scripts/start-dev.sh` still wins over .env.
+load_dotenv() {
+  local env_file="$REPO_ROOT/.env"
+  [ -f "$env_file" ] || return 0
+
+  local line key value
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      '' | '#'*) continue ;;
+    esac
+    key="${line%%=*}"
+    value="${line#*=}"
+    if [ -z "${!key+x}" ]; then
+      export "$key=$value"
+    fi
+  done <"$env_file"
+}
+
 # Sets TARGET (all/backend/frontend, default all) and DEBUG_MODE (0/1, default 0) from any
 # order of a backend|frontend|all positional argument and a --debug flag. Returns non-zero,
 # leaving both unset, on any other argument.
