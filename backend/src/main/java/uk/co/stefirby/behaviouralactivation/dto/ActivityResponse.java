@@ -5,6 +5,12 @@ import java.util.UUID;
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory;
 
 public record ActivityResponse(
-    UUID id, String name, ActivityCategory category, String description, Instant createdAt
+    UUID id,
+    String name,
+    ActivityCategory category,
+    String description,
+    boolean repeatable,
+    boolean archived,
+    Instant createdAt
 ) {
 }

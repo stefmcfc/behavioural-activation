@@ -56,17 +56,37 @@ All endpoints below require an authenticated session (see Auth above) and are sc
 authenticated user — an `id` that doesn't exist or belongs to a different user returns `404` in
 both cases identically, never `403`.
 
-- **`GET /api/v1/activities`** — returns `200` with `{ "data": [...], "count": N }`, the
-  authenticated user's activities ordered alphabetically by name. Empty bank returns `{ "data": [],
-  "count": 0 }`, not an error.
+An activity is either **repeatable** (`repeatable: true`, the default — reusable indefinitely) or a
+**one-off** (`repeatable: false`). A one-off activity **auto-archives** (`archived` becomes `true`)
+the moment it's genuinely "done": its own occurrence completing, if it has no sub-tasks, or every
+one of its sub-tasks gaining at least one completed occurrence, if it does — see
+`.claude/specs/planner_spec_006_repeatable_activities.md`. Archiving is otherwise never a direct
+user action; it's a side effect of `POST /api/v1/plan/occurrences/{id}/completion` (see Planner /
+Weekly Grid below), and the two archive endpoints below exist only for idempotent-success/manual-
+unarchive symmetry. Repeatable activities never auto-archive.
+
+- **`GET /api/v1/activities?includeArchived=`** — returns `200` with `{ "data": [...], "count": N
+  }`, the authenticated user's activities ordered alphabetically by name. `includeArchived`
+  defaults to `false` (excludes archived activities); `includeArchived=true` includes both archived
+  and non-archived, still ordered by name. Empty bank returns `{ "data": [], "count": 0 }`, not an
+  error.
 - **`POST /api/v1/activities`** — body `{ "name": "...", "category": "ROUTINE" | "NECESSARY" |
-  "PLEASURABLE", "description": "..." | null }`. Returns `201` with the created activity. `400` if
-  `name` is blank/missing or `category` is missing/invalid.
+  "PLEASURABLE", "description": "..." | null, "repeatable": true | false | null }`. `repeatable`
+  defaults to `true` when omitted/`null`. Returns `201` with the created activity (`archived` always
+  `false` on create — the request body has no `archived` field, so a client-supplied one has no
+  effect). `400` if `name` is blank/missing or `category` is missing/invalid.
 - **`PUT /api/v1/activities/{id}`** — same body shape as create; full replace of `name`, `category`,
-  `description`. Returns `200` with the updated activity, `400` on the same validation failures as
-  create, `404` if `id` isn't owned by the authenticated user.
+  `description`, `repeatable` (defaults to `true` when omitted/`null`, same as create).
+  `archived` is never settable here — only via the archive/unarchive endpoints below. Returns `200`
+  with the updated activity, `400` on the same validation failures as create, `404` if `id` isn't
+  owned by the authenticated user.
 - **`DELETE /api/v1/activities/{id}`** — permanently deletes the activity. Returns `204`, or `404`
   if `id` isn't owned by the authenticated user.
+- **`POST /api/v1/activities/{id}/archive`** — sets `archived: true`. Idempotent — archiving an
+  already-archived activity is still a `200` success, not an error. Returns `200` with the updated
+  activity, `404` if `id` isn't owned by the authenticated user.
+- **`DELETE /api/v1/activities/{id}/archive`** — unarchives (`archived: false`). Returns `204`, or
+  `404` if `id` isn't owned by the authenticated user.
 
 No `GET /api/v1/activities/{id}` endpoint — the frontend prefills its edit form from the
 already-fetched list.
@@ -137,7 +157,10 @@ belongs to a different user returns `404` in every case identically, never `403`
   `CompletionRecord` with `completedAt` set to the current time, or updating the existing record's
   `completedAt` if one already exists (idempotent — re-completing is not an error). Returns `200`
   (not `201`) with the occurrence reflecting `completed: true`. `404` if `id` isn't owned by the
-  authenticated user.
+  authenticated user. Side effect: if the completed occurrence's target `Activity` (directly, or via
+  its parent, for a sub-task) is a one-off (`repeatable: false`) and is now "done" (see Activities
+  above), it is auto-archived in the same request — not reflected in this response body, only in a
+  later `GET /api/v1/activities`.
 - **`DELETE /api/v1/plan/occurrences/{id}/completion`** — undoes completion, deleting the
   occurrence's `CompletionRecord`. Returns `204`, or `404` if `id` isn't owned by the authenticated
   user or has no current `CompletionRecord` (undoing a non-complete occurrence is not idempotent —

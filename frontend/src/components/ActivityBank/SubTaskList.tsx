@@ -31,9 +31,10 @@ function getErrorMessage(error: unknown): string {
 interface SubTaskListProps {
   readonly activityId: string
   readonly category: ActivityCategory
+  readonly readOnly?: boolean
 }
 
-export function SubTaskList({ activityId, category }: SubTaskListProps) {
+export function SubTaskList({ activityId, category, readOnly = false }: SubTaskListProps) {
   const [subTasks, setSubTasks] = useState<SubTask[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null)
@@ -102,18 +103,19 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
     <div>
       <h3>Sub-tasks — {CATEGORY_LABELS[category]}</h3>
 
-      {editingSubTask ? (
-        <SubTaskForm
-          key={editingSubTask.id}
-          mode="edit"
-          activityId={activityId}
-          subTask={editingSubTask}
-          onSuccess={handleFormSuccess}
-          onCancel={() => setEditingSubTaskId(null)}
-        />
-      ) : (
-        <SubTaskForm key="create" mode="create" activityId={activityId} onSuccess={handleFormSuccess} />
-      )}
+      {!readOnly &&
+        (editingSubTask ? (
+          <SubTaskForm
+            key={editingSubTask.id}
+            mode="edit"
+            activityId={activityId}
+            subTask={editingSubTask}
+            onSuccess={handleFormSuccess}
+            onCancel={() => setEditingSubTaskId(null)}
+          />
+        ) : (
+          <SubTaskForm key="create" mode="create" activityId={activityId} onSuccess={handleFormSuccess} />
+        ))}
 
       {loadError && (
         <p role="alert">
@@ -135,33 +137,34 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
             <li key={subTask.id} className={`${styles.row} ${styles.nested}`}>
               <span>{subTask.name}</span> <CategoryChip category={subTask.category} />
 
-              {confirmingDeleteId === subTask.id ? (
-                <span className={styles.actions}>
-                  <button
-                    type="button"
-                    onClick={() => handleConfirmDelete(subTask.id)}
-                    disabled={deletingId === subTask.id}
-                  >
-                    Confirm delete
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDeleteId(null)}
-                    disabled={deletingId === subTask.id}
-                  >
-                    Cancel
-                  </button>
-                </span>
-              ) : (
-                <span className={styles.actions}>
-                  <button type="button" onClick={() => setEditingSubTaskId(subTask.id)}>
-                    Rename
-                  </button>
-                  <button type="button" onClick={() => setConfirmingDeleteId(subTask.id)}>
-                    Delete
-                  </button>
-                </span>
-              )}
+              {!readOnly &&
+                (confirmingDeleteId === subTask.id ? (
+                  <span className={styles.actions}>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmDelete(subTask.id)}
+                      disabled={deletingId === subTask.id}
+                    >
+                      Confirm delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingDeleteId(null)}
+                      disabled={deletingId === subTask.id}
+                    >
+                      Cancel
+                    </button>
+                  </span>
+                ) : (
+                  <span className={styles.actions}>
+                    <button type="button" onClick={() => setEditingSubTaskId(subTask.id)}>
+                      Rename
+                    </button>
+                    <button type="button" onClick={() => setConfirmingDeleteId(subTask.id)}>
+                      Delete
+                    </button>
+                  </span>
+                ))}
             </li>
           ))}
         </ul>

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityListResponse;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
@@ -43,8 +44,11 @@ public class ActivityController {
     }
 
     @GetMapping
-    public ResponseEntity<ActivityListResponse> list(Authentication authentication) {
-        List<ActivityResponse> data = activityService.listForOwner(authentication.getName()).stream()
+    public ResponseEntity<ActivityListResponse> list(
+            @RequestParam(required = false, defaultValue = "false") boolean includeArchived,
+            Authentication authentication) {
+        List<ActivityResponse> data = activityService
+            .listForOwner(authentication.getName(), includeArchived).stream()
             .map(ActivityController::toResponse)
             .toList();
         return ResponseEntity.ok(new ActivityListResponse(data, data.size()));
@@ -64,8 +68,21 @@ public class ActivityController {
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<ActivityResponse> archive(@PathVariable UUID id, Authentication authentication) {
+        return activityService.archive(authentication.getName(), id)
+            .map(activity -> ResponseEntity.ok(toResponse(activity)))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/archive")
+    public ResponseEntity<Void> unarchive(@PathVariable UUID id, Authentication authentication) {
+        boolean unarchived = activityService.unarchive(authentication.getName(), id);
+        return unarchived ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
     private static ActivityResponse toResponse(Activity activity) {
         return new ActivityResponse(activity.getId(), activity.getName(), activity.getCategory(),
-            activity.getDescription(), activity.getCreatedAt());
+            activity.getDescription(), activity.isRepeatable(), activity.isArchived(), activity.getCreatedAt());
     }
 }

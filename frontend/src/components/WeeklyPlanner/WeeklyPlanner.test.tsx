@@ -160,7 +160,15 @@ describe('WeeklyPlanner', () => {
   describe('FRONTEND-004-AC-20/AC-21/AC-22: assign picker lists activities+sub-tasks, creates on confirm', () => {
     it('creates a scheduled occurrence from a picked activity and closes the picker', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([
-        { id: 'a1', name: 'Go for a walk', category: 'ROUTINE', description: null, createdAt: '2026-09-01T00:00:00Z' },
+        {
+          id: 'a1',
+          name: 'Go for a walk',
+          category: 'ROUTINE',
+          description: null,
+          repeatable: true,
+          archived: false,
+          createdAt: '2026-09-01T00:00:00Z',
+        },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       vi.mocked(planApi.getWeek).mockResolvedValue([])
@@ -180,7 +188,15 @@ describe('WeeklyPlanner', () => {
 
     it('lists a sub-task and creates a bucket occurrence from it', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([
-        { id: 'a1', name: 'Plan a party', category: 'PLEASURABLE', description: null, createdAt: '2026-09-01T00:00:00Z' },
+        {
+          id: 'a1',
+          name: 'Plan a party',
+          category: 'PLEASURABLE',
+          description: null,
+          repeatable: true,
+          archived: false,
+          createdAt: '2026-09-01T00:00:00Z',
+        },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([
         { id: 's1', activityId: 'a1', name: 'Send invites', category: 'PLEASURABLE', createdAt: '2026-09-01T00:00:00Z' },
@@ -340,7 +356,15 @@ describe('WeeklyPlanner', () => {
   describe('FRONTEND-004-AC-39: create failure shows an alert in the picker, preserves selection', () => {
     it('keeps the picker open and the selection intact on create failure', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([
-        { id: 'a1', name: 'Go for a walk', category: 'ROUTINE', description: null, createdAt: '2026-09-01T00:00:00Z' },
+        {
+          id: 'a1',
+          name: 'Go for a walk',
+          category: 'ROUTINE',
+          description: null,
+          repeatable: true,
+          archived: false,
+          createdAt: '2026-09-01T00:00:00Z',
+        },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       vi.mocked(planApi.getWeek).mockResolvedValue([])

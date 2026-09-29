@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -118,6 +119,7 @@ public class PlanService {
         return plannedOccurrenceRepository.findByIdAndOwner(id, owner)
             .map(occurrence -> upsertCompletion(occurrence, owner))
             .map(completion -> {
+                maybeAutoArchive(completion.getPlannedOccurrence(), owner);
                 initializeCompletionChain(completion);
                 return completion;
             });
@@ -164,6 +166,39 @@ public class PlanService {
                 return existing;
             })
             .orElseGet(() -> completionRecordRepository.save(new CompletionRecord(occurrence, owner, now)));
+    }
+
+    // Auto-archive hook for planner_spec_006_repeatable_activities.md, run inside complete()'s own
+    // transaction (Requirements 4/5/6). Activity/SubTask are LAZY and open-in-view is disabled -- but
+    // this runs while complete()'s transaction is still open, so occurrence.getSubTask().getActivity()
+    // is a safe lazy-load here (unlike in PlanController's response mapping, after the transaction
+    // has closed).
+    private void maybeAutoArchive(PlannedOccurrence occurrence, User owner) {
+        Activity activity = occurrence.getActivity() != null
+            ? occurrence.getActivity()
+            : occurrence.getSubTask().getActivity();
+        if (activity.isRepeatable() || activity.isArchived()) {
+            return; // AC-16/AC-17
+        }
+
+        List<SubTask> subTasks = subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(
+            activity.getId(), owner);
+        boolean done;
+        if (subTasks.isEmpty()) {
+            done = true; // AC-13 -- this occurrence completing is itself the whole activity
+        } else {
+            List<UUID> subTaskIds = subTasks.stream().map(SubTask::getId).toList();
+            Set<UUID> completedSubTaskIds = completionRecordRepository
+                .findByOwnerAndPlannedOccurrence_SubTask_IdIn(owner, subTaskIds).stream()
+                .map(record -> record.getPlannedOccurrence().getSubTask().getId())
+                .collect(Collectors.toSet());
+            done = completedSubTaskIds.containsAll(subTaskIds); // AC-14/AC-15
+        }
+
+        if (done) {
+            activity.archive();
+            activityRepository.save(activity);
+        }
     }
 
     private boolean deleteCompletionIfPresent(PlannedOccurrence occurrence, User owner) {

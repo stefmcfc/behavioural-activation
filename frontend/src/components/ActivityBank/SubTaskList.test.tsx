@@ -197,4 +197,16 @@ describe('SubTaskList', () => {
       expect(screen.queryByRole('radio')).not.toBeInTheDocument()
     })
   })
+
+  describe('FRONTEND-006-AC-15: readOnly hides the create form and per-row Rename/Delete actions', () => {
+    it('renders sub-tasks with no create form, Rename, or Delete controls', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" readOnly />)
+
+      expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    })
+  })
 })

@@ -12,6 +12,8 @@ const walk: Activity = {
   name: 'Walk',
   category: 'ROUTINE',
   description: 'Around the block',
+  repeatable: true,
+  archived: false,
   createdAt: '2026-09-28T00:00:00Z',
 }
 
@@ -35,7 +37,48 @@ describe('ActivityForm', () => {
         name: 'Walk',
         category: 'ROUTINE',
         description: null,
+        repeatable: true,
       })
+    })
+  })
+
+  describe('FRONTEND-006-AC-01/AC-02: repeatable checkbox defaults checked and is sent on create', () => {
+    it('is checked by default and submits repeatable: true', async () => {
+      vi.mocked(activityApi.create).mockResolvedValue({ ...walk })
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+
+      expect(screen.getByLabelText(/repeatable/i)).toBeChecked()
+
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
+      await userEvent.click(screen.getByLabelText(/routine/i))
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+
+      expect(activityApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ repeatable: true }),
+      )
+    })
+  })
+
+  describe('FRONTEND-006-AC-03: edit mode prefills the repeatable checkbox from the activity', () => {
+    it('unchecks when the activity is not repeatable', () => {
+      render(<ActivityForm mode="edit" activity={{ ...walk, repeatable: false }} onSuccess={vi.fn()} />)
+
+      expect(screen.getByLabelText(/repeatable/i)).not.toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-006-AC-04: unchecking repeatable on edit sends repeatable: false', () => {
+    it('submits the unchecked state', async () => {
+      vi.mocked(activityApi.update).mockResolvedValue({ ...walk, repeatable: false })
+      render(<ActivityForm mode="edit" activity={walk} onSuccess={vi.fn()} />)
+
+      await userEvent.click(screen.getByLabelText(/repeatable/i))
+      await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+      expect(activityApi.update).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({ repeatable: false }),
+      )
     })
   })
 
@@ -125,6 +168,7 @@ describe('ActivityForm', () => {
         name: 'Walk further',
         category: 'ROUTINE',
         description: 'Around the block',
+        repeatable: true,
       })
     })
   })

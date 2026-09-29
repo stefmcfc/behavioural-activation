@@ -11,5 +11,9 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
 
     List<Activity> findByOwnerOrderByNameAsc(User owner);
 
+    // Default (non-archived) list case for GET /api/v1/activities (Requirement 3) --
+    // findByOwnerOrderByNameAsc above is kept unmodified for the includeArchived=true case.
+    List<Activity> findByOwnerAndArchivedFalseOrderByNameAsc(User owner);
+
     Optional<Activity> findByIdAndOwner(UUID id, User owner);
 }

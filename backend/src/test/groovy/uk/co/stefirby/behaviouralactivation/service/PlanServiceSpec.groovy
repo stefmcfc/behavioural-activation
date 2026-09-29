@@ -40,6 +40,16 @@ class PlanServiceSpec extends Specification {
         userRepository.findByUsername("steve") >> Optional.of(owner)
     }
 
+    // Test-only helper: SubTask.id is a plain @GeneratedValue field with no setter (only populated
+    // on persist), but PLANNER-006-AC-14/AC-15's mocked-repository tests need two distinct,
+    // non-null sub-task ids to exercise the "N of N sub-tasks complete" comparison meaningfully.
+    private static <T> T withId(T entity, UUID id) {
+        def field = entity.class.getDeclaredField("id")
+        field.accessible = true
+        field.set(entity, id)
+        return entity
+    }
+
     def "PLANNER-004-AC-01: getWeek returns the repository's owner-and-week-scoped, createdAt-ordered result"() {
         given: "the repository returns a fixed list for this owner and week"
             def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
@@ -485,5 +495,90 @@ class PlanServiceSpec extends Specification {
         then: "an empty map is returned, and the repository is never queried"
             result.isEmpty()
             0 * completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(_, _)
+    }
+
+    def "PLANNER-006-AC-13: completing a non-repeatable activity's own occurrence with no sub-tasks auto-archives it"() {
+        given: "a non-repeatable, non-archived activity with no sub-tasks, and an occurrence targeting it directly"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.NECESSARY, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
+            completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
+            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.id, owner) >> []
+
+        when: "the occurrence is completed"
+            def result = service.complete("steve", id)
+
+        then: "the activity is archived and saved"
+            result.isPresent()
+            activity.archived
+            1 * activityRepository.save(activity)
+    }
+
+    def "PLANNER-006-AC-14: completing one of several sub-tasks, with another still incomplete, leaves the parent activity non-archived"() {
+        given: "a non-repeatable activity with two distinct-id sub-tasks, only one of which is now complete"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Organise a leaving party", ActivityCategory.PLEASURABLE, null, false, owner)
+            def firstSubTask = withId(new SubTask(activity, "Book a venue", activity.category, owner), UUID.randomUUID())
+            def secondSubTask = withId(new SubTask(activity, "Send invitations", activity.category, owner), UUID.randomUUID())
+            def existing = new PlannedOccurrence(null, firstSubTask, activity.category, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
+            completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
+            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.id, owner) >> [firstSubTask, secondSubTask]
+            completionRecordRepository.findByOwnerAndPlannedOccurrence_SubTask_IdIn(owner, [firstSubTask.id, secondSubTask.id]) >>
+                [new CompletionRecord(existing, owner, Instant.now())]
+
+        when: "the first sub-task's occurrence is completed"
+            def result = service.complete("steve", id)
+
+        then: "the parent activity is not yet archived"
+            result.isPresent()
+            !activity.archived
+            0 * activityRepository.save(_)
+    }
+
+    def "PLANNER-006-AC-16: the auto-archive check on an already-archived activity is a no-op, regardless of sub-task completion state"() {
+        given: "an already-archived, non-repeatable activity with no sub-tasks"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            activity.archive()
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.NECESSARY, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
+            completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
+
+        when: "the occurrence is completed"
+            def result = service.complete("steve", id)
+
+        then: "the activity stays archived, and the sub-task/save machinery is never touched"
+            result.isPresent()
+            activity.archived
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
+            0 * activityRepository.save(_)
+    }
+
+    def "PLANNER-006-AC-17: completing a repeatable activity's occurrence never archives it, with or without sub-tasks"() {
+        given: "a repeatable activity with no sub-tasks"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, true, owner)
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
+            completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
+
+        when: "the occurrence is completed"
+            def result = service.complete("steve", id)
+
+        then: "the activity is never archived, and the sub-task check never even runs"
+            result.isPresent()
+            !activity.archived
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
+            0 * activityRepository.save(_)
     }
 }

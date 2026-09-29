@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ActivityBank } from './ActivityBank'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
+import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import styles from './ActivityBank.module.css'
 
@@ -15,6 +16,18 @@ const walk: Activity = {
   name: 'Walk',
   category: 'ROUTINE',
   description: 'Around the block',
+  repeatable: true,
+  archived: false,
+  createdAt: '2026-09-28T00:00:00Z',
+}
+
+const jobs: Activity = {
+  id: '2',
+  name: 'Apply for jobs',
+  category: 'NECESSARY',
+  description: null,
+  repeatable: false,
+  archived: true,
   createdAt: '2026-09-28T00:00:00Z',
 }
 
@@ -24,6 +37,7 @@ describe('ActivityBank', () => {
     vi.mocked(activityApi.create).mockReset()
     vi.mocked(activityApi.update).mockReset()
     vi.mocked(activityApi.remove).mockReset()
+    vi.mocked(activityApi.unarchive).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
   })
 
@@ -112,6 +126,8 @@ describe('ActivityBank', () => {
         name: 'Walk',
         category: 'ROUTINE',
         description: null,
+        repeatable: true,
+        archived: false,
         createdAt: '2026-09-28T00:00:00Z',
       })
       render(<ActivityBank />)
@@ -208,6 +224,128 @@ describe('ActivityBank', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /hide sub-tasks/i }))
       expect(screen.queryByText(/no sub-tasks yet/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-05: default mount fetch excludes archived activities', () => {
+    it('calls activityApi.getAll(false) on mount', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      expect(activityApi.getAll).toHaveBeenCalledWith(false)
+    })
+  })
+
+  describe('FRONTEND-006-AC-06: "Show archived" toggle, off by default', () => {
+    it('renders an unchecked checkbox', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      expect(screen.getByRole('checkbox', { name: /show archived/i })).not.toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-006-AC-07/AC-08: toggling "Show archived" refetches and toggles archived visibility', () => {
+    it('fetches with includeArchived=true when on, and false again when off', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      await screen.findByText('Walk')
+
+      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, jobs])
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+
+      expect(activityApi.getAll).toHaveBeenLastCalledWith(true)
+      expect(await screen.findByText('(Archived)')).toBeInTheDocument()
+
+      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk])
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+
+      expect(activityApi.getAll).toHaveBeenLastCalledWith(false)
+      await waitFor(() => expect(screen.queryByText('(Archived)')).not.toBeInTheDocument())
+    })
+  })
+
+  describe('FRONTEND-006-AC-09/AC-10/AC-11: Unarchive replaces the normal actions and restores the activity', () => {
+    it('calls unarchive and shows the normal actions again on success', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(activityApi.unarchive).mockResolvedValue(undefined)
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      expect(await screen.findByRole('button', { name: /unarchive/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /show sub-tasks/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /unarchive/i }))
+
+      expect(activityApi.unarchive).toHaveBeenCalledWith('2')
+      expect(await screen.findByRole('button', { name: /^edit$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /unarchive/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-15: archived activity sub-tasks are viewable but read-only', () => {
+    it('shows sub-tasks with no create form and no Rename/Delete actions', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        {
+          id: 's1',
+          activityId: '2',
+          name: 'Update CV',
+          category: 'NECESSARY',
+          createdAt: '2026-09-29T00:00:00Z',
+        },
+      ])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+
+      expect(await screen.findByText('Update CV')).toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-13: "Show archived" re-fetch failure shows an alert with a working Retry', () => {
+    it('retries the fetch with includeArchived still true, keeping the toggle on', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      await screen.findByText('Walk')
+
+      vi.mocked(activityApi.getAll).mockRejectedValueOnce(
+        new ApiError(500, 'Something went wrong. Please try again.'),
+      )
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      expect(screen.getByRole('checkbox', { name: /show archived/i })).toBeChecked()
+
+      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, jobs])
+      await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+
+      expect(activityApi.getAll).toHaveBeenLastCalledWith(true)
+      expect(await screen.findByText('(Archived)')).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-14: unarchive failure shows an alert and leaves the activity archived', () => {
+    it('keeps the Unarchive action visible after a rejected call', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(activityApi.unarchive).mockRejectedValue(
+        new ApiError(500, 'Something went wrong. Please try again.'),
+      )
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /unarchive/i }))
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /unarchive/i })).toBeInTheDocument()
     })
   })
 })

@@ -25,7 +25,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.save(_ as Activity) >> { Activity a -> savedArgument = a; return a }
 
         and: "a valid create request"
-            def request = new ActivityRequest("Walk", ActivityCategory.ROUTINE, null)
+            def request = new ActivityRequest("Walk", ActivityCategory.ROUTINE, null, null)
 
         when: "an activity is created for that username"
             def created = service.create("steve", request)
@@ -46,7 +46,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.save(_ as Activity) >> { Activity a -> a }
 
         when: "an activity is created with the given description"
-            def created = service.create("steve", new ActivityRequest("Walk", ActivityCategory.ROUTINE, description))
+            def created = service.create("steve", new ActivityRequest("Walk", ActivityCategory.ROUTINE, description, null))
 
         then:
             created.description == description
@@ -61,10 +61,10 @@ class ActivityServiceSpec extends Specification {
 
         and: "the repository returns activities for that owner"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
-            activityRepository.findByOwnerOrderByNameAsc(owner) >> activities
+            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> activities
 
-        when: "activities are listed for that username"
-            def result = service.listForOwner("steve")
+        when: "activities are listed for that username, excluding archived (default)"
+            def result = service.listForOwner("steve", false)
 
         then: "the repository's result is returned unchanged"
             result == activities
@@ -73,13 +73,29 @@ class ActivityServiceSpec extends Specification {
     def "PLANNER-002-AC-11: listForOwner returns an empty list when the owner has no activities"() {
         given:
             userRepository.findByUsername("steve") >> Optional.of(owner)
-            activityRepository.findByOwnerOrderByNameAsc(owner) >> []
+            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> []
 
         when:
-            def result = service.listForOwner("steve")
+            def result = service.listForOwner("steve", false)
 
         then:
             result.isEmpty()
+    }
+
+    def "PLANNER-006-AC-10/AC-11: listForOwner queries the archived-inclusive repository method only when includeArchived is true"() {
+        given: "the authenticated username resolves to a User"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+
+        and: "the repository returns activities for the full (mixed) list"
+            def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
+            activityRepository.findByOwnerOrderByNameAsc(owner) >> activities
+
+        when: "activities are listed with includeArchived=true"
+            def result = service.listForOwner("steve", true)
+
+        then: "the archived-inclusive query is used, and the excluding one is never called"
+            result == activities
+            0 * activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(_)
     }
 
     def "PLANNER-002-AC-07/AC-12: update changes name, category, and description on the owner's activity"() {
@@ -90,7 +106,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
 
         when: "the activity is updated"
-            def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, "with music"))
+            def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, "with music", null))
 
         then: "the updated activity is returned"
             result.isPresent()
@@ -106,7 +122,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
 
         when: "an update is attempted"
-            def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, null))
+            def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, null, null))
 
         then: "the result is empty -- no update applied"
             result.isEmpty()
@@ -143,5 +159,107 @@ class ActivityServiceSpec extends Specification {
 
         and: "the service reports failure"
             !deleted
+    }
+
+    def "PLANNER-006-AC-01: create defaults repeatable to true when the request omits it"() {
+        given:
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.save(_ as Activity) >> { Activity a -> a }
+
+        when: "an activity is created with no repeatable field in the request"
+            def created = service.create("steve", new ActivityRequest("Go for a walk", ActivityCategory.PLEASURABLE, null, null))
+
+        then: "repeatable defaults to true"
+            created.repeatable
+    }
+
+    def "PLANNER-006-AC-02: create honours an explicit repeatable: false"() {
+        given:
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.save(_ as Activity) >> { Activity a -> a }
+
+        when: "an activity is created with repeatable: false"
+            def created = service.create("steve", new ActivityRequest("Apply for jobs", ActivityCategory.NECESSARY, null, false))
+
+        then: "repeatable is false"
+            !created.repeatable
+    }
+
+    def "PLANNER-006-AC-03: update changes the repeatable field on the owner's activity, exactly like name/category/description"() {
+        given: "the authenticated username resolves to a User, who owns the target activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, true, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "the activity is updated with repeatable: false"
+            def result = service.update("steve", id, new ActivityRequest("Apply for jobs", ActivityCategory.NECESSARY, null, false))
+
+        then: "repeatable is updated"
+            result.isPresent()
+            !result.get().repeatable
+    }
+
+    def "PLANNER-006-AC-05/AC-06: archive sets archived to true, idempotently, on the owner's activity"() {
+        given: "the authenticated username resolves to a User, who owns the target activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            if (alreadyArchived) {
+                existing.archive()
+            }
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "archive is requested"
+            def result = service.archive("steve", id)
+
+        then: "the activity is archived, whether or not it already was"
+            result.isPresent()
+            result.get().archived
+
+        where:
+            alreadyArchived << [false, true]
+    }
+
+    def "PLANNER-006-AC-07: archive returns empty when the id doesn't exist or belongs to a different owner"() {
+        given:
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "archive is attempted"
+            def result = service.archive("steve", id)
+
+        then: "the result is empty"
+            result.isEmpty()
+    }
+
+    def "PLANNER-006-AC-08: unarchive sets archived to false on the owner's activity and returns true"() {
+        given: "the authenticated username resolves to a User, who owns an already-archived activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            existing.archive()
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "unarchive is requested"
+            def unarchived = service.unarchive("steve", id)
+
+        then: "the activity is no longer archived, and the service reports success"
+            !existing.archived
+            unarchived
+    }
+
+    def "PLANNER-006-AC-09: unarchive returns false when the id doesn't exist or belongs to a different owner"() {
+        given:
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "unarchive is attempted"
+            def unarchived = service.unarchive("steve", id)
+
+        then: "the service reports failure"
+            !unarchived
     }
 }

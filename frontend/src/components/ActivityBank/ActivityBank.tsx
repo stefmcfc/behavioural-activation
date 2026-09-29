@@ -30,27 +30,55 @@ export function ActivityBank() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const [unarchivingId, setUnarchivingId] = useState<string | null>(null)
+  const [unarchiveError, setUnarchiveError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-
+  const fetchActivities = (includeArchived: boolean, onCancelled: () => boolean = () => false) => {
+    setLoadError(null)
     activityApi
-      .getAll()
+      .getAll(includeArchived)
       .then((data) => {
-        if (!cancelled) {
+        if (!onCancelled()) {
           setActivities(data)
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
+        if (!onCancelled()) {
           setLoadError(getErrorMessage(error))
         }
       })
+  }
 
+  useEffect(() => {
+    let cancelled = false
+    fetchActivities(showArchived, () => cancelled)
     return () => {
       cancelled = true
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showArchived])
+
+  const handleRetryLoad = () => {
+    fetchActivities(showArchived)
+  }
+
+  const handleUnarchive = async (id: string) => {
+    setUnarchiveError(null)
+    setUnarchivingId(id)
+    try {
+      await activityApi.unarchive(id)
+      setActivities((previous) =>
+        previous?.map((activity) =>
+          activity.id === id ? { ...activity, archived: false } : activity,
+        ) ?? previous,
+      )
+    } catch (error) {
+      setUnarchiveError(getErrorMessage(error))
+    } finally {
+      setUnarchivingId(null)
+    }
+  }
 
   const handleFormSuccess = (activity: Activity) => {
     setActivities((previous) => {
@@ -83,8 +111,25 @@ export function ActivityBank() {
     <section>
       <h2>Activity Bank</h2>
 
-      {loadError && <p role="alert">{loadError}</p>}
+      <label>
+        <input
+          type="checkbox"
+          checked={showArchived}
+          onChange={(event) => setShowArchived(event.target.checked)}
+        />
+        Show archived
+      </label>
+
+      {loadError && (
+        <p role="alert">
+          {loadError}{' '}
+          <button type="button" onClick={handleRetryLoad}>
+            Retry
+          </button>
+        </p>
+      )}
       {deleteError && <p role="alert">{deleteError}</p>}
+      {unarchiveError && <p role="alert">{unarchiveError}</p>}
 
       {activities === null && !loadError && <output>Loading activities…</output>}
 
@@ -97,8 +142,29 @@ export function ActivityBank() {
           {activities.map((activity) => (
             <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
+              {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
 
-              {confirmingDeleteId === activity.id ? (
+              {activity.archived ? (
+                <span className={styles.actions}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedActivityId((current) =>
+                        current === activity.id ? null : activity.id,
+                      )
+                    }
+                  >
+                    {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUnarchive(activity.id)}
+                    disabled={unarchivingId === activity.id}
+                  >
+                    Unarchive
+                  </button>
+                </span>
+              ) : confirmingDeleteId === activity.id ? (
                 <span className={styles.actions}>
                   <button
                     type="button"
@@ -140,7 +206,11 @@ export function ActivityBank() {
 
               {expandedActivityId === activity.id && (
                 <div className={styles.details}>
-                  <SubTaskList activityId={activity.id} category={activity.category} />
+                  <SubTaskList
+                    activityId={activity.id}
+                    category={activity.category}
+                    readOnly={activity.archived}
+                  />
                 </div>
               )}
             </li>

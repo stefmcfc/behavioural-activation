@@ -58,6 +58,46 @@ class ActivityControllerSpec extends Specification {
             result.andExpect(jsonPath('$.category').value("ROUTINE"))
     }
 
+    def "PLANNER-006-AC-01/AC-02: the create response reflects the created activity's repeatable and (always-false) archived state"() {
+        given: "a valid create request"
+            def body = objectMapper.writeValueAsString([name: "Apply for jobs", category: "NECESSARY", repeatable: false])
+
+        and: "the service creates the activity"
+            activityService.create("steve", _ as ActivityRequest) >>
+                new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+
+        when: "POST /api/v1/activities is requested"
+            def result = mockMvc.perform(post("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response reflects repeatable: false and archived: false"
+            result.andExpect(status().isCreated())
+            result.andExpect(jsonPath('$.repeatable').value(false))
+            result.andExpect(jsonPath('$.archived').value(false))
+    }
+
+    def "PLANNER-006-AC-04: a client-supplied archived value in the create request body has no effect on what is passed to the service"() {
+        given: "a create request that also attempts to set archived: true"
+            def body = objectMapper.writeValueAsString([name: "Walk", category: "ROUTINE", archived: true])
+            ActivityRequest captured = null
+            activityService.create("steve", _ as ActivityRequest) >> { String username, ActivityRequest request ->
+                captured = request
+                return new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            }
+
+        when: "POST /api/v1/activities is requested"
+            mockMvc.perform(post("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "ActivityRequest declares no archived field to even carry the client-supplied value"
+            captured != null
+            !ActivityRequest.declaredFields*.name.contains("archived")
+    }
+
     def "PLANNER-002-AC-03: blank or missing name returns 400 without creating an activity"() {
         given: "a request with a blank or missing name"
             def body = objectMapper.writeValueAsString(requestBody)
@@ -107,7 +147,7 @@ class ActivityControllerSpec extends Specification {
 
     def "PLANNER-002-AC-08/AC-09: list returns only my activities in the documented envelope shape"() {
         given: "the service returns the current user's activities"
-            activityService.listForOwner("steve") >> [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
+            activityService.listForOwner("steve", false) >> [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
 
         when: "GET /api/v1/activities is requested"
             def result = mockMvc.perform(get("/api/v1/activities")
@@ -121,7 +161,7 @@ class ActivityControllerSpec extends Specification {
 
     def "PLANNER-002-AC-11: an empty activity bank returns 200 with an empty data array and zero count"() {
         given: "the service returns no activities"
-            activityService.listForOwner("steve") >> []
+            activityService.listForOwner("steve", false) >> []
 
         when: "GET /api/v1/activities is requested"
             def result = mockMvc.perform(get("/api/v1/activities")
@@ -131,6 +171,30 @@ class ActivityControllerSpec extends Specification {
             result.andExpect(status().isOk())
             result.andExpect(jsonPath('$.count').value(0))
             result.andExpect(jsonPath('$.data').isEmpty())
+    }
+
+    def "PLANNER-006-AC-10: GET /api/v1/activities with no includeArchived param excludes archived (default false)"() {
+        when: "GET /api/v1/activities is requested with no includeArchived param"
+            def result = mockMvc.perform(get("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the service is called with includeArchived=false"
+            result.andExpect(status().isOk())
+            1 * activityService.listForOwner("steve", false) >> []
+    }
+
+    def "PLANNER-006-AC-11: GET /api/v1/activities?includeArchived=true asks the service for the full (mixed) list"() {
+        given: "the service returns a mixed set"
+            activityService.listForOwner("steve", true) >>
+                [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
+
+        when: "GET /api/v1/activities?includeArchived=true is requested"
+            def result = mockMvc.perform(get("/api/v1/activities?includeArchived=true")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response reflects the service's includeArchived=true result"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.count').value(1))
     }
 
     def "PLANNER-002-AC-12: PUT updates name, category, and description and returns 200"() {
@@ -243,6 +307,88 @@ class ActivityControllerSpec extends Specification {
 
         then: "the response is 401, not reaching the controller/service"
             result.andExpect(status().isUnauthorized())
-            0 * activityService.listForOwner(_)
+            0 * activityService.listForOwner(_, _)
+    }
+
+    def "PLANNER-006-AC-05: POST .../archive succeeds, 200, with archived: true"() {
+        given: "the service archives the activity"
+            def id = UUID.randomUUID()
+            activityService.archive("steve", id) >>
+                Optional.of(new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner).tap { archive() })
+
+        when: "POST /api/v1/activities/{id}/archive is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 200 with archived: true"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.archived').value(true))
+    }
+
+    def "PLANNER-006-AC-06: POST .../archive on an already-archived activity is still a 200, not an error"() {
+        given: "the service reports the (already-archived) activity, idempotently"
+            def id = UUID.randomUUID()
+            def alreadyArchived = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            alreadyArchived.archive()
+            activityService.archive("steve", id) >> Optional.of(alreadyArchived)
+
+        when: "POST /api/v1/activities/{id}/archive is requested again"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is still 200, still archived, no error"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.archived').value(true))
+    }
+
+    def "PLANNER-006-AC-07: POST .../archive on another owner's (or nonexistent) activity returns 404"() {
+        given: "the service reports no matching activity for this owner"
+            def id = UUID.randomUUID()
+            activityService.archive("steve", id) >> Optional.empty()
+
+        when: "POST /api/v1/activities/{id}/archive is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-006-AC-08: DELETE .../archive unarchives and returns 204"() {
+        given: "the service unarchives the activity successfully"
+            def id = UUID.randomUUID()
+            activityService.unarchive("steve", id) >> true
+
+        when: "DELETE /api/v1/activities/{id}/archive is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 204 No Content"
+            result.andExpect(status().isNoContent())
+    }
+
+    def "PLANNER-006-AC-09: DELETE .../archive on another owner's (or nonexistent) activity returns 404"() {
+        given: "the service reports no matching activity for this owner"
+            def id = UUID.randomUUID()
+            activityService.unarchive("steve", id) >> false
+
+        when: "DELETE /api/v1/activities/{id}/archive is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-006-AC-18: an unauthenticated request to the archive endpoints returns 401 (inherited SecurityFilterChain rule)"() {
+        when: "the archive/unarchive endpoints are requested with no session"
+            def archiveResult = mockMvc.perform(post("/api/v1/activities/${UUID.randomUUID()}/archive"))
+            def unarchiveResult = mockMvc.perform(delete("/api/v1/activities/${UUID.randomUUID()}/archive"))
+
+        then: "both responses are 401, not reaching the controller/service"
+            archiveResult.andExpect(status().isUnauthorized())
+            unarchiveResult.andExpect(status().isUnauthorized())
+            0 * activityService.archive(_, _)
+            0 * activityService.unarchive(_, _)
     }
 }

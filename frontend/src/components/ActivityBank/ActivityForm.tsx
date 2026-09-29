@@ -30,6 +30,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const [name, setName] = useState(activity?.name ?? '')
   const [category, setCategory] = useState<ActivityCategory | null>(activity?.category ?? null)
   const [description, setDescription] = useState(activity?.description ?? '')
+  const [repeatable, setRepeatable] = useState(activity?.repeatable ?? true)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -54,6 +55,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
         name: name.trim(),
         category,
         description: description.trim() ? description.trim() : null,
+        repeatable,
       }
       const result =
         mode === 'edit' && activity
@@ -66,6 +68,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
         setName('')
         setCategory(null)
         setDescription('')
+        setRepeatable(true)
       }
     } catch (error) {
       setSubmitError(getErrorMessage(error))
@@ -76,6 +79,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
 
   const nameId = `activity-name-${mode}`
   const descriptionId = `activity-description-${mode}`
+  const repeatableId = `activity-repeatable-${mode}`
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -100,6 +104,19 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
+      </div>
+
+      <div>
+        <label htmlFor={repeatableId}>
+          <input
+            id={repeatableId}
+            name="repeatable"
+            type="checkbox"
+            checked={repeatable}
+            onChange={(event) => setRepeatable(event.target.checked)}
+          />
+          Repeatable
+        </label>
       </div>
 
       {validationError && <p>{validationError}</p>}

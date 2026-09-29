@@ -31,6 +31,12 @@ public class Activity {
     @Column
     private String description;
 
+    @Column(nullable = false)
+    private boolean repeatable;
+
+    @Column(nullable = false)
+    private boolean archived;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -41,19 +47,44 @@ public class Activity {
         // JPA
     }
 
+    // Unchanged signature -- defaults repeatable to true, matching the DB column default.
     public Activity(String name, ActivityCategory category, String description, User owner) {
+        this(name, category, description, true, owner);
+    }
+
+    public Activity(String name, ActivityCategory category, String description, boolean repeatable, User owner) {
         this.name = name;
         this.category = category;
         this.description = description;
+        this.repeatable = repeatable;
+        this.archived = false;
         this.owner = owner;
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
 
+    // Unchanged signature -- preserves the current repeatable value.
     public void update(String name, ActivityCategory category, String description) {
+        update(name, category, description, this.repeatable);
+    }
+
+    public void update(String name, ActivityCategory category, String description, boolean repeatable) {
         this.name = name;
         this.category = category;
         this.description = description;
+        this.repeatable = repeatable;
+        this.updatedAt = Instant.now();
+    }
+
+    // The only two places archived is ever set -- never from update(...), never client-supplied
+    // (PLANNER-006-AC-04).
+    public void archive() {
+        this.archived = true;
+        this.updatedAt = Instant.now();
+    }
+
+    public void unarchive() {
+        this.archived = false;
         this.updatedAt = Instant.now();
     }
 
@@ -75,6 +106,14 @@ public class Activity {
 
     public String getDescription() {
         return description;
+    }
+
+    public boolean isRepeatable() {
+        return repeatable;
+    }
+
+    public boolean isArchived() {
+        return archived;
     }
 
     public Instant getCreatedAt() {

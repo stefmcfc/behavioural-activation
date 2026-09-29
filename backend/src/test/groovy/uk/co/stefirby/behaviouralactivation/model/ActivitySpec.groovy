@@ -31,6 +31,27 @@ class ActivitySpec extends Specification {
             "Read" | null
     }
 
+    def "PLANNER-006-AC-01: the unchanged 4-arg constructor defaults repeatable to true and archived to false"() {
+        when: "an Activity is constructed via the existing 4-arg constructor"
+            def activity = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+
+        then: "repeatable defaults to true, and archived defaults to false"
+            activity.repeatable
+            !activity.archived
+    }
+
+    def "PLANNER-006-AC-02: the 5-arg constructor stores the given repeatable value, always starting non-archived"() {
+        when: "an Activity is constructed with an explicit repeatable value"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, repeatable, owner)
+
+        then: "repeatable is set as given, and archived starts false"
+            activity.repeatable == repeatable
+            !activity.archived
+
+        where:
+            repeatable << [true, false]
+    }
+
     def "PLANNER-002-AC-06: ActivityCategory has exactly the three fixed values, never free text"() {
         expect: "exactly ROUTINE, NECESSARY, and PLEASURABLE"
             ActivityCategory.values() as Set ==
@@ -51,6 +72,80 @@ class ActivitySpec extends Specification {
             activity.description == "with music"
 
         and: "updatedAt is not before the original value"
+            !activity.updatedAt.isBefore(originalUpdatedAt)
+    }
+
+    def "PLANNER-006-AC-03 (unchanged 3-arg overload): the existing update(...) overload preserves the current repeatable value"() {
+        given: "an existing one-off activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+
+        when: "the activity is updated via the unchanged 3-arg overload"
+            activity.update("Apply for jobs (updated)", ActivityCategory.NECESSARY, "with cover letter")
+
+        then: "repeatable is unchanged"
+            !activity.repeatable
+    }
+
+    def "PLANNER-006-AC-03: the 4-arg update(...) overload changes repeatable, exactly like name/category/description"() {
+        given: "an existing repeatable activity"
+            def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
+            def originalUpdatedAt = activity.updatedAt
+
+        when: "the activity is updated with repeatable: false"
+            activity.update("Go for a walk", ActivityCategory.ROUTINE, null, false)
+
+        then: "repeatable is updated, and updatedAt is not before the original value"
+            !activity.repeatable
+            !activity.updatedAt.isBefore(originalUpdatedAt)
+    }
+
+    def "PLANNER-006-AC-04/model: archive() is the only way archived becomes true -- never via update(...)"() {
+        given: "an existing activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+
+        when: "update(...) is called, with no archived parameter to even pass"
+            activity.update("Apply for jobs", ActivityCategory.NECESSARY, null, false)
+
+        then: "archived is still false"
+            !activity.archived
+
+        when: "archive() is called explicitly"
+            activity.archive()
+
+        then: "archived becomes true"
+            activity.archived
+    }
+
+    def "PLANNER-006-AC-05/AC-06: archive() sets archived to true, idempotently, and bumps updatedAt"() {
+        given: "a non-archived activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            def originalUpdatedAt = activity.updatedAt
+
+        when: "archive() is called"
+            activity.archive()
+
+        then: "archived is true, and updatedAt is not before the original value"
+            activity.archived
+            !activity.updatedAt.isBefore(originalUpdatedAt)
+
+        when: "archive() is called again on an already-archived activity"
+            activity.archive()
+
+        then: "it remains archived, without error"
+            activity.archived
+    }
+
+    def "PLANNER-006-AC-08: unarchive() sets archived to false and bumps updatedAt"() {
+        given: "an archived activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            activity.archive()
+            def originalUpdatedAt = activity.updatedAt
+
+        when: "unarchive() is called"
+            activity.unarchive()
+
+        then: "archived is false, and updatedAt is not before the original value"
+            !activity.archived
             !activity.updatedAt.isBefore(originalUpdatedAt)
     }
 }
