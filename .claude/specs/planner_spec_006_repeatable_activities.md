@@ -1,6 +1,6 @@
 # Mark Activities as Repeatable vs One-off (Backend)
 
-**Status**: Not started
+**Status**: Implemented (paired with `frontend_spec_006_repeatable_activities.md`, also implemented)
 **Priority**: P2 — a real enhancement to the activity bank + completion loop, but nothing else is
 blocked on it (unlike `planner_spec_003_sub_tasks.md`, which settled a schema decision
 `planner_spec_004_week_planning.md` needed). Sequenced after Week Planning by design — see the
@@ -652,21 +652,21 @@ AC-18) passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-006-AC-01 — omitting `repeatable` on create defaults it to `true`
-- [ ] PLANNER-006-AC-02 — explicit `repeatable: false` honoured on create
-- [ ] PLANNER-006-AC-03 — `repeatable` editable via `PUT /api/v1/activities/{id}`
-- [ ] PLANNER-006-AC-04 — `ActivityRequest` has no `archived` field; client-supplied value ignored
-- [ ] PLANNER-006-AC-05 — `POST .../archive` succeeds, 200, `archived: true`
-- [ ] PLANNER-006-AC-06 — `POST .../archive` on an already-archived activity is an idempotent 200
-- [ ] PLANNER-006-AC-07 — `POST .../archive` on not-found/not-owned → 404
-- [ ] PLANNER-006-AC-08 — `DELETE .../archive` succeeds, 204, `archived: false`
-- [ ] PLANNER-006-AC-09 — `DELETE .../archive` on not-found/not-owned → 404
-- [ ] PLANNER-006-AC-10 — `GET /api/v1/activities` default excludes archived
-- [ ] PLANNER-006-AC-11 — `includeArchived=true` includes archived activities
-- [ ] PLANNER-006-AC-12 — mixed-result ordering by name unaffected by `archived` state
-- [ ] PLANNER-006-AC-13 — no-sub-tasks completion auto-archives a non-repeatable activity
-- [ ] PLANNER-006-AC-14 — not-all-sub-tasks-complete leaves `archived` false
-- [ ] PLANNER-006-AC-15 — completing the last (Nth of N) sub-task archives the parent in that request
-- [ ] PLANNER-006-AC-16 — auto-archive check on an already-archived activity is a no-op
-- [ ] PLANNER-006-AC-17 — repeatable activities never auto-archive regardless of completion
-- [ ] PLANNER-006-AC-18 — existing `SecurityFilterChain` rule already covers the new endpoints (regression test, no `SecurityConfig` change)
+- [x] PLANNER-006-AC-01 — omitting `repeatable` on create defaults it to `true`
+- [x] PLANNER-006-AC-02 — explicit `repeatable: false` honoured on create
+- [x] PLANNER-006-AC-03 — `repeatable` editable via `PUT /api/v1/activities/{id}`
+- [x] PLANNER-006-AC-04 — `ActivityRequest` has no `archived` field; client-supplied value ignored
+- [x] PLANNER-006-AC-05 — `POST .../archive` succeeds, 200, `archived: true`
+- [x] PLANNER-006-AC-06 — `POST .../archive` on an already-archived activity is an idempotent 200
+- [x] PLANNER-006-AC-07 — `POST .../archive` on not-found/not-owned → 404
+- [x] PLANNER-006-AC-08 — `DELETE .../archive` succeeds, 204, `archived: false`
+- [x] PLANNER-006-AC-09 — `DELETE .../archive` on not-found/not-owned → 404
+- [x] PLANNER-006-AC-10 — `GET /api/v1/activities` default excludes archived
+- [x] PLANNER-006-AC-11 — `includeArchived=true` includes archived activities
+- [x] PLANNER-006-AC-12 — mixed-result ordering by name unaffected by `archived` state
+- [x] PLANNER-006-AC-13 — no-sub-tasks completion auto-archives a non-repeatable activity
+- [x] PLANNER-006-AC-14 — not-all-sub-tasks-complete leaves `archived` false
+- [x] PLANNER-006-AC-15 — completing the last (Nth of N) sub-task archives the parent in that request
+- [x] PLANNER-006-AC-16 — auto-archive check on an already-archived activity is a no-op
+- [x] PLANNER-006-AC-17 — repeatable activities never auto-archive regardless of completion
+- [x] PLANNER-006-AC-18 — existing `SecurityFilterChain` rule already covers the new endpoints (regression test, no `SecurityConfig` change)

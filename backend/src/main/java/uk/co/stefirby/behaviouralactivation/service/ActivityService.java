@@ -33,22 +33,27 @@ public class ActivityService {
     @Transactional
     public Activity create(String ownerUsername, ActivityRequest request) {
         User owner = resolveOwner(ownerUsername);
-        Activity activity = new Activity(request.name(), request.category(), request.description(), owner);
+        boolean repeatable = request.repeatable() == null || request.repeatable();
+        Activity activity = new Activity(request.name(), request.category(), request.description(),
+            repeatable, owner);
         return activityRepository.save(activity);
     }
 
     @Transactional(readOnly = true)
-    public List<Activity> listForOwner(String ownerUsername) {
+    public List<Activity> listForOwner(String ownerUsername, boolean includeArchived) {
         User owner = resolveOwner(ownerUsername);
-        return activityRepository.findByOwnerOrderByNameAsc(owner);
+        return includeArchived
+            ? activityRepository.findByOwnerOrderByNameAsc(owner)
+            : activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner);
     }
 
     @Transactional
     public Optional<Activity> update(String ownerUsername, UUID id, ActivityRequest request) {
         User owner = resolveOwner(ownerUsername);
+        boolean repeatable = request.repeatable() == null || request.repeatable();
         return activityRepository.findByIdAndOwner(id, owner)
             .map(activity -> {
-                activity.update(request.name(), request.category(), request.description());
+                activity.update(request.name(), request.category(), request.description(), repeatable);
                 return activity;
             });
     }
@@ -59,6 +64,27 @@ public class ActivityService {
         return activityRepository.findByIdAndOwner(id, owner)
             .map(activity -> {
                 activityRepository.delete(activity);
+                return true;
+            })
+            .orElse(false);
+    }
+
+    @Transactional
+    public Optional<Activity> archive(String ownerUsername, UUID id) {
+        User owner = resolveOwner(ownerUsername);
+        return activityRepository.findByIdAndOwner(id, owner)
+            .map(activity -> {
+                activity.archive(); // idempotent -- a no-op if already archived (AC-06)
+                return activity;
+            });
+    }
+
+    @Transactional
+    public boolean unarchive(String ownerUsername, UUID id) {
+        User owner = resolveOwner(ownerUsername);
+        return activityRepository.findByIdAndOwner(id, owner)
+            .map(activity -> {
+                activity.unarchive();
                 return true;
             })
             .orElse(false);

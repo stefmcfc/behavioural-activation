@@ -1,6 +1,6 @@
 # Mark Activities as Repeatable vs One-off (Frontend)
 
-**Status**: Not started
+**Status**: Implemented
 **Priority**: P2
 **Depends on**: `planner_spec_006_repeatable_activities.md` (paired backend spec),
 `frontend_spec_002_activity_bank.md` (`ActivityBank`/`ActivityForm`, `client.ts`/`request<T>()`
@@ -319,17 +319,17 @@ AC-03, AC-06, AC-13) passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-006-AC-01 — "Repeatable" checkbox, checked by default in create mode
-- [ ] FRONTEND-006-AC-02 — create submit includes `repeatable` from the checkbox
-- [ ] FRONTEND-006-AC-03 — edit mode prefills the checkbox from the activity's current value
-- [ ] FRONTEND-006-AC-04 — edit submit includes `repeatable` from the checkbox
-- [ ] FRONTEND-006-AC-05 — default mount fetch excludes archived activities
-- [ ] FRONTEND-006-AC-06 — "Show archived" toggle, off by default
-- [ ] FRONTEND-006-AC-07 — toggling on re-fetches with `includeArchived=true`, shows an "Archived" indicator
-- [ ] FRONTEND-006-AC-08 — toggling off re-fetches excluding archived again
-- [ ] FRONTEND-006-AC-09 — archived activity shows "Unarchive" instead of Edit/Delete/Show sub-tasks
-- [ ] FRONTEND-006-AC-10 — activating "Unarchive" calls `activityApi.unarchive(id)`
-- [ ] FRONTEND-006-AC-11 — successful unarchive restores the normal actions/list state
-- [ ] FRONTEND-006-AC-12 — `AssignActivityPicker` never fetches with `includeArchived=true` (regression guard)
-- [ ] FRONTEND-006-AC-13 — "Show archived" re-fetch failure shows alert + working Retry, toggle stays on
-- [ ] FRONTEND-006-AC-14 — unarchive failure shows alert, non-optimistic (activity stays archived)
+- [x] FRONTEND-006-AC-01 — "Repeatable" checkbox, checked by default in create mode
+- [x] FRONTEND-006-AC-02 — create submit includes `repeatable` from the checkbox
+- [x] FRONTEND-006-AC-03 — edit mode prefills the checkbox from the activity's current value
+- [x] FRONTEND-006-AC-04 — edit submit includes `repeatable` from the checkbox
+- [x] FRONTEND-006-AC-05 — default mount fetch excludes archived activities
+- [x] FRONTEND-006-AC-06 — "Show archived" toggle, off by default
+- [x] FRONTEND-006-AC-07 — toggling on re-fetches with `includeArchived=true`, shows an "Archived" indicator
+- [x] FRONTEND-006-AC-08 — toggling off re-fetches excluding archived again
+- [x] FRONTEND-006-AC-09 — archived activity shows "Unarchive" instead of Edit/Delete/Show sub-tasks
+- [x] FRONTEND-006-AC-10 — activating "Unarchive" calls `activityApi.unarchive(id)`
+- [x] FRONTEND-006-AC-11 — successful unarchive restores the normal actions/list state
+- [x] FRONTEND-006-AC-12 — `AssignActivityPicker` never fetches with `includeArchived=true` (regression guard)
+- [x] FRONTEND-006-AC-13 — "Show archived" re-fetch failure shows alert + working Retry, toggle stays on
+- [x] FRONTEND-006-AC-14 — unarchive failure shows alert, non-optimistic (activity stays archived)

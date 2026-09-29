@@ -7,6 +7,7 @@ import uk.co.stefirby.behaviouralactivation.model.ActivityCategory;
 public record ActivityRequest(
     @NotBlank(message = "name is required") String name,
     @NotNull(message = "category is required") ActivityCategory category,
-    String description
+    String description,
+    Boolean repeatable
 ) {
 }

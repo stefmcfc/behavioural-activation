@@ -6,29 +6,30 @@ Operational guide for running and developing this app locally.
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Java | 25 (matches Gradle toolchain in `build.gradle.kts`) | [adoptium.net](https://adoptium.net/) |
-| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
-| npm | bundled with Node | — |
-| Docker Desktop | any recent | [docker.com](https://www.docker.com/products/docker-desktop/) |
-| Git | any | [git-scm.com](https://git-scm.com/) |
+| Tool           | Version                                             | Install                                                       |
+|----------------|-----------------------------------------------------|---------------------------------------------------------------|
+| Java           | 25 (matches Gradle toolchain in `build.gradle.kts`) | [adoptium.net](https://adoptium.net/)                         |
+| Node.js        | 18+                                                 | [nodejs.org](https://nodejs.org/)                             |
+| npm            | bundled with Node                                   | —                                                             |
+| Docker Desktop | any recent                                          | [docker.com](https://www.docker.com/products/docker-desktop/) |
+| Git            | any                                                 | [git-scm.com](https://git-scm.com/)                           |
 
 ## Ports
 
 Both dev servers are pinned to static, non-default ports rather than Spring Boot's `8080`/Vite's
 `5173` defaults, since another app on the machine is likely already holding those:
 
-| Service | Port | Notes |
-|---|---|---|
-| Backend (Spring Boot) | **8420** | `server.port` in `application.yml`, overridable via `SERVER_PORT` |
-| Frontend (Vite) | **4321** | `server.port` in `vite.config.ts`, `strictPort: true` — Vite fails loudly instead of silently picking another port if `4321` is taken |
-| PostgreSQL | 5432 | `docker-compose.yml`, unchanged default |
+| Service               | Port     | Notes                                                                                                                                 |
+|-----------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------|
+| Backend (Spring Boot) | **8420** | `server.port` in `application.yml`, overridable via `SERVER_PORT`                                                                     |
+| Frontend (Vite)       | **4321** | `server.port` in `vite.config.ts`, `strictPort: true` — Vite fails loudly instead of silently picking another port if `4321` is taken |
+| PostgreSQL            | 5432     | `docker-compose.yml`, unchanged default                                                                                               |
 
 If either app port ever needs to change, update it in all of these places together:
-`backend/src/main/resources/application.yml` (`server.port`, `app.cors.allowed-origins`),
-`backend/src/test/resources/application.yml` (`app.cors.allowed-origins`), `frontend/vite.config.ts`
-(`server.port`, proxy `target`), and `frontend/src/services/*Api.ts`'s `VITE_API_BASE` fallback.
+- `backend/src/main/resources/application.yml` (`server.port`, `app.cors.allowed-origins`)
+- `backend/src/test/resources/application.yml` (`app.cors.allowed-origins`)
+- `frontend/vite.config.ts` (`server.port`, proxy `target`)
+- `frontend/src/services/*Api.ts`'s `VITE_API_BASE` fallback.
 
 ---
 
@@ -36,7 +37,7 @@ If either app port ever needs to change, update it in all of these places togeth
 
 `scripts/start-dev.sh`, `scripts/stop-dev.sh`, and `scripts/restart-dev.sh` (git bash) start/stop/
 restart both dev servers in the background, without needing two terminal windows or a manual
-`netstat`/`taskkill` cycle. Adapted from the reference project this process was based on.
+`netstat`/`taskkill` cycle. 
 
 ```bash
 bash scripts/start-dev.sh              # both servers
@@ -50,7 +51,7 @@ bash scripts/restart-dev.sh backend --debug   # restart just the backend, debug 
 ```
 
 - **Postgres isn't started by these scripts** — run `docker compose up -d` first (see below).
-  `start-dev.sh backend` fails fast (a few seconds, not the full 90s health-check timeout) with a
+  `start-dev.sh backend` fails fast (a few seconds, not the full 90s health check timeout) with a
   specific message if Docker isn't running, the `postgres` container doesn't exist yet, or it exists
   but isn't healthy yet (`scripts/lib/docker-common.sh` — extend this file for further
   docker-compose-aware checks, e.g. auto-starting Postgres, if that's ever wanted).
@@ -60,7 +61,7 @@ bash scripts/restart-dev.sh backend --debug   # restart just the backend, debug 
   `GET http://localhost:8420/api/v1/auth/me`, up to 90s for a cold Gradle Daemon start — this app's
   API is auth-gated, so "ready" means *any* HTTP response, including the expected `401`, not
   specifically a `200`; frontend: `GET http://localhost:4321/`, up to 20s) and only reports "ready"
-  once it actually responds — not just launched. On timeout it prints the last 20 lines of that
+  once it actually responds — not just launched. On timeout, it prints the last 20 lines of that
   service's log and exits non-zero.
 - **Idempotent**: re-running `start-dev.sh` while a service is already up skips it with a message
   instead of double-launching.
@@ -166,13 +167,13 @@ The Vite dev server starts at **http://localhost:4321** and proxies `/api` calls
 
 Configured via `backend/src/main/resources/application.yml`.
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `server.port` | `8420` | HTTP port. Overridable via `SERVER_PORT`. |
-| `spring.datasource.url` | `jdbc:postgresql://localhost:5432/behaviouralactivation` | Overridable via `DB_URL` |
-| `spring.datasource.username` / `password` | `behaviouralactivation` / `behaviouralactivation` | Overridable via `DB_USERNAME`/`DB_PASSWORD` — local-dev-only placeholders matching `docker-compose.yml` |
-| `app.cors.allowed-origins` | `http://localhost:4321` | Origin(s) allowed to call `/api/**` cross-origin (never a wildcard) — see `CorsConfig` |
-| `app.bootstrap.username` / `password` | *(none)* | The single seeded user's credentials, created on first startup if not already present. **No default** — must be supplied via `APP_BOOTSTRAP_USERNAME`/`APP_BOOTSTRAP_PASSWORD`. Never logged. |
+| Property                                  | Default                                                  | Description                                                                                                                                                                                   |
+|-------------------------------------------|----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `server.port`                             | `8420`                                                   | HTTP port. Overridable via `SERVER_PORT`.                                                                                                                                                     |
+| `spring.datasource.url`                   | `jdbc:postgresql://localhost:5432/behaviouralactivation` | Overridable via `DB_URL`                                                                                                                                                                      |
+| `spring.datasource.username` / `password` | `behaviouralactivation` / `behaviouralactivation`        | Overridable via `DB_USERNAME`/`DB_PASSWORD` — local-dev-only placeholders matching `docker-compose.yml`                                                                                       |
+| `app.cors.allowed-origins`                | `http://localhost:4321`                                  | Origin(s) allowed to call `/api/**` cross-origin (never a wildcard) — see `CorsConfig`                                                                                                        |
+| `app.bootstrap.username` / `password`     | *(none)*                                                 | The single seeded user's credentials, created on first startup if not already present. **No default** — must be supplied via `APP_BOOTSTRAP_USERNAME`/`APP_BOOTSTRAP_PASSWORD`. Never logged. |
 
 Override any property with a `SPRING_`-prefixed environment variable (or, for `app.*` properties,
 the plain `APP_`-prefixed equivalent):
@@ -189,7 +190,7 @@ APP_BOOTSTRAP_USERNAME=you
 APP_BOOTSTRAP_PASSWORD=change-me
 ```
 
-`scripts/start-dev.sh`/`restart-dev.sh` auto-load it (`scripts/lib/dev-common.sh`'s `load_dotenv`)
+`scripts/start-dev.sh`/`restart-dev.sh` autoload it (`scripts/lib/dev-common.sh`'s `load_dotenv`)
 before starting the backend, so you only set your credentials once. Running `gradlew.bat bootRun`
 directly (bypassing the script) does **not** read `.env` — either export the two variables
 yourself, or from `backend/`: `set -a && source ../.env && set +a && gradlew.bat bootRun`.
