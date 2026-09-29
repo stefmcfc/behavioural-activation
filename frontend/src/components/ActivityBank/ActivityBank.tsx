@@ -148,6 +148,16 @@ export function ActivityBank() {
                 <span className={styles.actions}>
                   <button
                     type="button"
+                    onClick={() =>
+                      setExpandedActivityId((current) =>
+                        current === activity.id ? null : activity.id,
+                      )
+                    }
+                  >
+                    {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleUnarchive(activity.id)}
                     disabled={unarchivingId === activity.id}
                   >
@@ -194,9 +204,13 @@ export function ActivityBank() {
 
               {activity.description && <p>{activity.description}</p>}
 
-              {expandedActivityId === activity.id && !activity.archived && (
+              {expandedActivityId === activity.id && (
                 <div className={styles.details}>
-                  <SubTaskList activityId={activity.id} category={activity.category} />
+                  <SubTaskList
+                    activityId={activity.id}
+                    category={activity.category}
+                    readOnly={activity.archived}
+                  />
                 </div>
               )}
             </li>

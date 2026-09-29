@@ -82,15 +82,25 @@ for good.
 As a user, I want to bring an archived activity back into active use if I decide I need it again.
 
 - **FRONTEND-006-AC-09** [AUTO]: While "Show archived" is on, for an activity whose `archived` is
-  `true`, `ActivityBank` shall render an "Unarchive" action in place of that row's normal Edit/
-  Delete/Show sub-tasks actions — an archived activity is not editable, deletable, or expandable for
-  sub-tasks while archived.
+  `true`, `ActivityBank` shall render an "Unarchive" action alongside a "Show sub-tasks"/"Hide
+  sub-tasks" toggle, in place of that row's normal Edit/Delete actions — an archived activity is not
+  editable or deletable while archived, but its sub-tasks remain viewable (Requirement 4a).
 - **FRONTEND-006-AC-10** [AUTO]: When "Unarchive" is activated for an activity, `ActivityBank` shall
   call `activityApi.unarchive(id)`.
 - **FRONTEND-006-AC-11** [AUTO]: If `activityApi.unarchive()` resolves successfully, then
   `ActivityBank` shall update that activity's rendered state to no-longer-archived — its normal
   Edit/Delete/Show sub-tasks actions reappear, and, if "Show archived" is off, it drops out of the
   rendered list on the next fetch/state update.
+
+### Requirement 4a — View (but not edit) an archived activity's sub-tasks
+
+As a user, I want to check what was in an activity's checklist after it's archived, without having
+to unarchive it first just to look.
+
+- **FRONTEND-006-AC-15** [AUTO]: Activating "Show sub-tasks" on an archived activity shall expand
+  the same `SubTaskList` used for non-archived activities, rendered in a read-only mode: it fetches
+  and displays the existing sub-tasks (name + category), but renders no create form and no
+  Rename/Delete actions on any sub-task row.
 
 ### Requirement 5 — Archived activities never appear in the weekly planner's picker
 
@@ -279,6 +289,26 @@ describe('FRONTEND-006-AC-09/AC-10/AC-11: Unarchive replaces the normal actions 
   })
 })
 
+describe('FRONTEND-006-AC-15: archived activity sub-tasks are viewable but read-only', () => {
+  it('shows sub-tasks with no create form and no Rename/Delete actions', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([
+      { id: 'a2', name: 'Apply for jobs', category: 'NECESSARY', description: null, repeatable: false, archived: true, createdAt: '2026-09-29T00:00:00Z' },
+    ])
+    vi.mocked(subTaskApi.getAll).mockResolvedValue([
+      { id: 's1', activityId: 'a2', name: 'Update CV', category: 'NECESSARY', createdAt: '2026-09-29T00:00:00Z' },
+    ])
+    render(<ActivityBank />)
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+
+    expect(await screen.findByText('Update CV')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
+  })
+})
+
 describe('FRONTEND-006-AC-12: AssignActivityPicker never fetches with includeArchived', () => {
   it('calls activityApi.getAll with no arguments', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([])
@@ -327,9 +357,10 @@ AC-03, AC-06, AC-13) passes.
 - [x] FRONTEND-006-AC-06 — "Show archived" toggle, off by default
 - [x] FRONTEND-006-AC-07 — toggling on re-fetches with `includeArchived=true`, shows an "Archived" indicator
 - [x] FRONTEND-006-AC-08 — toggling off re-fetches excluding archived again
-- [x] FRONTEND-006-AC-09 — archived activity shows "Unarchive" instead of Edit/Delete/Show sub-tasks
+- [x] FRONTEND-006-AC-09 — archived activity shows "Unarchive" + Show sub-tasks instead of Edit/Delete
 - [x] FRONTEND-006-AC-10 — activating "Unarchive" calls `activityApi.unarchive(id)`
 - [x] FRONTEND-006-AC-11 — successful unarchive restores the normal actions/list state
 - [x] FRONTEND-006-AC-12 — `AssignActivityPicker` never fetches with `includeArchived=true` (regression guard)
 - [x] FRONTEND-006-AC-13 — "Show archived" re-fetch failure shows alert + working Retry, toggle stays on
 - [x] FRONTEND-006-AC-14 — unarchive failure shows alert, non-optimistic (activity stays archived)
+- [x] FRONTEND-006-AC-15 — "Show sub-tasks" on an archived activity renders `SubTaskList` read-only (no create form, no Rename/Delete)

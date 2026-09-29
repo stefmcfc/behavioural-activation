@@ -14,9 +14,12 @@ All notable changes to this project are documented in this file, in
   sub-tasks — now auto-archives it out of the everyday Activity Bank and weekly-planner picker;
   unarchiving is manual. Activity Bank gained a "Repeatable" checkbox on the create/edit form, a
   "Show archived" toggle with an "(Archived)" indicator and "Unarchive" action, and
-  `AssignActivityPicker` now excludes archived activities. Verified end-to-end in a real browser
-  (light and dark) against real Postgres: creating/editing the repeatable flag, hiding/revealing
-  archived activities, unarchiving, and the full plan → complete → auto-archive flow.
+  `AssignActivityPicker` now excludes archived activities. An archived activity's sub-tasks remain
+  viewable (read-only — no add/rename/delete) via the same "Show sub-tasks" toggle, without having
+  to unarchive it first. Verified end-to-end in a real browser (light and dark) against real
+  Postgres: creating/editing the repeatable flag, hiding/revealing archived activities, viewing an
+  archived activity's sub-tasks read-only, unarchiving, and the full plan → complete → auto-archive
+  flow.
 - Fixed native checkbox/radio form controls rendering in the browser's OS-preferred color scheme
   instead of the app's own selected light/dark theme (most visible as a solid black square for an
   unchecked checkbox on an otherwise light page) — the global `color-scheme: light dark` on `:root`

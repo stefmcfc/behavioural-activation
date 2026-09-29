@@ -276,13 +276,37 @@ describe('ActivityBank', () => {
       expect(await screen.findByRole('button', { name: /unarchive/i })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /show sub-tasks/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /show sub-tasks/i })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: /unarchive/i }))
 
       expect(activityApi.unarchive).toHaveBeenCalledWith('2')
       expect(await screen.findByRole('button', { name: /^edit$/i })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /unarchive/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-15: archived activity sub-tasks are viewable but read-only', () => {
+    it('shows sub-tasks with no create form and no Rename/Delete actions', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        {
+          id: 's1',
+          activityId: '2',
+          name: 'Update CV',
+          category: 'NECESSARY',
+          createdAt: '2026-09-29T00:00:00Z',
+        },
+      ])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+
+      expect(await screen.findByText('Update CV')).toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
     })
   })
 
