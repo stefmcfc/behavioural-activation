@@ -4,10 +4,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import App from './App'
 import { authApi } from './services/authApi'
 import { activityApi } from './services/activityApi'
+import { planApi } from './services/planApi'
 import type { User } from './types/auth'
 
 vi.mock('./services/authApi')
 vi.mock('./services/activityApi')
+vi.mock('./services/planApi')
 
 describe('App', () => {
   beforeEach(() => {
@@ -15,6 +17,8 @@ describe('App', () => {
     vi.mocked(authApi.logout).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(activityApi.getAll).mockResolvedValue([])
+    vi.mocked(planApi.getWeek).mockReset()
+    vi.mocked(planApi.getWeek).mockResolvedValue([])
   })
 
   describe('FRONTEND-001-AC-08/AC-09: session check on mount', () => {

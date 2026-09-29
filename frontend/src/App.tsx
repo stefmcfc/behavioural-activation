@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoginPage } from './components/LoginPage'
 import { ActivityBank } from './components/ActivityBank/ActivityBank'
+import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
 import { authApi } from './services/authApi'
 
 type SessionState =
@@ -60,6 +61,7 @@ function App() {
       <button type="button" onClick={handleLogout}>
         Log out
       </button>
+      <WeeklyPlanner />
       <ActivityBank />
     </main>
   )

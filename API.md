@@ -3,8 +3,9 @@
 **Maintenance rule**: update this file in the same change that creates, amends, or deletes an
 endpoint — don't defer it to a later documentation pass.
 
-**Status**: `Auth` and `Activities` below are real, implemented sections — the rest are still pending
-their own spec. This file establishes where endpoint documentation lives from the start (see
+**Status**: `Auth`, `Activities` (including its Sub-tasks section), and `Planner / Weekly Grid`
+below are real, implemented sections — `Mood & Reflection` and `AI Suggestions` are still pending
+their own spec/pass. This file establishes where endpoint documentation lives from the start (see
 `PROCESS_CHANGES.md` for why: a per-endpoint table/list belongs in its own file, not folded into
 `README.md`, since it's high-churn and unrelated to a general project overview).
 
@@ -101,11 +102,66 @@ sub-tasks automatically (database-level `ON DELETE CASCADE`), not via any explic
 
 ## Planner / Weekly Grid
 
-*(none yet)*
+Backs the Monday–Friday Morning/Afternoon/Evening grid plus a flexible weekend bucket list — one
+unified `PlannedOccurrence` per planned activity/sub-task. A `PlannedOccurrence` with `dayOfWeek`
+and `slot` both set is scheduled; both null means it's still in the weekend bucket — there is no
+backend restriction tying bucket items to Saturday/Sunday specifically. All endpoints below require
+an authenticated session and are scoped to the authenticated user: an `id` that doesn't exist or
+belongs to a different user returns `404` in every case identically, never `403`.
+
+**Status**: fully implemented (both passes) — see `.claude/specs/planner_spec_004_week_planning.md`.
+
+- **`GET /api/v1/plan?weekStart=`** — `weekStart` must be a Monday (`YYYY-MM-DD`); returns `400` if
+  missing or not a Monday. Returns `200` with `{ "data": [...], "count": N }`, the authenticated
+  user's `PlannedOccurrence`s for that week (both scheduled and weekend-bucket), ordered by
+  `createdAt` ascending. An empty week (including a past week with nothing planned) returns
+  `{ "data": [], "count": 0 }`, not an error — this doubles as the only "activity history" mechanism
+  for V1 (navigate `weekStart` to a past Monday).
+- **`POST /api/v1/plan/occurrences`** — body `{ "activityId": "..." | null, "subTaskId": "..." |
+  null, "weekStart": "YYYY-MM-DD", "dayOfWeek": "MONDAY".."SUNDAY" | null, "slot": "MORNING" |
+  "AFTERNOON" | "EVENING" | null }`. Exactly one of `activityId`/`subTaskId` must be set;
+  `dayOfWeek`/`slot` must both be set (scheduled) or both be null (weekend bucket) — either
+  violation, or a missing/non-Monday `weekStart`, returns `400` without creating anything. Returns
+  `201` with the created occurrence; its `category` is copied from the referenced activity/sub-task
+  at creation time (never client-supplied, never a live reference). `404` if the referenced
+  `activityId`/`subTaskId` isn't owned by the authenticated user.
+- **`PATCH /api/v1/plan/occurrences/{id}`** — body `{ "dayOfWeek": "..." | null, "slot": "..." |
+  null }`. Both set reschedules/promotes the occurrence to that day/slot (a weekend-bucket item can
+  be promoted into *any* day, not just Saturday/Sunday); both null demotes it back to the weekend
+  bucket, leaving `weekStart` unchanged. Exactly one set returns `400` without applying any change.
+  Returns `200` with the updated occurrence, `404` if `id` isn't owned by the authenticated user.
+- **`DELETE /api/v1/plan/occurrences/{id}`** — permanently removes the planned occurrence from the
+  week without touching the underlying `Activity`/`SubTask` in the user's bank. Returns `204`, or
+  `404` if `id` isn't owned by the authenticated user.
+- **`POST /api/v1/plan/occurrences/{id}/completion`** — marks the occurrence complete, creating a
+  `CompletionRecord` with `completedAt` set to the current time, or updating the existing record's
+  `completedAt` if one already exists (idempotent — re-completing is not an error). Returns `200`
+  (not `201`) with the occurrence reflecting `completed: true`. `404` if `id` isn't owned by the
+  authenticated user.
+- **`DELETE /api/v1/plan/occurrences/{id}/completion`** — undoes completion, deleting the
+  occurrence's `CompletionRecord`. Returns `204`, or `404` if `id` isn't owned by the authenticated
+  user or has no current `CompletionRecord` (undoing a non-complete occurrence is not idempotent —
+  it's a `404`, not a no-op `204`).
+- **`POST /api/v1/plan/occurrences/{id}/carry-forward`** — advances a weekend-bucket occurrence's
+  `weekStart` by 7 days, keeping the same occurrence `id` (not a new row). Only valid for an
+  occurrence that is currently a bucket item (`dayOfWeek`/`slot` both null) and not complete —
+  either violation returns `409` without changing `weekStart`. Returns `200` with the updated
+  occurrence, `404` if `id` isn't owned by the authenticated user.
+
+`name` in every response is resolved live from the linked `Activity`/`SubTask` at response time
+(not stored on `PlannedOccurrence`) — renaming the underlying activity/sub-task later changes the
+displayed name of every occurrence referencing it. Every response also includes `completed`
+(boolean) and `completedAt` (`null` unless complete), reflecting the occurrence's `CompletionRecord`
+if any. Deleting an `Activity` or `SubTask` cascade-deletes its `PlannedOccurrence`s automatically
+(database-level `ON DELETE CASCADE`), and deleting a `PlannedOccurrence` (directly, or transitively
+via its parent `Activity`/`SubTask`) cascade-deletes its `CompletionRecord` the same way — not via
+any explicit endpoint call.
 
 ## Occurrences & Completion
 
-*(none yet)*
+*(folded into the "Planner / Weekly Grid" section above — completion, undo, and carry-forward are
+all `PlannedOccurrence`/`CompletionRecord` operations under `/api/v1/plan/occurrences/...`, not a
+separate resource)*
 
 ## Mood & Reflection
 

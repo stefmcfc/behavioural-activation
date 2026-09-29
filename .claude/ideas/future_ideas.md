@@ -49,6 +49,28 @@ weeks — no separate history page or endpoint. Confirmed during V1 planning as 
 standalone history view (filtering/searching past completions independent of the week-by-week
 navigation) is a plausible later addition once the week planner itself is in real use.
 
+## Mark activities as repeatable vs one-off
+
+**Status**: Not specced. Raised 2026-09-29, during Week Planning (pair 4) design discussion. Idea:
+add a `repeatable` boolean to `Activity`, defaulting to `true` (e.g. "Go for a walk", "Get
+shopping"), with some activities marked one-off instead (e.g. "Apply for jobs", "Get new phone",
+"Join gym"). Once a one-off activity's occurrence is completed, it should auto-archive out of the
+"pick an activity to plan" list by default — hidden from the picker, but still visible in the bank/
+history — while repeatable activities never auto-archive. Confirmed 2026-09-29: this depends on
+completion tracking existing first (needs to know when a one-off activity's occurrence is actually
+"done"), which Week Planning (pair 4) is building — so it naturally sequences *after* pair 4 ships,
+not before or alongside it (the opposite dependency direction from how sub-tasks related to pair
+4). Deliberately deferred rather than folded into pair 4's scope.
+
+Real open questions if this is ever pursued, not yet answered: whether "archived" is a hard filter
+(hidden entirely from the picker, no way back) or a soft one (a toggle to show archived activities,
+so a one-off can be manually un-archived/reused later); whether archiving happens automatically on
+completion or needs a confirm step; and how this interacts with a one-off Activity that has
+sub-tasks (`planner_spec_003_sub_tasks.md`) — since sub-tasks are planned/completed independently
+of the parent Activity, "the activity's occurrence is completed" is ambiguous for a one-off
+Activity that has sub-tasks (does completing all its sub-tasks count, or does the parent Activity
+itself need its own directly-planned occurrence completed?).
+
 ## From the feasibility review (`.claude/HIGH_LEVEL_DESIGN.md` §6 — potential future features)
 
 These are explicitly *not* part of the initial build per the design doc, listed here for
