@@ -14,7 +14,14 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-09-29 (header nav restructure + account/profile menu added).
+Last updated: 2026-09-29 (Weekly Planner UX batch now fully specced: occurrence detail card
+(`frontend_spec_008`), "Add" picker modal (`frontend_spec_009`), bucket drag-and-drop reordering
+(`planner_spec_010`/`frontend_spec_010`), and automatic carry-forward
+(`planner_spec_011`/`frontend_spec_011`) — the last two split from one candidate into two
+independent specs during planning, both now written and moved to `ROADMAP.md`'s "Specced, coming
+soon". The weekly grid orientation toggle candidate is now also written up
+(`frontend_spec_012_grid_orientation_toggle.md`) and moved to `ROADMAP.md`. Only the two
+pre-existing candidates below remain unspecced.)
 
 ---
 
@@ -42,25 +49,6 @@ likely wants two new small icon-triggered menu/dropdown components (Settings, Ac
 existing `/settings` route's content (theme, category colours) would move into the Settings icon's
 menu rather than being its own tab. Needs its own real design pass (icon choice, menu/dropdown
 interaction pattern, keyboard/focus handling) before writing ACs, not just a markup reshuffle.
-
-## Weekly grid orientation toggle (Settings)
-
-**Status**: Confirmed, not yet specced. Raised 2026-09-29 while reviewing the "Quiet Room" visual
-refresh (`frontend_spec_007_visual_refresh.md`). Two layout directions for the weekly grid were
-mocked up (published as a Claude.ai Artifact, not part of the repo) — **A**: Morning/Afternoon/
-Evening as rows with Monday-Friday as a shared column-header row; **B**: each day as its own
-row/section with Morning/Afternoon/Evening boxes side by side within it. Both variants show the
-slot label as small mono/uppercase text *inside* each box (confirmed better than either variant's
-original shared-header treatment for that axis — already implemented as the interim default,
-`PlannerGrid.tsx`/`.module.css`, using orientation A's day-columns structure).
-
-The user hasn't decided between A and B and wants a **Settings toggle** to switch between them
-(matching the theme-preference mechanism already in `frontend_spec_005`'s `Settings`/
-`utils/theme.ts` — likely `localStorage`, no backend). Real work, not a quick CSS tweak: `PlannerGrid`
-needs both layouts implemented and gated by the setting, not just a visual swap — the underlying
-grouping (which axis is "major") differs structurally between A and B. Sequence this whenever picked
-up: the interim single-orientation implementation already ships in spec 007, so this candidate is
-purely additive (a second layout + the toggle), not a redo.
 
 ## Frontend button visual hierarchy (primary/secondary)
 
