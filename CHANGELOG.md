@@ -6,6 +6,22 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-29
+
+- Added tabbed navigation (Activities / Weekly Planner / Settings) via `react-router-dom`, replacing
+  the single-page stack of components with real, bookmarkable, back/forward-aware routes.
+- Added a Settings page: Light/Dark/System theme (persisted in `localStorage`, System follows the
+  OS via `prefers-color-scheme`), and per-category chip colour customization with a reset-to-default
+  control.
+- Added a reusable `CategoryChip` component — replaces the plain "Name — Category" text in the
+  Activity Bank, sub-task list, and weekly planner with a coloured chip. The chip's text colour is
+  always computed automatically (WCAG contrast against black vs white) so a user-chosen background
+  can't make the label unreadable; this doesn't guarantee WCAG AA (4.5:1) against every possible
+  background, only the objectively better of the two text-colour choices.
+- Resolved `frontend_conventions.md`'s long-deferred styling decision: CSS Modules per component
+  plus a shared `theme.css` owning the `--text`/`--bg`/`--border`/`--accent`/category-colour custom
+  properties, superseding the ad hoc theme block that had been living in `index.css`.
+
 ## [0.4.0] - 2026-09-29
 
 - Added the weekly planner (V1's final spec pair): a Monday-Friday × Morning/Afternoon/Evening grid

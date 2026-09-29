@@ -1,6 +1,9 @@
 # Navigation, Theme, and Category Chips (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 28 ACs verified. AUTO ACs pass via Vitest/RTL (`npm test`, 149/149,
+0 regressions), `tsc -b --noEmit`, and `npm run build`, all clean. AC-12 (MANUAL, no-flash-on-reload)
+verified in a real browser (2026-09-29): explicit Light and Dark selections both persisted correctly
+across a hard `navigate` reload with no visible flash of the wrong theme.
 **Priority**: P2 — usability polish layered on top of the fully-delivered V1 feature set; doesn't
 block V2 backend work.
 **Depends on**: `frontend_spec_002_activity_bank.md` (wraps `ActivityBank` under `/activities`, its
@@ -449,31 +452,32 @@ describe('FRONTEND-005-AC-26/AC-27/AC-28: getReadableTextColor picks the higher-
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-005-AC-01 — persistent tab nav with three labelled links, above routed content
-- [ ] FRONTEND-005-AC-02 — activating a tab navigates to its route, renders the right component, no full reload
-- [ ] FRONTEND-005-AC-03 — active route's tab carries `aria-current="page"`, others don't
-- [ ] FRONTEND-005-AC-04 — `/` redirects to `/activities`
-- [ ] FRONTEND-005-AC-05 — shared header + `TabNav` stay mounted across route switches
-- [ ] FRONTEND-005-AC-06 — browser back returns to the previously active tab's route
-- [ ] FRONTEND-005-AC-07 — `Settings` shows Light/Dark/System, defaulting to System when unset
-- [ ] FRONTEND-005-AC-08 — selecting an option persists to `localStorage` and applies immediately
-- [ ] FRONTEND-005-AC-09 — Light/Dark sets `data-theme`, overriding OS preference
-- [ ] FRONTEND-005-AC-10 — System sets no `data-theme`, leaving it to the media query
-- [ ] FRONTEND-005-AC-11 — `applyStoredTheme()` runs before render, reads/defaults correctly
-- [ ] FRONTEND-005-AC-12 — manual no-flash check on reload, both directions (MANUAL)
-- [ ] FRONTEND-005-AC-13 — System mode shows which OS theme is currently in effect
-- [ ] FRONTEND-005-AC-14 — selecting System after Light/Dark removes the `data-theme` override
-- [ ] FRONTEND-005-AC-15 — `CategoryChip` renders the category label on its current colour
-- [ ] FRONTEND-005-AC-16 — `CategoryChip` computes text colour via `getReadableTextColor()`
-- [ ] FRONTEND-005-AC-17 — `ActivityBank` list uses `CategoryChip`, not plain text
-- [ ] FRONTEND-005-AC-18 — `SubTaskList` per-item rows use `CategoryChip`, not plain text
-- [ ] FRONTEND-005-AC-19 — `OccurrenceItem` uses `CategoryChip`, not plain text
-- [ ] FRONTEND-005-AC-20 — `Settings` renders one labelled colour picker per category
-- [ ] FRONTEND-005-AC-21 — picker defaults to built-in hex unless customized
-- [ ] FRONTEND-005-AC-22 — changing a colour persists it and applies immediately
-- [ ] FRONTEND-005-AC-23 — persisted colour re-renders all matching chips, no reload
-- [ ] FRONTEND-005-AC-24 — per-category "Reset to default" control rendered
-- [ ] FRONTEND-005-AC-25 — reset clears the stored override and reverts input + chips
-- [ ] FRONTEND-005-AC-26 — `getReadableTextColor()` picks the objectively higher-contrast option
-- [ ] FRONTEND-005-AC-27 — correct results for the three built-in default category hexes
-- [ ] FRONTEND-005-AC-28 — correct results for `#ffffff`/`#000000`/`#777777`, including the close call
+- [x] FRONTEND-005-AC-01 — persistent tab nav with three labelled links, above routed content
+- [x] FRONTEND-005-AC-02 — activating a tab navigates to its route, renders the right component, no full reload
+- [x] FRONTEND-005-AC-03 — active route's tab carries `aria-current="page"`, others don't
+- [x] FRONTEND-005-AC-04 — `/` redirects to `/activities`
+- [x] FRONTEND-005-AC-05 — shared header + `TabNav` stay mounted across route switches
+- [x] FRONTEND-005-AC-06 — browser back returns to the previously active tab's route
+- [x] FRONTEND-005-AC-07 — `Settings` shows Light/Dark/System, defaulting to System when unset
+- [x] FRONTEND-005-AC-08 — selecting an option persists to `localStorage` and applies immediately
+- [x] FRONTEND-005-AC-09 — Light/Dark sets `data-theme`, overriding OS preference
+- [x] FRONTEND-005-AC-10 — System sets no `data-theme`, leaving it to the media query
+- [x] FRONTEND-005-AC-11 — `applyStoredTheme()` runs before render, reads/defaults correctly
+- [x] FRONTEND-005-AC-12 — manual no-flash check on reload, both directions (MANUAL) — verified in
+      a real browser 2026-09-29, Light and Dark both persisted correctly with no visible flash
+- [x] FRONTEND-005-AC-13 — System mode shows which OS theme is currently in effect
+- [x] FRONTEND-005-AC-14 — selecting System after Light/Dark removes the `data-theme` override
+- [x] FRONTEND-005-AC-15 — `CategoryChip` renders the category label on its current colour
+- [x] FRONTEND-005-AC-16 — `CategoryChip` computes text colour via `getReadableTextColor()`
+- [x] FRONTEND-005-AC-17 — `ActivityBank` list uses `CategoryChip`, not plain text
+- [x] FRONTEND-005-AC-18 — `SubTaskList` per-item rows use `CategoryChip`, not plain text
+- [x] FRONTEND-005-AC-19 — `OccurrenceItem` uses `CategoryChip`, not plain text
+- [x] FRONTEND-005-AC-20 — `Settings` renders one labelled colour picker per category
+- [x] FRONTEND-005-AC-21 — picker defaults to built-in hex unless customized
+- [x] FRONTEND-005-AC-22 — changing a colour persists it and applies immediately
+- [x] FRONTEND-005-AC-23 — persisted colour re-renders all matching chips, no reload
+- [x] FRONTEND-005-AC-24 — per-category "Reset to default" control rendered
+- [x] FRONTEND-005-AC-25 — reset clears the stored override and reverts input + chips
+- [x] FRONTEND-005-AC-26 — `getReadableTextColor()` picks the objectively higher-contrast option
+- [x] FRONTEND-005-AC-27 — correct results for the three built-in default category hexes
+- [x] FRONTEND-005-AC-28 — correct results for `#ffffff`/`#000000`/`#777777`, including the close call

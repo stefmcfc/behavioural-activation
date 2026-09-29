@@ -1,0 +1,11 @@
+.categoryRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.defaultHint {
+  color: var(--text);
+  font-size: 0.85em;
+}

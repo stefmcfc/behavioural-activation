@@ -1,13 +1,7 @@
 import { useState } from 'react'
-import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
-
-const CATEGORY_LABELS: Record<ActivityCategory, string> = {
-  ROUTINE: 'Routine',
-  NECESSARY: 'Necessary',
-  PLEASURABLE: 'Pleasurable',
-}
+import { CategoryChip } from '../CategoryChip/CategoryChip'
 
 interface OccurrenceItemProps {
   readonly occurrence: PlannedOccurrence
@@ -52,7 +46,7 @@ export function OccurrenceItem({
 
   return (
     <li>
-      <span>{occurrence.name}</span> — <span>{CATEGORY_LABELS[occurrence.category]}</span>
+      <span>{occurrence.name}</span> <CategoryChip category={occurrence.category} />
       {occurrence.completed && <span> — Completed</span>}
 
       {confirmingRemoveId === occurrence.id && (
