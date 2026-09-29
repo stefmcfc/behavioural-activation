@@ -65,14 +65,14 @@ export const activityApi = {
 
 ## Styling
 
-Not decided yet — likely CSS Modules (per the reference project's experience: no extra dependency,
-Vite scopes `*.module.css` automatically, one module per component colocated with its `.tsx`).
-Confirm/record the actual decision here once the first component spec implements it, rather than
-assuming.
-
-Whatever the approach: use shared theme custom properties (`--text`, `--bg`, `--border`, `--accent`,
-etc.) rather than hardcoded hex values, so light/dark mode and contrast stay correct — see the
-Testing section below for why this matters.
+**Settled** (`frontend_spec_005_navigation_and_theme.md`): **CSS Modules**, one `*.module.css` per
+component, colocated with its `.tsx` — no extra dependency, Vite scopes it automatically. The one
+exception is `frontend/src/theme.css`, a global, non-module stylesheet imported once from
+`main.tsx`, which owns the `:root` theme custom properties (`--text`, `--bg`, `--border`,
+`--accent`, plus the category-colour properties) so every component's own module can reference them
+via `var(--text)` etc. rather than hardcoded hex values — this is what keeps light/dark mode and
+contrast correct; see the Testing section below for why that matters, and
+`frontend_spec_005_navigation_and_theme.md` for the light/dark/`[data-theme]` override mechanics.
 
 ## Testing Strategy (Vitest + React Testing Library)
 

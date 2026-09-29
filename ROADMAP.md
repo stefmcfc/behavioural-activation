@@ -35,10 +35,10 @@ earlier the same day).
 
 ## Specced, coming soon
 
-*(none — all 4 V1 spec pairs are delivered; V2 hasn't been specced yet)*
-
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Frontend navigation, settings, and category chips | — | [`frontend_spec_005_navigation_and_theme.md`](.claude/specs/frontend_spec_005_navigation_and_theme.md) | Not started — 28 ACs. Frontend-only (tab navigation via `react-router-dom`, light/dark/system theme, per-category chip colour customization with auto-computed text contrast); no backend spec pair — everything is `localStorage` + client-side rendering, nothing added to the `User` entity. |
+| Mark activities as repeatable vs one-off | [`planner_spec_006_repeatable_activities.md`](.claude/specs/planner_spec_006_repeatable_activities.md) | [`frontend_spec_006_repeatable_activities.md`](.claude/specs/frontend_spec_006_repeatable_activities.md) | Not started — 18 backend ACs + 14 frontend ACs specced (2026-09-29). Backend adds `repeatable`/`archived` to `Activity`, two new archive/unarchive endpoints, an `includeArchived` filter on `GET /api/v1/activities`, and an auto-archive hook in `PlanService.complete()`. Frontend adds a "Repeatable" checkbox to `ActivityForm`, a "Show archived" toggle + "Unarchive" action to `ActivityBank`, and a regression guard on `AssignActivityPicker`. |
 
 ## Internal / maintenance specs
 
