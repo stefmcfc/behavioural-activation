@@ -130,7 +130,7 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
       {subTasks !== null && subTasks.length === 0 && <p>No sub-tasks yet.</p>}
 
       {subTasks !== null && subTasks.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {subTasks.map((subTask) => (
             <li key={subTask.id} className={`${styles.row} ${styles.nested}`}>
               <span>{subTask.name}</span> <CategoryChip category={subTask.category} />

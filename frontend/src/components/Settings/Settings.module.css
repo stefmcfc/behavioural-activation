@@ -1,8 +1,27 @@
+.colourList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
 .categoryRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: 0.6rem;
+}
+
+/* Higher specificity than global input[type="color"] (index.css) so the
+   smaller circular swatch treatment actually wins regardless of CSS load order. */
+input[type='color'].swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
 }
 
 .defaultHint {

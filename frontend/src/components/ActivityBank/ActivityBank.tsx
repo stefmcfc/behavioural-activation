@@ -101,7 +101,7 @@ export function ActivityBank() {
       )}
 
       {activities !== null && activities.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {activities.map((activity) => (
             <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />

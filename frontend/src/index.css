@@ -23,13 +23,24 @@ body {
   margin: 0;
 }
 
-h1,
-h2 {
+h1 {
   font-family: var(--heading);
   font-weight: 700;
   letter-spacing: -0.01em;
   text-wrap: balance;
   color: var(--text-h);
+}
+
+/* Section headings (Activity Bank, Weekly planner, Settings) read as a quiet
+   label under the page title, not a second page title. */
+h2 {
+  font-family: var(--heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 1.1rem;
 }
 
 p {

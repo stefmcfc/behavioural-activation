@@ -72,7 +72,7 @@ export function PlannerGrid({
                   >
                     Add
                   </button>
-                  <ul>
+                  <ul className={styles.list}>
                     {cellOccurrences.map((occurrence) => (
                       <OccurrenceItem
                         key={occurrence.id}

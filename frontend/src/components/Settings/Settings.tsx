@@ -90,26 +90,29 @@ export function Settings() {
 
       <fieldset>
         <legend>Category colours</legend>
-        {ALL_CATEGORIES.map((category) => {
-          const inputId = `category-color-${category}`
-          return (
-            <div key={category} className={styles.categoryRow}>
-              <label htmlFor={inputId}>{CATEGORY_LABELS[category]} colour</label>
-              <input
-                id={inputId}
-                type="color"
-                value={categoryColors[category]}
-                onChange={(event) => handleColorChange(category, event.target.value)}
-              />
-              <button type="button" onClick={() => handleReset(category)}>
-                Reset {CATEGORY_LABELS[category]} to default
-              </button>
-              <span className={styles.defaultHint}>
-                Default: {DEFAULT_CATEGORY_COLORS[category]}
-              </span>
-            </div>
-          )
-        })}
+        <ul className={styles.colourList}>
+          {ALL_CATEGORIES.map((category) => {
+            const inputId = `category-color-${category}`
+            return (
+              <li key={category} className={styles.categoryRow}>
+                <input
+                  id={inputId}
+                  className={styles.swatch}
+                  type="color"
+                  value={categoryColors[category]}
+                  onChange={(event) => handleColorChange(category, event.target.value)}
+                />
+                <label htmlFor={inputId}>{CATEGORY_LABELS[category]} colour</label>
+                <button type="button" onClick={() => handleReset(category)}>
+                  Reset {CATEGORY_LABELS[category]} to default
+                </button>
+                <span className={styles.defaultHint}>
+                  Default: {DEFAULT_CATEGORY_COLORS[category]}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
       </fieldset>
     </section>
   )

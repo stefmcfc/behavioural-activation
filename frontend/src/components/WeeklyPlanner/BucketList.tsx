@@ -78,7 +78,7 @@ export function BucketList({
       {bucketOccurrences.length === 0 && <p>Your bucket list is empty.</p>}
 
       {bucketOccurrences.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {bucketOccurrences.map((occurrence) => (
             <OccurrenceItem
               key={occurrence.id}
