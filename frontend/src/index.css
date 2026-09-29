@@ -1,6 +1,6 @@
 :root {
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -10,6 +10,7 @@
   background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
@@ -22,11 +23,36 @@ body {
   margin: 0;
 }
 
-h1,
+h1 {
+  font-family: var(--heading);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: var(--text-h);
+}
+
+/* Section headings (Activity Bank, Weekly planner, Settings) read as a quiet
+   label under the page title, not a second page title. */
 h2 {
   font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0 0 1.1rem;
+}
+
+/* Fieldset legends (e.g. Settings' "Appearance"/"Category colours") are a
+   level below an h2 section heading -- same quiet-label language, smaller. */
+legend {
+  font-family: var(--heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 0;
 }
 
 p {
@@ -42,4 +68,69 @@ code {
   padding: 4px 8px;
   color: var(--text-h);
   background: var(--code-bg);
+}
+
+button {
+  border-radius: 999px;
+  background: var(--surface);
+  border: none;
+  box-shadow: var(--shadow);
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition:
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+}
+
+button:hover {
+  background: var(--code-bg);
+  box-shadow:
+    rgba(43, 42, 40, 0.1) 0 2px 4px, rgba(43, 42, 40, 0.28) 0 6px 14px -6px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type="text"],
+textarea,
+select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+}
+
+input[type="password"] {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+}
+
+input[type="color"] {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+input[type="radio"] {
+  accent-color: var(--accent);
 }

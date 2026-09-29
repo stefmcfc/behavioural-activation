@@ -93,9 +93,9 @@ describe('Settings', () => {
     it('renders a colour input per category defaulting to the built-in hex', () => {
       render(<Settings />)
 
-      expect(screen.getByLabelText(/routine colour/i)).toHaveValue('#0072b2')
-      expect(screen.getByLabelText(/necessary colour/i)).toHaveValue('#e69f00')
-      expect(screen.getByLabelText(/pleasurable colour/i)).toHaveValue('#009e73')
+      expect(screen.getByLabelText(/^routine$/i)).toHaveValue('#0072b2')
+      expect(screen.getByLabelText(/^necessary$/i)).toHaveValue('#e69f00')
+      expect(screen.getByLabelText(/^pleasurable$/i)).toHaveValue('#009e73')
     })
 
     it('reflects a stored override', () => {
@@ -103,7 +103,7 @@ describe('Settings', () => {
 
       render(<Settings />)
 
-      expect(screen.getByLabelText(/routine colour/i)).toHaveValue('#123456')
+      expect(screen.getByLabelText(/^routine$/i)).toHaveValue('#123456')
     })
   })
 
@@ -116,10 +116,12 @@ describe('Settings', () => {
         </>,
       )
 
-      fireEvent.change(screen.getByLabelText(/routine colour/i), { target: { value: '#123456' } })
+      fireEvent.change(screen.getByLabelText(/^routine$/i), { target: { value: '#123456' } })
 
       expect(localStorage.getItem('bap-category-colors')).toContain('#123456')
-      expect(screen.getByText('Routine')).toHaveStyle({ backgroundColor: '#123456' })
+      expect(screen.getByTestId('category-chip-ROUTINE')).toHaveStyle({
+        backgroundColor: '#123456',
+      })
     })
   })
 
@@ -138,8 +140,10 @@ describe('Settings', () => {
       expect(JSON.parse(localStorage.getItem('bap-category-colors') ?? '{}')).not.toHaveProperty(
         'ROUTINE',
       )
-      expect(screen.getByLabelText(/routine colour/i)).toHaveValue('#0072b2')
-      expect(screen.getByText('Routine')).toHaveStyle({ backgroundColor: '#0072B2' })
+      expect(screen.getByLabelText(/^routine$/i)).toHaveValue('#0072b2')
+      expect(screen.getByTestId('category-chip-ROUTINE')).toHaveStyle({
+        backgroundColor: '#0072B2',
+      })
     })
 
     it('renders a "Reset to default" control for each category', () => {

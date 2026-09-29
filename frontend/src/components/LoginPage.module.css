@@ -1,0 +1,16 @@
+.shell {
+  max-width: 24rem;
+  margin: 4rem auto 0;
+  padding: 2.5rem 1.75rem 5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.actions {
+  margin-top: 1.5rem;
+}

@@ -5,6 +5,7 @@ import type { ActivityCategory } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import styles from './SubTaskList.module.css'
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -129,13 +130,13 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
       {subTasks !== null && subTasks.length === 0 && <p>No sub-tasks yet.</p>}
 
       {subTasks !== null && subTasks.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {subTasks.map((subTask) => (
-            <li key={subTask.id}>
+            <li key={subTask.id} className={`${styles.row} ${styles.nested}`}>
               <span>{subTask.name}</span> <CategoryChip category={subTask.category} />
 
               {confirmingDeleteId === subTask.id ? (
-                <>
+                <span className={styles.actions}>
                   <button
                     type="button"
                     onClick={() => handleConfirmDelete(subTask.id)}
@@ -150,16 +151,16 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
                   >
                     Cancel
                   </button>
-                </>
+                </span>
               ) : (
-                <>
+                <span className={styles.actions}>
                   <button type="button" onClick={() => setEditingSubTaskId(subTask.id)}>
                     Rename
                   </button>
                   <button type="button" onClick={() => setConfirmingDeleteId(subTask.id)}>
                     Delete
                   </button>
-                </>
+                </span>
               )}
             </li>
           ))}

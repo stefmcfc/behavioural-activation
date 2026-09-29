@@ -5,6 +5,7 @@ import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import styles from './ActivityBank.module.css'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -82,32 +83,23 @@ export function ActivityBank() {
     <section>
       <h2>Activity Bank</h2>
 
-      <ActivityForm
-        key={editingActivity?.id ?? 'create'}
-        mode={editingActivity ? 'edit' : 'create'}
-        activity={editingActivity ?? undefined}
-        onSuccess={handleFormSuccess}
-        onCancel={editingActivity ? () => setEditingActivity(null) : undefined}
-      />
-
       {loadError && <p role="alert">{loadError}</p>}
       {deleteError && <p role="alert">{deleteError}</p>}
 
       {activities === null && !loadError && <output>Loading activities…</output>}
 
       {activities !== null && activities.length === 0 && (
-        <p>No activities yet. Add one above to get started.</p>
+        <p>No activities yet. Add one below to get started.</p>
       )}
 
       {activities !== null && activities.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {activities.map((activity) => (
-            <li key={activity.id}>
+            <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
-              {activity.description && <p>{activity.description}</p>}
 
               {confirmingDeleteId === activity.id ? (
-                <>
+                <span className={styles.actions}>
                   <button
                     type="button"
                     onClick={() => handleConfirmDelete(activity.id)}
@@ -122,15 +114,9 @@ export function ActivityBank() {
                   >
                     Cancel
                   </button>
-                </>
+                </span>
               ) : (
-                <>
-                  <button type="button" onClick={() => setEditingActivity(activity)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
-                    Delete
-                  </button>
+                <span className={styles.actions}>
                   <button
                     type="button"
                     onClick={() =>
@@ -141,16 +127,34 @@ export function ActivityBank() {
                   >
                     {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
                   </button>
-                </>
+                  <button type="button" onClick={() => setEditingActivity(activity)}>
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
+                    Delete
+                  </button>
+                </span>
               )}
 
+              {activity.description && <p>{activity.description}</p>}
+
               {expandedActivityId === activity.id && (
-                <SubTaskList activityId={activity.id} category={activity.category} />
+                <div className={styles.details}>
+                  <SubTaskList activityId={activity.id} category={activity.category} />
+                </div>
               )}
             </li>
           ))}
         </ul>
       )}
+
+      <ActivityForm
+        key={editingActivity?.id ?? 'create'}
+        mode={editingActivity ? 'edit' : 'create'}
+        activity={editingActivity ?? undefined}
+        onSuccess={handleFormSuccess}
+        onCancel={editingActivity ? () => setEditingActivity(null) : undefined}
+      />
     </section>
   )
 }

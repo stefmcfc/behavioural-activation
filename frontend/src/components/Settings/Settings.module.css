@@ -1,11 +1,94 @@
+.themeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.themeList label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.themeList label:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.themeList label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.themeList input[type='radio'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.colourList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
 .categoryRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: 0.6rem;
 }
 
-.defaultHint {
-  color: var(--text);
-  font-size: 0.85em;
+.resetButton {
+  margin-left: auto;
+}
+
+/* Higher specificity than global input[type="color"] (index.css) so the
+   smaller circular swatch treatment actually wins regardless of CSS load order.
+   Chromium/WebKit render the actual colour patch via an internal
+   ::-webkit-color-swatch pseudo-element that does NOT inherit the input's own
+   border-radius -- without overriding it directly, the outer ring goes
+   circular but the colour patch inside stays a square. */
+input[type='color'].swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+input[type='color'].swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 999px;
+}
+
+input[type='color'].swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+input[type='color'].swatch::-moz-color-swatch {
+  border: none;
+  border-radius: 999px;
 }

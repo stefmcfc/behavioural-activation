@@ -6,6 +6,7 @@ import type { Activity } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { planApi } from '../../services/planApi'
 import type { SubTask } from '../../types/subTask'
+import styles from './AssignActivityPicker.module.css'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -117,7 +118,7 @@ export function AssignActivityPicker({
       )}
 
       {activities !== null && activities.length > 0 && (
-        <ul>
+        <ul className={styles.panel}>
           {activities.map((activity) => {
             const subTasks = subTasksByActivity[activity.id] ?? []
             return (

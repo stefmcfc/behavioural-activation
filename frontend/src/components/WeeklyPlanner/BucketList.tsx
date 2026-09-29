@@ -1,6 +1,7 @@
 import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
+import styles from './BucketList.module.css'
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -62,7 +63,7 @@ export function BucketList({
   const zeroCategories = computeZeroCategories(bucketOccurrences)
 
   return (
-    <section aria-label="Weekend bucket list">
+    <section aria-label="Weekend bucket list" className={styles.panel}>
       <h3>Weekend bucket list</h3>
       <button type="button" onClick={onAdd} aria-label="Add to weekend bucket list">
         Add
@@ -77,7 +78,7 @@ export function BucketList({
       {bucketOccurrences.length === 0 && <p>Your bucket list is empty.</p>}
 
       {bucketOccurrences.length > 0 && (
-        <ul>
+        <ul className={styles.list}>
           {bucketOccurrences.map((occurrence) => (
             <OccurrenceItem
               key={occurrence.id}

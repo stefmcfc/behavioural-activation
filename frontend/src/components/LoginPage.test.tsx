@@ -4,12 +4,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LoginPage } from './LoginPage'
 import { authApi } from '../services/authApi'
 import type { User } from '../types/auth'
+import styles from './LoginPage.module.css'
 
 vi.mock('../services/authApi')
 
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.mocked(authApi.login).mockReset()
+  })
+
+  describe('FRONTEND-007-AC-27: login page uses the layout shell', () => {
+    it('applies the shell class to its wrapping element', () => {
+      render(<LoginPage onLoginSuccess={() => {}} />)
+
+      expect(screen.getByRole('heading', { name: /log in/i }).closest(`.${styles.shell}`)).not.toBeNull()
+    })
   })
 
   describe('FRONTEND-001-AC-03/AC-04: valid submit logs in and signals success', () => {

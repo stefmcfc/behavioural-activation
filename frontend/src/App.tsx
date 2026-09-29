@@ -6,6 +6,7 @@ import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
 import { Settings } from './components/Settings/Settings'
 import { TabNav } from './components/Navigation/TabNav'
 import { authApi } from './services/authApi'
+import styles from './App.module.css'
 
 type SessionState =
   | { status: 'checking' }
@@ -58,7 +59,7 @@ function App() {
   }
 
   return (
-    <main>
+    <main className={styles.shell} data-testid="app-shell">
       <h1>Behavioural Activation Planner</h1>
       <p>Logged in as {session.username}</p>
       <button type="button" onClick={handleLogout}>

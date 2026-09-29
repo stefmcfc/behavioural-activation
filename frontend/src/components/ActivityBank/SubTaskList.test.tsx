@@ -5,6 +5,7 @@ import { SubTaskList } from './SubTaskList'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
+import styles from './SubTaskList.module.css'
 
 vi.mock('../../services/subTaskApi')
 
@@ -43,6 +44,17 @@ describe('SubTaskList', () => {
       expect(list.getByTestId('category-chip-PLEASURABLE')).toBeInTheDocument()
       expect(list.queryByText(/— pleasurable/i)).not.toBeInTheDocument()
       expect(screen.getByRole('heading', { name: /sub-tasks — pleasurable/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-007-AC-21/AC-22: sub-task rows use the nested hairline treatment', () => {
+    it('applies the row and nested classes to each sub-task li', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      const row = (await screen.findByText('Create a guest list')).closest('li')
+      expect(row).toHaveClass(styles.row)
+      expect(row).toHaveClass(styles.nested)
     })
   })
 

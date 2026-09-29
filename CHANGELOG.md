@@ -6,6 +6,32 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-29
+
+- Added a full visual refresh ("Quiet Room" design system), replacing the scaffold-era purple
+  accent and entirely-unstyled native HTML with a warm sage-accented palette, pill-shaped
+  buttons/chips with a soft shadow, hairline-bordered flat content rows/panels (no card shadows
+  outside of buttons), tighter system-sans typography with tabular numerals, and monospace
+  uppercase day-of-week labels in the weekly grid. Every V1 screen (Login, Activity Bank,
+  sub-tasks, Weekly Planner, Settings) now has real component styling for the first time; global
+  base styles cover every button/input/radio uniformly (no primary/secondary distinction yet —
+  deliberately deferred). Direction was chosen from three mocked-up options plus a hybrid, reviewed
+  in a throwaway design-exploration artifact before being turned into a spec.
+- Fixed a batch of discrepancies found comparing the shipped result against the approved mockup:
+  `h2` section headings and fieldset `legend`s now use the small uppercase quiet-label treatment
+  instead of duplicating the page `h1`; Activity Bank/sub-task/bucket-list rows were rendering real
+  browser bullet points (missing `list-style: none`) instead of the intended flush hairline list;
+  Settings' category-colour rows now lead with the swatch, drop the redundant "colour"/category-name
+  text, right-align the reset action, and the swatch itself is a true circle (Chromium's
+  `::-webkit-color-swatch` doesn't inherit the input's own `border-radius`); the Appearance theme
+  picker is a one-row chip/segmented toggle instead of either the original cramped inline radios or
+  an over-corrected vertical stack; the weekly grid's Morning/Afternoon/Evening label now renders
+  small inside each box rather than as a shared row/column header; Activity Bank's "Show sub-tasks"
+  is the first action and the add-activity form sits below the list.
+- Fixed a real, reproducible test flake (`FRONTEND-005-AC-06`): `router.navigate()` calls outside
+  of a React event handler weren't wrapped in `act()`, so the resulting state update sometimes
+  didn't flush before the test's assertions ran.
+
 ## [0.5.0] - 2026-09-29
 
 - Added tabbed navigation (Activities / Weekly Planner / Settings) via `react-router-dom`, replacing
