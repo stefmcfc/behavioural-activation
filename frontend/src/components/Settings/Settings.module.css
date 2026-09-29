@@ -1,3 +1,12 @@
+.themeList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .colourList {
   list-style: none;
   margin: 0;
@@ -13,6 +22,10 @@
   gap: 0.6rem;
 }
 
+.resetButton {
+  margin-left: auto;
+}
+
 /* Higher specificity than global input[type="color"] (index.css) so the
    smaller circular swatch treatment actually wins regardless of CSS load order. */
 input[type='color'].swatch {
@@ -22,9 +35,4 @@ input[type='color'].swatch {
   border: 1px solid var(--border);
   padding: 0;
   cursor: pointer;
-}
-
-.defaultHint {
-  color: var(--text);
-  font-size: 0.85em;
 }

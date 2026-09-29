@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import type { ActivityCategory } from '../../types/activity'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import {
-  DEFAULT_CATEGORY_COLORS,
   getCategoryColor,
   resetCategoryColor,
   setCategoryColor,
@@ -71,18 +70,22 @@ export function Settings() {
 
       <fieldset>
         <legend>Appearance</legend>
-        {THEME_OPTIONS.map((option) => (
-          <label key={option.value}>
-            <input
-              type="radio"
-              name="theme-preference"
-              value={option.value}
-              checked={themePreference === option.value}
-              onChange={() => handleThemeChange(option.value)}
-            />
-            {option.label}
-          </label>
-        ))}
+        <ul className={styles.themeList}>
+          {THEME_OPTIONS.map((option) => (
+            <li key={option.value}>
+              <label>
+                <input
+                  type="radio"
+                  name="theme-preference"
+                  value={option.value}
+                  checked={themePreference === option.value}
+                  onChange={() => handleThemeChange(option.value)}
+                />
+                {option.label}
+              </label>
+            </li>
+          ))}
+        </ul>
         {themePreference === 'system' && (
           <p>Currently: {systemPrefersDark ? 'Dark' : 'Light'}</p>
         )}
@@ -102,13 +105,15 @@ export function Settings() {
                   value={categoryColors[category]}
                   onChange={(event) => handleColorChange(category, event.target.value)}
                 />
-                <label htmlFor={inputId}>{CATEGORY_LABELS[category]} colour</label>
-                <button type="button" onClick={() => handleReset(category)}>
-                  Reset {CATEGORY_LABELS[category]} to default
+                <label htmlFor={inputId}>{CATEGORY_LABELS[category]}</label>
+                <button
+                  type="button"
+                  className={styles.resetButton}
+                  aria-label={`Reset ${CATEGORY_LABELS[category]} colour to default`}
+                  onClick={() => handleReset(category)}
+                >
+                  Reset to default
                 </button>
-                <span className={styles.defaultHint}>
-                  Default: {DEFAULT_CATEGORY_COLORS[category]}
-                </span>
               </li>
             )
           })}

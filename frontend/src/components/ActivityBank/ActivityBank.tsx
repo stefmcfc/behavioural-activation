@@ -83,21 +83,13 @@ export function ActivityBank() {
     <section>
       <h2>Activity Bank</h2>
 
-      <ActivityForm
-        key={editingActivity?.id ?? 'create'}
-        mode={editingActivity ? 'edit' : 'create'}
-        activity={editingActivity ?? undefined}
-        onSuccess={handleFormSuccess}
-        onCancel={editingActivity ? () => setEditingActivity(null) : undefined}
-      />
-
       {loadError && <p role="alert">{loadError}</p>}
       {deleteError && <p role="alert">{deleteError}</p>}
 
       {activities === null && !loadError && <output>Loading activities…</output>}
 
       {activities !== null && activities.length === 0 && (
-        <p>No activities yet. Add one above to get started.</p>
+        <p>No activities yet. Add one below to get started.</p>
       )}
 
       {activities !== null && activities.length > 0 && (
@@ -125,12 +117,6 @@ export function ActivityBank() {
                 </span>
               ) : (
                 <span className={styles.actions}>
-                  <button type="button" onClick={() => setEditingActivity(activity)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
-                    Delete
-                  </button>
                   <button
                     type="button"
                     onClick={() =>
@@ -140,6 +126,12 @@ export function ActivityBank() {
                     }
                   >
                     {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
+                  </button>
+                  <button type="button" onClick={() => setEditingActivity(activity)}>
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
+                    Delete
                   </button>
                 </span>
               )}
@@ -155,6 +147,14 @@ export function ActivityBank() {
           ))}
         </ul>
       )}
+
+      <ActivityForm
+        key={editingActivity?.id ?? 'create'}
+        mode={editingActivity ? 'edit' : 'create'}
+        activity={editingActivity ?? undefined}
+        onSuccess={handleFormSuccess}
+        onCancel={editingActivity ? () => setEditingActivity(null) : undefined}
+      />
     </section>
   )
 }

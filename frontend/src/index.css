@@ -43,6 +43,18 @@ h2 {
   margin: 0 0 1.1rem;
 }
 
+/* Fieldset legends (e.g. Settings' "Appearance"/"Category colours") are a
+   level below an h2 section heading -- same quiet-label language, smaller. */
+legend {
+  font-family: var(--heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 0;
+}
+
 p {
   margin: 0;
 }

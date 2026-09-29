@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
@@ -175,13 +175,17 @@ describe('App', () => {
 
       await screen.findByText(/steve/i)
 
-      router.navigate('/planner')
+      await act(async () => {
+        await router.navigate('/planner')
+      })
       expect(await screen.findByRole('link', { name: /weekly planner/i })).toHaveAttribute(
         'aria-current',
         'page',
       )
 
-      router.navigate(-1)
+      await act(async () => {
+        await router.navigate(-1)
+      })
       expect(await screen.findByRole('link', { name: /activities/i })).toHaveAttribute(
         'aria-current',
         'page',
