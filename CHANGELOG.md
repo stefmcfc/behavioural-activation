@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+- Fixed: `scripts/start-dev.sh`/`restart-dev.sh` never actually loaded the repo-root `.env`
+  (gitignored) despite its own comment claiming they did — `APP_BOOTSTRAP_USERNAME`/
+  `APP_BOOTSTRAP_PASSWORD` set there were silently ignored, so a reset Postgres volume seeded
+  whatever ad hoc credentials the last manual `gradlew.bat bootRun` invocation happened to use
+  instead. Added `load_dotenv` (`scripts/lib/dev-common.sh`), called before the backend starts.
+
 ## [0.3.0] - 2026-09-29
 
 - Added sub-tasks: split an activity into a flat checklist of child tasks that inherit the parent's

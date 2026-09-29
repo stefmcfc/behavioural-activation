@@ -181,6 +181,23 @@ the plain `APP_`-prefixed equivalent):
 APP_BOOTSTRAP_USERNAME=you APP_BOOTSTRAP_PASSWORD=change-me gradlew.bat bootRun
 ```
 
+**Persisting this across restarts**: create a git-ignored `.env` at the repo root —
+
+```bash
+# .env
+APP_BOOTSTRAP_USERNAME=you
+APP_BOOTSTRAP_PASSWORD=change-me
+```
+
+`scripts/start-dev.sh`/`restart-dev.sh` auto-load it (`scripts/lib/dev-common.sh`'s `load_dotenv`)
+before starting the backend, so you only set your credentials once. Running `gradlew.bat bootRun`
+directly (bypassing the script) does **not** read `.env` — either export the two variables
+yourself, or from `backend/`: `set -a && source ../.env && set +a && gradlew.bat bootRun`.
+
+Bootstrap only seeds a user the *first* time (an empty `users` table on startup) — changing `.env`
+after that has no effect until the Postgres volume is reset (`docker compose down -v`) or the row
+is deleted directly.
+
 ### Frontend
 
 Create a git-ignored `frontend/.env.local` if you need to override the API base URL (e.g. to route

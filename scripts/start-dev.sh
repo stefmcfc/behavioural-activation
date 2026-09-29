@@ -13,6 +13,12 @@ source "$DIR/lib/dev-common.sh"
 # shellcheck source=lib/docker-common.sh
 source "$DIR/lib/docker-common.sh"
 
+# Load APP_BOOTSTRAP_USERNAME/PASSWORD (and anything else) from the repo-root .env, if present,
+# before either server starts -- without this, a fresh Postgres volume seeds no user at all and
+# bootRun's UserBootstrapRunner exits, or (worse) a stale one-off value from a previous ad hoc
+# `VAR=x gradlew.bat bootRun` invocation gets seeded instead of what .env actually says.
+load_dotenv
+
 usage() {
   echo "Usage: $(basename "$0") [backend|frontend] [--debug]" >&2
   exit 1
