@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
@@ -57,55 +56,52 @@ export function PlannerGrid({
 
       <div className={styles.scroll}>
         <div className={styles.grid}>
-          <div className={styles.corner} aria-hidden="true" />
           {WEEKDAYS.map((day) => (
             <div key={day} className={styles.dayLabel}>
               {DAY_LABELS[day]}
             </div>
           ))}
-          {ALL_SLOTS.map((slot) => (
-            <Fragment key={slot}>
-              <div className={styles.slotLabel}>{SLOT_LABELS[slot]}</div>
-              {WEEKDAYS.map((day) => {
-                const cellOccurrences = scheduled.filter(
-                  (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
-                )
-                return (
-                  <div key={day} className={styles.cell}>
-                    <button
-                      type="button"
-                      onClick={() => onAdd(day, slot)}
-                      aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
-                    >
-                      Add
-                    </button>
-                    <ul className={styles.list}>
-                      {cellOccurrences.map((occurrence) => (
-                        <OccurrenceItem
-                          key={occurrence.id}
-                          occurrence={occurrence}
-                          isBucketItem={false}
-                          busyId={busyId}
-                          confirmingRemoveId={confirmingRemoveId}
-                          movingId={movingId}
-                          onStartRemove={onStartRemove}
-                          onConfirmRemove={onConfirmRemove}
-                          onCancelRemove={onCancelRemove}
-                          onStartMove={onStartMove}
-                          onCancelMove={onCancelMove}
-                          onConfirmMove={onConfirmMove}
-                          onMoveToBucket={onMoveToBucket}
-                          onComplete={onComplete}
-                          onUndo={onUndo}
-                          onCarryForward={() => {}}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                )
-              })}
-            </Fragment>
-          ))}
+          {ALL_SLOTS.map((slot) =>
+            WEEKDAYS.map((day) => {
+              const cellOccurrences = scheduled.filter(
+                (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
+              )
+              return (
+                <div key={`${day}-${slot}`} className={styles.cell}>
+                  <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
+                  <button
+                    type="button"
+                    onClick={() => onAdd(day, slot)}
+                    aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
+                  >
+                    Add
+                  </button>
+                  <ul className={styles.list}>
+                    {cellOccurrences.map((occurrence) => (
+                      <OccurrenceItem
+                        key={occurrence.id}
+                        occurrence={occurrence}
+                        isBucketItem={false}
+                        busyId={busyId}
+                        confirmingRemoveId={confirmingRemoveId}
+                        movingId={movingId}
+                        onStartRemove={onStartRemove}
+                        onConfirmRemove={onConfirmRemove}
+                        onCancelRemove={onCancelRemove}
+                        onStartMove={onStartMove}
+                        onCancelMove={onCancelMove}
+                        onConfirmMove={onConfirmMove}
+                        onMoveToBucket={onMoveToBucket}
+                        onComplete={onComplete}
+                        onUndo={onUndo}
+                        onCarryForward={() => {}}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )
+            }),
+          )}
         </div>
       </div>
     </section>
