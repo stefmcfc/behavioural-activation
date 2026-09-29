@@ -31,6 +31,18 @@ public class GlobalExceptionHandler {
             .body(ApiError.of("Access denied"));
     }
 
+    @ExceptionHandler(InvalidPlanRequestException.class)
+    public ResponseEntity<ApiError> handleInvalidPlanRequestException(InvalidPlanRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ApiError.of(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CarryForwardNotAllowedException.class)
+    public ResponseEntity<ApiError> handleCarryForwardNotAllowedException(CarryForwardNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();

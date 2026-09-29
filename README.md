@@ -7,17 +7,21 @@ the full product outline, roadmap, and user stories.
 
 ## What it does
 
-**Status: early V1.** Authentication (seeded single-user session login), the Activity Bank
-(create/edit/delete activities, categorised Routine/Necessary/Pleasurable), and splitting an
-activity into sub-tasks are built. Everything else below is the target shape from the design doc,
-not yet implemented:
+**Status: V1 complete.** Authentication (seeded single-user session login), the Activity Bank
+(create/edit/delete activities, categorised Routine/Necessary/Pleasurable, splittable into
+sub-tasks), and the weekly planner (Monday-Friday grid, weekend bucket list, completion tracking)
+are all built. Everything else below is the target shape from the design doc, for V2 onward:
 
 - ~~Build a bank of activities~~ ✅ built — name, one of Routine/Necessary/Pleasurable, optional
   description, optionally split into a flat checklist of sub-tasks that inherit the parent's
   category
-- Plan structured weekdays and a flexible weekend "bucket list" against that bank
-- Record completion and a mood rating against each planned occurrence
-- Review mood/activity trends over time
+- ~~Plan structured weekdays and a flexible weekend "bucket list" against that bank~~ ✅ built —
+  Monday-Friday × Morning/Afternoon/Evening grid, a weekend bucket list with a category-balance
+  highlight, moving/rescheduling, and carrying an unfinished bucket item forward a week
+- ~~Record completion against each planned occurrence~~ ✅ built — mark complete/undo, from either
+  the grid or the bucket list
+- (V2) Record a mood rating against each planned occurrence, and review mood/activity trends over
+  time
 - (V3+) Get AI-suggested activities — always optional, never a diagnosis, requires explicit approval
   before becoming an active plan
 

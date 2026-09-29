@@ -18,8 +18,9 @@ git-workflow "one spec pair in flight at a time" rule) — a single feature row 
 matches how the work is actually planned and reviewed, rather than splitting one feature across two
 disconnected rows.
 
-Last full audit: 2026-09-29 (sub-tasks, pair 3 of 4, implemented and verified end-to-end; Week
-Planning is pair 4, not yet specced).
+Last full audit: 2026-09-29 (Week Planning, pair 4 of 4, implemented and verified end-to-end — all
+4 V1 spec pairs now delivered; sub-tasks' stale "pending merge" note below corrected, it merged
+earlier the same day).
 
 ---
 
@@ -29,18 +30,15 @@ Planning is pair 4, not yet specced).
 |---|---|---|---|
 | Authentication (seeded user, session login) | [`planner_spec_001_auth.md`](.claude/specs/planner_spec_001_auth.md) | [`frontend_spec_001_login.md`](.claude/specs/frontend_spec_001_login.md) | ✅ All 16 backend ACs + all 12 frontend ACs verified (2026-09-28, once Docker became available — including AC-15's `SameSite=Lax` cookie, `[MANUAL]`), full login→/auth/me→logout cycle confirmed through a real browser against real Postgres. Two real gaps found and fixed during this pass: `SameSite=Lax` was actually missing (`server.servlet.session.cookie.same-site` had never been set), and the backend's `@SpringBootTest` smoke test failed against a real DB (`UserBootstrapRunner` needs bootstrap credentials; test profile now has safe defaults). Merged to `main` in `0.1.0` (2026-09-28). |
 | Activity bank (US-001/002) | [`planner_spec_002_activity_bank.md`](.claude/specs/planner_spec_002_activity_bank.md) | [`frontend_spec_002_activity_bank.md`](.claude/specs/frontend_spec_002_activity_bank.md) | ✅ All 19 backend ACs + all 28 frontend ACs implemented and tested (2026-09-28). Full create→edit→delete cycle verified through a real browser against real Postgres, including the inline delete-confirm (no native `window.confirm()`) and a category change persisting correctly. One real gap found and fixed during this pass: an invalid `category` value returned `500` instead of `400` (`GlobalExceptionHandler` now handles `HttpMessageNotReadableException`). Merged to `main` as PR #2 (`d6440fe`). |
-| Split an activity into smaller sub-tasks | [`planner_spec_003_sub_tasks.md`](.claude/specs/planner_spec_003_sub_tasks.md) | [`frontend_spec_003_sub_tasks.md`](.claude/specs/frontend_spec_003_sub_tasks.md) | ✅ All 21 backend ACs + all 22 frontend ACs implemented and tested (2026-09-29, 88 Spock + 66 Vitest tests, 0 regressions). Full expand→add→rename→delete cycle verified through a real browser against real Postgres, including the inline delete-confirm, the inherited read-only category badge, and the "No sub-tasks yet." empty state. On `feature/sub-tasks`, pending merge — not yet on `main`. |
+| Split an activity into smaller sub-tasks | [`planner_spec_003_sub_tasks.md`](.claude/specs/planner_spec_003_sub_tasks.md) | [`frontend_spec_003_sub_tasks.md`](.claude/specs/frontend_spec_003_sub_tasks.md) | ✅ All 21 backend ACs + all 22 frontend ACs implemented and tested (2026-09-29, 88 Spock + 66 Vitest tests, 0 regressions). Full expand→add→rename→delete cycle verified through a real browser against real Postgres, including the inline delete-confirm, the inherited read-only category badge, and the "No sub-tasks yet." empty state. Merged to `main` as PR #3, and the `.env`-loading dev-script fix as PR #4 (both 2026-09-29). |
+| Week planning (US-003–009) | [`planner_spec_004_week_planning.md`](.claude/specs/planner_spec_004_week_planning.md) | [`frontend_spec_004_week_planning.md`](.claude/specs/frontend_spec_004_week_planning.md) | ✅ All 37 backend ACs + all 40 frontend ACs implemented and tested (2026-09-29, 155 Spock + 98 Vitest tests, 0 regressions; backend built in two passes — core CRUD/view, then completion/carry-forward). Full view→plan(activity or sub-task)→move→complete/undo→carry-forward→remove cycle verified through a real browser against real Postgres, including promoting a bucket item into a slot, the weekend category-balance highlight, and the inline remove-confirm. One real gap found and fixed during this pass: `GET /api/v1/plan` (and move/complete/carry-forward) 500'd with a `LazyInitializationException` on a real persisted occurrence (`open-in-view: false` closes the Hibernate session before the controller reads the lazy `activity`/`subTask` association) — fixed with `Hibernate.initialize()` calls inside `PlanService`'s transactional methods. On `feature/week-planning`, pending merge — not yet on `main`. **This completes V1.** |
 
 ## Specced, coming soon
 
-Per the V1 high-level plan (2026-08-27), since revised: 4 spec pairs now cover V1 (Auth → Activity
-Bank → Sub-tasks → Week Planning). Pairs 1–3 are delivered (pair 3 still pending merge to `main`,
-see above). Pair 4 (Week Planning) isn't specced yet — not blocked, just next up once pair 3 merges,
-per the "one spec pair in flight at a time" rule.
+*(none — all 4 V1 spec pairs are delivered; V2 hasn't been specced yet)*
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Week planning (US-003–009) | not yet written | not yet written | ⬜ Not started — blocked by pairs 1–3 |
 
 ## Internal / maintenance specs
 

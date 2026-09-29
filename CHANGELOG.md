@@ -6,6 +6,22 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-29
+
+- Added the weekly planner (V1's final spec pair): a Monday-Friday × Morning/Afternoon/Evening grid
+  plus a weekend bucket list, backed by a new `PlannedOccurrence`/`CompletionRecord` pair
+  (`planner_spec_004_week_planning.md`/`frontend_spec_004_week_planning.md`). Plan either a whole
+  Activity or an individual SubTask into a day+slot or into the weekend bucket; move/reschedule;
+  mark complete/undo; carry an unfinished bucket item forward a week; remove without deleting from
+  the bank. The bucket list highlights a category with zero entries while another has at least one
+  (no ratio/threshold). New endpoints under `/api/v1/plan` (view/create/move/remove) and
+  `/api/v1/plan/occurrences/{id}/{completion,carry-forward}`.
+- Fixed: `GET /api/v1/plan` (and move/complete/carry-forward) returned `500` with a
+  `LazyInitializationException` against a real, previously-persisted occurrence —
+  `open-in-view: false` closes the Hibernate session before the controller read the lazy
+  `activity`/`subTask` association; `PlanService`'s transactional methods now call
+  `Hibernate.initialize()` before the entity crosses the transaction boundary.
+
 ## [0.3.1] - 2026-09-29
 
 - Fixed: `scripts/start-dev.sh`/`restart-dev.sh` never actually loaded the repo-root `.env`
