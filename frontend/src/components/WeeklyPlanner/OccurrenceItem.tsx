@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import styles from './OccurrenceItem.module.css'
 
 interface OccurrenceItemProps {
   readonly occurrence: PlannedOccurrence
@@ -45,12 +46,12 @@ export function OccurrenceItem({
   const moveSlotSelectId = `move-slot-${occurrence.id}`
 
   return (
-    <li>
+    <li className={styles.row}>
       <span>{occurrence.name}</span> <CategoryChip category={occurrence.category} />
       {occurrence.completed && <span> — Completed</span>}
 
       {confirmingRemoveId === occurrence.id && (
-        <>
+        <span className={styles.actions}>
           <button
             type="button"
             onClick={() => onConfirmRemove(occurrence.id)}
@@ -61,11 +62,11 @@ export function OccurrenceItem({
           <button type="button" onClick={onCancelRemove} disabled={isBusy}>
             Cancel
           </button>
-        </>
+        </span>
       )}
 
       {movingId === occurrence.id && (
-        <>
+        <span className={styles.moveControls}>
           <label htmlFor={moveDaySelectId}>New day</label>
           <select
             id={moveDaySelectId}
@@ -102,11 +103,11 @@ export function OccurrenceItem({
           <button type="button" onClick={onCancelMove} disabled={isBusy}>
             Cancel
           </button>
-        </>
+        </span>
       )}
 
       {confirmingRemoveId !== occurrence.id && movingId !== occurrence.id && (
-        <>
+        <span className={styles.actions}>
           <button type="button" onClick={() => onStartMove(occurrence.id)} disabled={isBusy}>
             Move
           </button>
@@ -140,7 +141,7 @@ export function OccurrenceItem({
               Carry forward
             </button>
           )}
-        </>
+        </span>
       )}
     </li>
   )

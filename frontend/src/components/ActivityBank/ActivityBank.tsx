@@ -5,6 +5,7 @@ import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import styles from './ActivityBank.module.css'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -102,12 +103,11 @@ export function ActivityBank() {
       {activities !== null && activities.length > 0 && (
         <ul>
           {activities.map((activity) => (
-            <li key={activity.id}>
+            <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
-              {activity.description && <p>{activity.description}</p>}
 
               {confirmingDeleteId === activity.id ? (
-                <>
+                <span className={styles.actions}>
                   <button
                     type="button"
                     onClick={() => handleConfirmDelete(activity.id)}
@@ -122,9 +122,9 @@ export function ActivityBank() {
                   >
                     Cancel
                   </button>
-                </>
+                </span>
               ) : (
-                <>
+                <span className={styles.actions}>
                   <button type="button" onClick={() => setEditingActivity(activity)}>
                     Edit
                   </button>
@@ -141,11 +141,15 @@ export function ActivityBank() {
                   >
                     {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
                   </button>
-                </>
+                </span>
               )}
 
+              {activity.description && <p>{activity.description}</p>}
+
               {expandedActivityId === activity.id && (
-                <SubTaskList activityId={activity.id} category={activity.category} />
+                <div className={styles.details}>
+                  <SubTaskList activityId={activity.id} category={activity.category} />
+                </div>
               )}
             </li>
           ))}

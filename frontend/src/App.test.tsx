@@ -7,6 +7,7 @@ import { authApi } from './services/authApi'
 import { activityApi } from './services/activityApi'
 import { planApi } from './services/planApi'
 import type { User } from './types/auth'
+import styles from './App.module.css'
 
 vi.mock('./services/authApi')
 vi.mock('./services/activityApi')
@@ -185,6 +186,36 @@ describe('App', () => {
         'aria-current',
         'page',
       )
+    })
+  })
+
+  describe('FRONTEND-007-AC-17/AC-18: layout-shell wrapper', () => {
+    it('wraps the authenticated header, TabNav, and routed content in one shell container', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      const shell = await screen.findByTestId('app-shell')
+      expect(shell).toHaveClass(styles.shell)
+      expect(shell).toContainElement(screen.getByRole('link', { name: /activities/i }))
+    })
+
+    it('keeps the same shell element (not remounted) when switching tabs', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      const shellBefore = await screen.findByTestId('app-shell')
+      await userEvent.click(screen.getByRole('link', { name: /settings/i }))
+      const shellAfter = await screen.findByTestId('app-shell')
+
+      expect(shellAfter).toBe(shellBefore)
     })
   })
 })

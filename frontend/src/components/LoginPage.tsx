@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { authApi } from '../services/authApi'
 import { ApiError } from '../types/api'
+import styles from './LoginPage.module.css'
 
 interface LoginPageProps {
   readonly onLoginSuccess: (username: string) => void
@@ -50,10 +51,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   }
 
   return (
-    <main>
+    <main className={styles.shell}>
       <h1>Log in</h1>
       <form onSubmit={handleSubmit} noValidate>
-        <div>
+        <div className={styles.field}>
           <label htmlFor="username">Username</label>
           <input
             id="username"
@@ -64,7 +65,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             onChange={(event) => setUsername(event.target.value)}
           />
         </div>
-        <div>
+        <div className={styles.field}>
           <label htmlFor="password">Password</label>
           <input
             id="password"
@@ -80,9 +81,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         {submitError && <p role="alert">{submitError}</p>}
         {isSubmitting && <output>Logging in…</output>}
 
-        <button type="submit" disabled={isSubmitting}>
-          Log in
-        </button>
+        <div className={styles.actions}>
+          <button type="submit" disabled={isSubmitting}>
+            Log in
+          </button>
+        </div>
       </form>
     </main>
   )

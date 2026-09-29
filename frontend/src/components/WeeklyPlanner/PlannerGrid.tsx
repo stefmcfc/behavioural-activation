@@ -1,6 +1,7 @@
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
+import styles from './PlannerGrid.module.css'
 
 const WEEKDAYS: readonly PlanDayOfWeek[] = [
   'MONDAY',
@@ -53,16 +54,16 @@ export function PlannerGrid({
 
       {scheduled.length === 0 && <p>No activities planned for this week.</p>}
 
-      <div>
+      <div className={styles.grid}>
         {WEEKDAYS.map((day) => (
-          <div key={day}>
-            <h4>{DAY_LABELS[day]}</h4>
+          <div key={day} className={styles.day}>
+            <h4 className={styles.dayLabel}>{DAY_LABELS[day]}</h4>
             {ALL_SLOTS.map((slot) => {
               const cellOccurrences = scheduled.filter(
                 (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
               )
               return (
-                <div key={slot}>
+                <div key={slot} className={styles.cell}>
                   <h5>{SLOT_LABELS[slot]}</h5>
                   <button
                     type="button"

@@ -1,6 +1,16 @@
 # Visual Refresh — "Quiet Room" Design System (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 32 ACs verified, including AC-32. AC-32 (the closing `[MANUAL]`
+real-browser pass) completed 2026-09-29 across Light and Dark themes on Login, Activity Bank
+(incl. nested sub-task row), Weekly Planner (grid, occurrence actions, weekend bucket), and
+Settings (incl. category colour swatches). Confirmed: warm sage palette renders correctly in both
+themes (not the old purple), pill buttons/chips with soft shadow throughout, hairline-bordered flat
+rows/cells (no card shadows on content panels), uppercase/mono day-of-week labels, centered
+layout shell, and a visible `:focus-visible` outline on keyboard Tab. One minor, non-blocking
+observation: in the weekly grid's narrower day columns, the vertically-stacked action buttons
+(Move/Move to bucket/Remove/Complete) on an occurrence take up a fair amount of vertical space at
+full pill width — functional and consistent with the approved uniform-button design, not a defect,
+but worth keeping in mind for a future density pass if it ever feels cramped in practice.
 **Priority**: P2 — visual/UX polish on top of the fully-delivered V1 feature set; doesn't block V2
 backend work, but the app currently reads as unstyled/dated and this is the approved fix.
 **Depends on**: `frontend_spec_001_login.md` (restyles `LoginPage`), `frontend_spec_002_activity_bank.md`
@@ -699,35 +709,37 @@ Acceptance Criteria Summary once done.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-007-AC-01 — `theme.css` light tokens updated to the Quiet Room palette in both blocks
-- [ ] FRONTEND-007-AC-02 — `theme.css` dark tokens updated to the Quiet Room palette in both blocks
-- [ ] FRONTEND-007-AC-03 — `--surface` token added to all four blocks, distinct from `--bg`
-- [ ] FRONTEND-007-AC-04 — category tokens unchanged across all four blocks
-- [ ] FRONTEND-007-AC-05 — `--sans`/`--heading` stacks include `-apple-system`
-- [ ] FRONTEND-007-AC-06 — `h1, h2` are `font-weight: 700` with `letter-spacing: -0.01em`
-- [ ] FRONTEND-007-AC-07 — `h1, h2` get `text-wrap: balance`
-- [ ] FRONTEND-007-AC-08 — `font-variant-numeric: tabular-nums` applied globally
-- [ ] FRONTEND-007-AC-09 — `PlannerGrid` day labels get the mono/uppercase/tracking treatment
-- [ ] FRONTEND-007-AC-10 — global `button` rule: pill radius, surface bg, reused shadow token, etc.
-- [ ] FRONTEND-007-AC-11 — button `:hover` lift gated behind `prefers-reduced-motion`
-- [ ] FRONTEND-007-AC-12 — button `:focus-visible` outline using `var(--accent)`
-- [ ] FRONTEND-007-AC-13 — uniform button treatment everywhere, no primary/secondary override
-- [ ] FRONTEND-007-AC-14 — global text input/textarea/select base rule, moderate radius
-- [ ] FRONTEND-007-AC-15 — dedicated `input[type="color"]` sizing rule
-- [ ] FRONTEND-007-AC-16 — `input[type="radio"]` gets `accent-color` only
-- [ ] FRONTEND-007-AC-17 — `App.module.css` layout-shell wrapper (max-width/margin/padding)
-- [ ] FRONTEND-007-AC-18 — layout-shell wrapper persists as one container across tab navigation
-- [ ] FRONTEND-007-AC-19 — `ActivityBank` rows get the hairline treatment, no shadow
-- [ ] FRONTEND-007-AC-20 — activity row action buttons right-aligned via `margin-left: auto`
-- [ ] FRONTEND-007-AC-21 — `SubTaskList` rows get the equivalent hairline treatment
-- [ ] FRONTEND-007-AC-22 — sub-task rows get `--code-bg`, small radius, and indentation
-- [ ] FRONTEND-007-AC-23 — `PlannerGrid` day/slot cells are flat panels, no shadow
-- [ ] FRONTEND-007-AC-24 — `BucketList`'s own section wrapper is a flat panel, no shadow
-- [ ] FRONTEND-007-AC-25 — `OccurrenceItem` rows match identically in grid and bucket contexts
-- [ ] FRONTEND-007-AC-26 — `AssignActivityPicker` panel treatment, no bespoke button/input override
-- [ ] FRONTEND-007-AC-27 — `LoginPage` uses the layout-shell centering
-- [ ] FRONTEND-007-AC-28 — `LoginPage` form controls use global base styles, no bespoke override
-- [ ] FRONTEND-007-AC-29 — `CategoryChip` font-size/weight/padding match the new type scale
-- [ ] FRONTEND-007-AC-30 — `TabNav.module.css` verified fully token-driven, no change required
-- [ ] FRONTEND-007-AC-31 — `Settings.module.css` verified fully token-driven, no change required
-- [ ] FRONTEND-007-AC-32 — manual real-browser pass across all routes/themes (MANUAL)
+- [x] FRONTEND-007-AC-01 — `theme.css` light tokens updated to the Quiet Room palette in both blocks
+- [x] FRONTEND-007-AC-02 — `theme.css` dark tokens updated to the Quiet Room palette in both blocks
+- [x] FRONTEND-007-AC-03 — `--surface` token added to all four blocks, distinct from `--bg`
+- [x] FRONTEND-007-AC-04 — category tokens unchanged across all four blocks
+- [x] FRONTEND-007-AC-05 — `--sans`/`--heading` stacks include `-apple-system`
+- [x] FRONTEND-007-AC-06 — `h1, h2` are `font-weight: 700` with `letter-spacing: -0.01em`
+- [x] FRONTEND-007-AC-07 — `h1, h2` get `text-wrap: balance`
+- [x] FRONTEND-007-AC-08 — `font-variant-numeric: tabular-nums` applied globally
+- [x] FRONTEND-007-AC-09 — `PlannerGrid` day labels get the mono/uppercase/tracking treatment
+- [x] FRONTEND-007-AC-10 — global `button` rule: pill radius, surface bg, reused shadow token, etc.
+- [x] FRONTEND-007-AC-11 — button `:hover` lift gated behind `prefers-reduced-motion`
+- [x] FRONTEND-007-AC-12 — button `:focus-visible` outline using `var(--accent)`
+- [x] FRONTEND-007-AC-13 — uniform button treatment everywhere, no primary/secondary override
+      (confirmed: grepped every pass-2 `.module.css` for a bare `button {` selector — none found)
+- [x] FRONTEND-007-AC-14 — global text input/textarea/select base rule, moderate radius
+- [x] FRONTEND-007-AC-15 — dedicated `input[type="color"]` sizing rule
+- [x] FRONTEND-007-AC-16 — `input[type="radio"]` gets `accent-color` only
+- [x] FRONTEND-007-AC-17 — `App.module.css` layout-shell wrapper (max-width/margin/padding)
+- [x] FRONTEND-007-AC-18 — layout-shell wrapper persists as one container across tab navigation
+- [x] FRONTEND-007-AC-19 — `ActivityBank` rows get the hairline treatment, no shadow
+- [x] FRONTEND-007-AC-20 — activity row action buttons right-aligned via `margin-left: auto`
+- [x] FRONTEND-007-AC-21 — `SubTaskList` rows get the equivalent hairline treatment
+- [x] FRONTEND-007-AC-22 — sub-task rows get `--code-bg`, small radius, and indentation
+- [x] FRONTEND-007-AC-23 — `PlannerGrid` day/slot cells are flat panels, no shadow
+- [x] FRONTEND-007-AC-24 — `BucketList`'s own section wrapper is a flat panel, no shadow
+- [x] FRONTEND-007-AC-25 — `OccurrenceItem` rows match identically in grid and bucket contexts
+- [x] FRONTEND-007-AC-26 — `AssignActivityPicker` panel treatment, no bespoke button/input override
+- [x] FRONTEND-007-AC-27 — `LoginPage` uses the layout-shell centering
+- [x] FRONTEND-007-AC-28 — `LoginPage` form controls use global base styles, no bespoke override
+- [x] FRONTEND-007-AC-29 — `CategoryChip` font-size/weight/padding match the new type scale
+- [x] FRONTEND-007-AC-30 — `TabNav.module.css` verified fully token-driven, no change required
+- [x] FRONTEND-007-AC-31 — `Settings.module.css` verified fully token-driven, no change required
+- [x] FRONTEND-007-AC-32 — manual real-browser pass across all routes/themes (MANUAL) — verified
+      2026-09-29, see Status header for what was checked.

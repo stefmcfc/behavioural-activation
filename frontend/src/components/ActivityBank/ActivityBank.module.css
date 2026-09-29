@@ -1,0 +1,24 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 0;
+}
+
+.row > p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.details {
+  flex-basis: 100%;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}

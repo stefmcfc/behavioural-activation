@@ -6,6 +6,18 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-29
+
+- Added a full visual refresh ("Quiet Room" design system), replacing the scaffold-era purple
+  accent and entirely-unstyled native HTML with a warm sage-accented palette, pill-shaped
+  buttons/chips with a soft shadow, hairline-bordered flat content rows/panels (no card shadows
+  outside of buttons), tighter system-sans typography with tabular numerals, and monospace
+  uppercase day-of-week labels in the weekly grid. Every V1 screen (Login, Activity Bank,
+  sub-tasks, Weekly Planner, Settings) now has real component styling for the first time; global
+  base styles cover every button/input/radio uniformly (no primary/secondary distinction yet —
+  deliberately deferred). Direction was chosen from three mocked-up options plus a hybrid, reviewed
+  in a throwaway design-exploration artifact before being turned into a spec.
+
 ## [0.5.0] - 2026-09-29
 
 - Added tabbed navigation (Activities / Weekly Planner / Settings) via `react-router-dom`, replacing

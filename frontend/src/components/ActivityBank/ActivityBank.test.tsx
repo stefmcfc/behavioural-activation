@@ -5,6 +5,7 @@ import { ActivityBank } from './ActivityBank'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import type { Activity } from '../../types/activity'
+import styles from './ActivityBank.module.css'
 
 vi.mock('../../services/activityApi')
 vi.mock('../../services/subTaskApi')
@@ -80,6 +81,17 @@ describe('ActivityBank', () => {
       expect(await screen.findByText('Walk')).toBeInTheDocument()
       expect(screen.getByTestId('category-chip-ROUTINE')).toBeInTheDocument()
       expect(screen.queryByText(/— routine/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-007-AC-19/AC-20: activity rows use the hairline treatment, actions right-aligned', () => {
+    it('applies the row class to each activity li and the actions class to its action buttons', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')
+      expect(row).toHaveClass(styles.row)
+      expect(screen.getByRole('button', { name: 'Edit' }).closest(`.${styles.actions}`)).not.toBeNull()
     })
   })
 
