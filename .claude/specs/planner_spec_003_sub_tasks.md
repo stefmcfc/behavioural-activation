@@ -1,6 +1,19 @@
 # Split an Activity into Smaller Sub-Tasks (Backend)
 
-**Status**: Not started
+**Status**: Backend implemented and verified. Frontend half (`frontend_spec_003_sub_tasks.md`) is
+now also implemented — this spec pair is fully done as of 2026-09-29. Backend detail: —
+`backend/src/main/java/uk/co/stefirby/behaviouralactivation/{model/SubTask.java,
+repository/SubTaskRepository.java, service/SubTaskService.java, controller/SubTaskController.java,
+dto/SubTaskRequest.java, dto/SubTaskResponse.java, dto/SubTaskListResponse.java}`,
+`backend/src/main/resources/db/migration/V003__create_sub_tasks_table.sql`. No `GlobalExceptionHandler`
+change needed — blank-name validation and malformed-JSON handling are both already covered by the
+handlers `planner_spec_002_activity_bank.md` added. All `[AUTO]` ACs verified by Spock specs under
+`backend/src/test/groovy/.../{model,service,controller,repository}/` — `SubTaskSpec`,
+`SubTaskServiceSpec`, `SubTaskControllerSpec`, plus a new `SubTaskRepositorySpec` (real-Postgres
+integration test, not mocked, since PLANNER-003-AC-17's `ON DELETE CASCADE` is a database-level
+guarantee no mock can verify). Full suite: 88 tests, 0 failures (`gradlew.bat test`, run against the
+real Postgres instance via Docker Compose — the `V003` migration applies cleanly alongside `V001`/
+`V002`).
 **Priority**: P1 — inserted before Week Planning (now pair 4, shifted from its previous pair-3
 slot). Week Planning's `PlannedOccurrence` schema needs the reference-target decision this spec
 settles (an `Activity` and a `SubTask` are two distinct, non-recursive entities) as a settled
@@ -424,24 +437,24 @@ def "PLANNER-003-AC-21: an unauthenticated request to sub-tasks returns 401 (inh
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-003-AC-01 — POST creates and returns a sub-task, 201
-- [ ] PLANNER-003-AC-02 — category copied from parent at creation, not client-supplied
-- [ ] PLANNER-003-AC-03 — owner assigned from principal, never from request body
-- [ ] PLANNER-003-AC-04 — blank/missing name → 400
-- [ ] PLANNER-003-AC-05 — parent activity not found/not owned → 404, no sub-task created
-- [ ] PLANNER-003-AC-06 — `SubTaskRequest` has no category field; client-supplied category ignored
-- [ ] PLANNER-003-AC-07 — list scoped to the parent activity, ordered by createdAt ascending
-- [ ] PLANNER-003-AC-08 — list response is `{data, count}` envelope
-- [ ] PLANNER-003-AC-09 — zero sub-tasks returns `{data: [], count: 0}`, not 404
-- [ ] PLANNER-003-AC-10 — list on not-found/not-owned parent activity → 404
-- [ ] PLANNER-003-AC-11 — PATCH renames sub-task, 200
-- [ ] PLANNER-003-AC-12 — PATCH blank name → 400
-- [ ] PLANNER-003-AC-13 — PATCH on not-found/not-owned sub-task or activity → 404
-- [ ] PLANNER-003-AC-14 — PATCH request carries no category field, category never editable
-- [ ] PLANNER-003-AC-15 — DELETE removes sub-task, 204
-- [ ] PLANNER-003-AC-16 — DELETE on not-found/not-owned sub-task or activity → 404
-- [ ] PLANNER-003-AC-17 — deleting the parent activity cascade-deletes its sub-tasks
-- [ ] PLANNER-003-AC-18 — `SubTask.owner` persisted directly, independent of `activity.owner`
-- [ ] PLANNER-003-AC-19 — not-found and not-yours are indistinguishable (404 both) across every endpoint
-- [ ] PLANNER-003-AC-20 — category is a creation-time snapshot, does not follow later parent changes
-- [ ] PLANNER-003-AC-21 — existing SecurityFilterChain rule already covers new endpoints (regression test, no SecurityConfig change)
+- [x] PLANNER-003-AC-01 — POST creates and returns a sub-task, 201
+- [x] PLANNER-003-AC-02 — category copied from parent at creation, not client-supplied
+- [x] PLANNER-003-AC-03 — owner assigned from principal, never from request body
+- [x] PLANNER-003-AC-04 — blank/missing name → 400
+- [x] PLANNER-003-AC-05 — parent activity not found/not owned → 404, no sub-task created
+- [x] PLANNER-003-AC-06 — `SubTaskRequest` has no category field; client-supplied category ignored
+- [x] PLANNER-003-AC-07 — list scoped to the parent activity, ordered by createdAt ascending
+- [x] PLANNER-003-AC-08 — list response is `{data, count}` envelope
+- [x] PLANNER-003-AC-09 — zero sub-tasks returns `{data: [], count: 0}`, not 404
+- [x] PLANNER-003-AC-10 — list on not-found/not-owned parent activity → 404
+- [x] PLANNER-003-AC-11 — PATCH renames sub-task, 200
+- [x] PLANNER-003-AC-12 — PATCH blank name → 400
+- [x] PLANNER-003-AC-13 — PATCH on not-found/not-owned sub-task or activity → 404
+- [x] PLANNER-003-AC-14 — PATCH request carries no category field, category never editable
+- [x] PLANNER-003-AC-15 — DELETE removes sub-task, 204
+- [x] PLANNER-003-AC-16 — DELETE on not-found/not-owned sub-task or activity → 404
+- [x] PLANNER-003-AC-17 — deleting the parent activity cascade-deletes its sub-tasks
+- [x] PLANNER-003-AC-18 — `SubTask.owner` persisted directly, independent of `activity.owner`
+- [x] PLANNER-003-AC-19 — not-found and not-yours are indistinguishable (404 both) across every endpoint
+- [x] PLANNER-003-AC-20 — category is a creation-time snapshot, does not follow later parent changes
+- [x] PLANNER-003-AC-21 — existing SecurityFilterChain rule already covers new endpoints (regression test, no SecurityConfig change)

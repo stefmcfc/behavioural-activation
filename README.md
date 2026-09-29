@@ -7,12 +7,14 @@ the full product outline, roadmap, and user stories.
 
 ## What it does
 
-**Status: early V1.** Authentication (seeded single-user session login) and the Activity Bank
-(create/edit/delete activities, categorised Routine/Necessary/Pleasurable) are built. Everything
-else below is the target shape from the design doc, not yet implemented:
+**Status: early V1.** Authentication (seeded single-user session login), the Activity Bank
+(create/edit/delete activities, categorised Routine/Necessary/Pleasurable), and splitting an
+activity into sub-tasks are built. Everything else below is the target shape from the design doc,
+not yet implemented:
 
 - ~~Build a bank of activities~~ ✅ built — name, one of Routine/Necessary/Pleasurable, optional
-  description
+  description, optionally split into a flat checklist of sub-tasks that inherit the parent's
+  category
 - Plan structured weekdays and a flexible weekend "bucket list" against that bank
 - Record completion and a mood rating against each planned occurrence
 - Review mood/activity trends over time
