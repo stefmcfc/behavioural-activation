@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-29
+
 - Fixed: `scripts/start-dev.sh`/`restart-dev.sh` never actually loaded the repo-root `.env`
   (gitignored) despite its own comment claiming they did — `APP_BOOTSTRAP_USERNAME`/
   `APP_BOOTSTRAP_PASSWORD` set there were silently ignored, so a reset Postgres volume seeded
