@@ -27,7 +27,11 @@
 }
 
 /* Higher specificity than global input[type="color"] (index.css) so the
-   smaller circular swatch treatment actually wins regardless of CSS load order. */
+   smaller circular swatch treatment actually wins regardless of CSS load order.
+   Chromium/WebKit render the actual colour patch via an internal
+   ::-webkit-color-swatch pseudo-element that does NOT inherit the input's own
+   border-radius -- without overriding it directly, the outer ring goes
+   circular but the colour patch inside stays a square. */
 input[type='color'].swatch {
   width: 1.5rem;
   height: 1.5rem;
@@ -35,4 +39,20 @@ input[type='color'].swatch {
   border: 1px solid var(--border);
   padding: 0;
   cursor: pointer;
+  overflow: hidden;
+}
+
+input[type='color'].swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 999px;
+}
+
+input[type='color'].swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: 999px;
+}
+
+input[type='color'].swatch::-moz-color-swatch {
+  border: none;
+  border-radius: 999px;
 }
