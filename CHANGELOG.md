@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-29
+
 - Added sub-tasks: split an activity into a flat checklist of child tasks that inherit the parent's
   category as a one-time snapshot (`planner_spec_003_sub_tasks.md`/
   `frontend_spec_003_sub_tasks.md`). New nested endpoints under
