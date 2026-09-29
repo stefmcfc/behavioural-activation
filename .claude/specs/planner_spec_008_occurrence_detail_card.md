@@ -1,6 +1,7 @@
 # Occurrence Detail Card — Parent Activity Name (Backend)
 
-**Status**: Not started
+**Status**: Implemented (this spec's full scope — a backend-only spec). Paired frontend spec
+`frontend_spec_008_occurrence_detail_card.md` is also now implemented.
 **Priority**: P2 — a UX-driven request (the Weekly Planner "far too much noise" complaint), not
 blocking anything else. Small backend surface, but must land before the paired frontend spec since
 the frontend needs `parentActivityName` on the wire before it can render it.
@@ -328,12 +329,12 @@ specified above until every sketch above passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-008-AC-01 — `PlannedOccurrenceResponse` declares a new `parentActivityName` field
-- [ ] PLANNER-008-AC-02 — activity-target occurrence responses have `parentActivityName: null`
-- [ ] PLANNER-008-AC-03 — sub-task-target occurrence responses carry the parent activity's name
-- [ ] PLANNER-008-AC-04 — `getWeek()` initializes `subTask.activity`, no `LazyInitializationException`
-- [ ] PLANNER-008-AC-05 — `create()` initializes `subTask.activity`, no `LazyInitializationException`
-- [ ] PLANNER-008-AC-06 — `move()` initializes `subTask.activity`, no `LazyInitializationException`
-- [ ] PLANNER-008-AC-07 — `complete()` initializes `subTask.activity`, no `LazyInitializationException`
-- [ ] PLANNER-008-AC-08 — `carryForward()` initializes `subTask.activity`, no `LazyInitializationException`
-- [ ] PLANNER-008-AC-09 — existing `PlannedOccurrenceResponse` fields unchanged (regression guard)
+- [x] PLANNER-008-AC-01 — `PlannedOccurrenceResponse` declares a new `parentActivityName` field
+- [x] PLANNER-008-AC-02 — activity-target occurrence responses have `parentActivityName: null`
+- [x] PLANNER-008-AC-03 — sub-task-target occurrence responses carry the parent activity's name
+- [x] PLANNER-008-AC-04 — `getWeek()` initializes `subTask.activity`, no `LazyInitializationException`
+- [x] PLANNER-008-AC-05 — `create()` initializes `subTask.activity`, no `LazyInitializationException`
+- [x] PLANNER-008-AC-06 — `move()` initializes `subTask.activity`, no `LazyInitializationException`
+- [x] PLANNER-008-AC-07 — `complete()` initializes `subTask.activity`, no `LazyInitializationException`
+- [x] PLANNER-008-AC-08 — `carryForward()` initializes `subTask.activity`, no `LazyInitializationException`
+- [x] PLANNER-008-AC-09 — existing `PlannedOccurrenceResponse` fields unchanged (regression guard)

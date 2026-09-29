@@ -40,3 +40,8 @@
   border-radius: 6px;
   padding: 0.6rem;
 }
+
+.today {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}

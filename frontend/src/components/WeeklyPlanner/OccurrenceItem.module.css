@@ -21,3 +21,47 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+.nameButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nameButton:hover,
+.nameButton:focus-visible {
+  text-decoration: underline;
+}
+
+.parentActivityName {
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.completionIcon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.detailCard {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+}
+
+.closeButton {
+  align-self: flex-start;
+}

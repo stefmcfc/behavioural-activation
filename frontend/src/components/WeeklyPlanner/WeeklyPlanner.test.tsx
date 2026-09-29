@@ -1,12 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WeeklyPlanner } from './WeeklyPlanner'
 import { planApi } from '../../services/planApi'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { PlannedOccurrence } from '../../types/plan'
+import plannerGridStyles from './PlannerGrid.module.css'
 
 vi.mock('../../services/planApi')
 vi.mock('../../services/activityApi')
@@ -17,6 +18,7 @@ const walk: PlannedOccurrence = {
   activityId: 'a1',
   subTaskId: null,
   name: 'Go for a walk',
+  parentActivityName: null,
   category: 'ROUTINE',
   weekStart: '2026-10-05',
   dayOfWeek: 'MONDAY',
@@ -31,6 +33,7 @@ const bucketItem: PlannedOccurrence = {
   activityId: 'a2',
   subTaskId: null,
   name: 'Paint',
+  parentActivityName: null,
   category: 'PLEASURABLE',
   weekStart: '2026-10-05',
   dayOfWeek: null,
@@ -91,7 +94,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([{ ...walk, completed: true, completedAt: '2026-10-05T09:00:00Z' }])
       render(<WeeklyPlanner />)
 
-      expect(await screen.findByText(/completed/i)).toBeInTheDocument()
+      expect(await screen.findByRole('img', { name: /completed/i })).toBeInTheDocument()
     })
   })
 
@@ -228,6 +231,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.move).mockResolvedValue({ ...walk, dayOfWeek: 'TUESDAY', slot: 'AFTERNOON' })
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       await userEvent.click(await screen.findByRole('button', { name: /^move$/i }))
       await userEvent.selectOptions(screen.getByLabelText(/new day/i), 'TUESDAY')
       await userEvent.selectOptions(screen.getByLabelText(/new slot/i), 'AFTERNOON')
@@ -244,6 +248,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.move).mockResolvedValue({ ...walk, dayOfWeek: null, slot: null })
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       await userEvent.click(await screen.findByRole('button', { name: /move to bucket/i }))
 
       expect(planApi.move).toHaveBeenCalledWith('1', { dayOfWeek: null, slot: null })
@@ -256,6 +261,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([walk])
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }))
       await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
 
@@ -269,6 +275,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.remove).mockResolvedValue(undefined)
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }))
       await userEvent.click(screen.getByRole('button', { name: /confirm remove/i }))
 
@@ -290,11 +297,13 @@ describe('WeeklyPlanner', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: /^complete$/i }))
       expect(planApi.complete).toHaveBeenCalledWith('1')
-      expect(await screen.findByText(/completed/i)).toBeInTheDocument()
+      expect(await screen.findByRole('img', { name: /completed/i })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: /undo/i }))
       expect(planApi.undoCompletion).toHaveBeenCalledWith('1')
-      await waitFor(() => expect(screen.queryByText(/— completed/i)).not.toBeInTheDocument())
+      await waitFor(() =>
+        expect(screen.queryByRole('img', { name: /completed/i })).not.toBeInTheDocument(),
+      )
     })
   })
 
@@ -311,6 +320,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([bucketItem])
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Paint' }))
       expect(await screen.findByRole('button', { name: /carry forward/i })).toBeInTheDocument()
     })
   })
@@ -321,6 +331,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.carryForward).mockResolvedValue({ ...bucketItem, weekStart: '2026-10-12' })
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Paint' }))
       await userEvent.click(await screen.findByRole('button', { name: /carry forward/i }))
 
       expect(planApi.carryForward).toHaveBeenCalledWith('2')
@@ -389,6 +400,7 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.remove).mockRejectedValue(new ApiError(500, 'Server error'))
       render(<WeeklyPlanner />)
 
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       await userEvent.click(await screen.findByRole('button', { name: /^remove$/i }))
       await userEvent.click(screen.getByRole('button', { name: /confirm remove/i }))
 
@@ -404,7 +416,66 @@ describe('WeeklyPlanner', () => {
       await userEvent.click(await screen.findByRole('button', { name: /^complete$/i }))
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
-      expect(screen.queryByText(/— completed/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('img', { name: /completed/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-008-AC-10: at most one occurrence detail card is open at a time', () => {
+    it('closes the first card when a second occurrence card is opened', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([walk, bucketItem])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
+      expect(
+        screen.getByRole('group', { name: /go for a walk actions/i }),
+      ).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Paint' }))
+
+      expect(
+        screen.queryByRole('group', { name: /go for a walk actions/i }),
+      ).not.toBeInTheDocument()
+      expect(screen.getByRole('group', { name: /paint actions/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-008-AC-11: opening a different card clears a stale move/remove sub-state', () => {
+    it('cancels an in-progress move for a different occurrence when a new card opens', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([walk, bucketItem])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
+      await userEvent.click(screen.getByRole('button', { name: /^move$/i }))
+      expect(screen.getByLabelText(/new day/i)).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Paint' }))
+
+      expect(screen.queryByLabelText(/new day/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-008-AC-18/AC-20/AC-21: today-column highlight reflects the real current week/day', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('computes a null today-column on a weekend, even during the current week', async () => {
+      vi.setSystemTime(new Date('2026-10-10T09:00:00')) // a Saturday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+
+      render(<WeeklyPlanner />)
+
+      await screen.findByText(/no activities planned/i)
+      expect(document.querySelector(`.${plannerGridStyles.today}`)).toBeNull()
+    })
+
+    it('passes a null todayColumn for a week that is not the current one', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /previous week/i }))
+
+      expect(document.querySelector(`.${plannerGridStyles.today}`)).toBeNull()
     })
   })
 })

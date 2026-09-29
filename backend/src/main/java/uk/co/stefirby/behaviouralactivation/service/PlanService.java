@@ -240,11 +240,20 @@ public class PlanService {
     // Hibernate-backed entity during frontend_spec_004's implementation -- PlanControllerSpec's
     // @WebMvcTest mocks PlanService with plain in-memory entities, so it never exercised a real
     // lazy proxy and didn't catch this.
+    //
+    // Extended for planner_spec_008_occurrence_detail_card.md: SubTask.activity is itself a LAZY
+    // @ManyToOne, one hop further out than this method previously initialized --
+    // PlannedOccurrenceResponse.parentActivityName is the first thing to read it, so it must be
+    // force-initialized here too, or PlanController's mapping throws LazyInitializationException for
+    // a sub-task-target occurrence exactly as the top-level activity/subTask association did before
+    // planner_spec_004's fix.
     private static void initializeTarget(PlannedOccurrence occurrence) {
         if (occurrence.getActivity() != null) {
             Hibernate.initialize(occurrence.getActivity());
         } else {
-            Hibernate.initialize(occurrence.getSubTask());
+            SubTask subTask = occurrence.getSubTask();
+            Hibernate.initialize(subTask);
+            Hibernate.initialize(subTask.getActivity());
         }
     }
 
@@ -254,11 +263,19 @@ public class PlanService {
         initializeTarget(occurrence);
     }
 
+    // Never called initializeTarget(...) before planner_spec_008_occurrence_detail_card.md -- it
+    // worked by incidental luck, because the activity/subTask passed in is already a fully-loaded
+    // entity (not a lazy proxy) from activityRepository.findByIdAndOwner(...)/
+    // subTaskRepository.findByIdAndOwner(...), so the *direct* association never needed force-init.
+    // That luck doesn't extend to subTask.getActivity(), which those repository lookups never
+    // eager-fetch -- so this now force-initializes explicitly for PLANNER-008-AC-05.
     private PlannedOccurrence saveScheduledFor(Activity activity, SubTask subTask, ActivityCategory category,
             PlannedOccurrenceRequest request, User owner) {
         PlannedOccurrence occurrence = new PlannedOccurrence(activity, subTask, category, request.weekStart(),
             request.dayOfWeek(), request.slot(), owner);
-        return plannedOccurrenceRepository.save(occurrence);
+        PlannedOccurrence saved = plannedOccurrenceRepository.save(occurrence);
+        initializeTarget(saved);
+        return saved;
     }
 
     private void validateExactlyOneTarget(UUID activityId, UUID subTaskId) {

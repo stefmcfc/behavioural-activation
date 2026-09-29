@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-30
+
+- Decluttered the Weekly Planner grid and weekend bucket list: each occurrence's tile now shows
+  only its name, category, a completion icon, and a one-click Complete/Undo control. Move, Move to
+  bucket, Remove, and Carry forward have moved into an inline detail card, opened by activating the
+  occurrence's name — relocated, not removed. A planned sub-task's tile now also shows which
+  activity it belongs to (`parentActivityName`, resolved server-side), and the weekly grid
+  highlights today's weekday column when viewing the current week.
+
 ## [0.7.0] - 2026-09-29
 
 - Added repeatable vs. one-off activities: `Activity` gains `repeatable`/`archived` fields, new

@@ -72,6 +72,42 @@ class PlanControllerSpec extends Specification {
             result.andExpect(jsonPath('$.data[0].slot').value("MORNING"))
     }
 
+    def "PLANNER-008-AC-02/AC-09: a whole-activity occurrence's response has parentActivityName null, other fields unaffected"() {
+        given: "the service returns one whole-activity occurrence for the week"
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.getWeek("steve", monday) >> [occurrence]
+            planService.findCompletions("steve", _) >> [:]
+
+        when: "GET /api/v1/plan is requested"
+            def result = mockMvc.perform(get("/api/v1/plan?weekStart=2026-10-05")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "parentActivityName is null, and the existing fields are unchanged"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].name').value("Go for a walk"))
+            result.andExpect(jsonPath('$.data[0].parentActivityName').doesNotExist())
+            result.andExpect(jsonPath('$.data[0].category').value("ROUTINE"))
+            result.andExpect(jsonPath('$.data[0].dayOfWeek').value("MONDAY"))
+    }
+
+    def "PLANNER-008-AC-03: a sub-task occurrence's response carries its parent activity's name"() {
+        given: "the service returns one sub-task occurrence for the week"
+            def occurrence = new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.getWeek("steve", monday) >> [occurrence]
+            planService.findCompletions("steve", _) >> [:]
+
+        when: "GET /api/v1/plan is requested"
+            def result = mockMvc.perform(get("/api/v1/plan?weekStart=2026-10-05")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the sub-task's own name and its parent activity's name are both present"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].name').value("Chapter one"))
+            result.andExpect(jsonPath('$.data[0].parentActivityName').value("Go for a walk"))
+    }
+
     def "PLANNER-004-AC-05: GET /api/v1/plan returns 200 with an empty envelope, not 404, for an empty week"() {
         given: "the service returns no occurrences"
             planService.getWeek("steve", monday) >> []

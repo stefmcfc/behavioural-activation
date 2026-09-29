@@ -1,6 +1,7 @@
 # Occurrence Detail Card (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 22 ACs verified, including FRONTEND-008-AC-22 (today-highlight visual
+contrast confirmed in a real browser, both Light and Dark).
 **Priority**: P2 — a direct response to the user's "far too much noise in the calendar" complaint
 about the Weekly Planner, raised after `frontend_spec_006_repeatable_activities.md` shipped.
 **Depends on**: `planner_spec_008_occurrence_detail_card.md` (paired backend spec —
@@ -509,25 +510,25 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-008-AC-01 — at-rest tile hides Move/Move to bucket/Remove/Carry forward
-- [ ] FRONTEND-008-AC-02 — activating the name control calls `onOpenDetail`
-- [ ] FRONTEND-008-AC-03 — open card renders Move and Remove
-- [ ] FRONTEND-008-AC-04 — grid item's open card additionally renders Move to bucket
-- [ ] FRONTEND-008-AC-05 — bucket item's open card additionally renders Carry forward
-- [ ] FRONTEND-008-AC-06 — Remove inside the card enters the existing inline confirm sub-state
-- [ ] FRONTEND-008-AC-07 — Move inside the card enters the existing day/slot-select sub-state
-- [ ] FRONTEND-008-AC-08 — an open card renders a Close control with no side effect
-- [ ] FRONTEND-008-AC-09 — re-activating the name while open closes the card (toggle)
-- [ ] FRONTEND-008-AC-10 — at most one occurrence's card open at a time
-- [ ] FRONTEND-008-AC-11 — opening a different card clears a stale move/remove sub-state
-- [ ] FRONTEND-008-AC-12 — Complete/Undo works regardless of card open/closed state
-- [ ] FRONTEND-008-AC-13 — `PlannedOccurrence.parentActivityName` type field added
-- [ ] FRONTEND-008-AC-14 — parent activity name shown for a sub-task occurrence when present
-- [ ] FRONTEND-008-AC-15 — parent activity name never shown for a whole-activity occurrence
-- [ ] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
-- [ ] FRONTEND-008-AC-17 — no completion indicator when not completed
-- [ ] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)
-- [ ] FRONTEND-008-AC-19 — no highlight when viewing a past/future week, in either layout
-- [ ] FRONTEND-008-AC-20 — no highlight when today is a Saturday/Sunday, in either layout
-- [ ] FRONTEND-008-AC-21 — today-column check reuses `getMondayOfCurrentWeek()`, no second helper
-- [ ] FRONTEND-008-AC-22 — highlight visually distinguishable in Light and Dark (real-browser check)
+- [x] FRONTEND-008-AC-01 — at-rest tile hides Move/Move to bucket/Remove/Carry forward
+- [x] FRONTEND-008-AC-02 — activating the name control calls `onOpenDetail`
+- [x] FRONTEND-008-AC-03 — open card renders Move and Remove
+- [x] FRONTEND-008-AC-04 — grid item's open card additionally renders Move to bucket
+- [x] FRONTEND-008-AC-05 — bucket item's open card additionally renders Carry forward
+- [x] FRONTEND-008-AC-06 — Remove inside the card enters the existing inline confirm sub-state
+- [x] FRONTEND-008-AC-07 — Move inside the card enters the existing day/slot-select sub-state
+- [x] FRONTEND-008-AC-08 — an open card renders a Close control with no side effect
+- [x] FRONTEND-008-AC-09 — re-activating the name while open closes the card (toggle)
+- [x] FRONTEND-008-AC-10 — at most one occurrence's card open at a time
+- [x] FRONTEND-008-AC-11 — opening a different card clears a stale move/remove sub-state
+- [x] FRONTEND-008-AC-12 — Complete/Undo works regardless of card open/closed state
+- [x] FRONTEND-008-AC-13 — `PlannedOccurrence.parentActivityName` type field added
+- [x] FRONTEND-008-AC-14 — parent activity name shown for a sub-task occurrence when present
+- [x] FRONTEND-008-AC-15 — parent activity name never shown for a whole-activity occurrence
+- [x] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
+- [x] FRONTEND-008-AC-17 — no completion indicator when not completed
+- [x] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)
+- [x] FRONTEND-008-AC-19 — no highlight when viewing a past/future week, in either layout
+- [x] FRONTEND-008-AC-20 — no highlight when today is a Saturday/Sunday, in either layout
+- [x] FRONTEND-008-AC-21 — today-column check reuses `getMondayOfCurrentWeek()`, no second helper
+- [x] FRONTEND-008-AC-22 — highlight visually distinguishable in Light and Dark (real-browser check)
