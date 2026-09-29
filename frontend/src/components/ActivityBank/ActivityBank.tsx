@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
-import type { Activity, ActivityCategory } from '../../types/activity'
+import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
-
-const CATEGORY_LABELS: Record<ActivityCategory, string> = {
-  ROUTINE: 'Routine',
-  NECESSARY: 'Necessary',
-  PLEASURABLE: 'Pleasurable',
-}
+import { CategoryChip } from '../CategoryChip/CategoryChip'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -108,7 +103,7 @@ export function ActivityBank() {
         <ul>
           {activities.map((activity) => (
             <li key={activity.id}>
-              <span>{activity.name}</span> — <span>{CATEGORY_LABELS[activity.category]}</span>
+              <span>{activity.name}</span> <CategoryChip category={activity.category} />
               {activity.description && <p>{activity.description}</p>}
 
               {confirmingDeleteId === activity.id ? (

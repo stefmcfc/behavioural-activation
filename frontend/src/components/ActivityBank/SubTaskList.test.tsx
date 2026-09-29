@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SubTaskList } from './SubTaskList'
@@ -30,6 +30,19 @@ describe('SubTaskList', () => {
       render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
 
       await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledWith('a1'))
+    })
+  })
+
+  describe('FRONTEND-005-AC-18: per-sub-task category is a CategoryChip, not plain "— Category" text', () => {
+    it('renders a CategoryChip, not raw "— Pleasurable" text, for each sub-task row', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
+      const list = within(screen.getByRole('list'))
+      expect(list.getByTestId('category-chip-PLEASURABLE')).toBeInTheDocument()
+      expect(list.queryByText(/— pleasurable/i)).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /sub-tasks — pleasurable/i })).toBeInTheDocument()
     })
   })
 

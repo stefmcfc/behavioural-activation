@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './components/LoginPage'
 import { ActivityBank } from './components/ActivityBank/ActivityBank'
 import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
+import { Settings } from './components/Settings/Settings'
+import { TabNav } from './components/Navigation/TabNav'
 import { authApi } from './services/authApi'
 
 type SessionState =
@@ -61,8 +64,13 @@ function App() {
       <button type="button" onClick={handleLogout}>
         Log out
       </button>
-      <WeeklyPlanner />
-      <ActivityBank />
+      <TabNav />
+      <Routes>
+        <Route path="/" element={<Navigate to="/activities" replace />} />
+        <Route path="/activities" element={<ActivityBank />} />
+        <Route path="/planner" element={<WeeklyPlanner />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
     </main>
   )
 }

@@ -4,6 +4,7 @@ import { ApiError } from '../../types/api'
 import type { ActivityCategory } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
+import { CategoryChip } from '../CategoryChip/CategoryChip'
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -131,7 +132,7 @@ export function SubTaskList({ activityId, category }: SubTaskListProps) {
         <ul>
           {subTasks.map((subTask) => (
             <li key={subTask.id}>
-              <span>{subTask.name}</span> — <span>{CATEGORY_LABELS[subTask.category]}</span>
+              <span>{subTask.name}</span> <CategoryChip category={subTask.category} />
 
               {confirmingDeleteId === subTask.id ? (
                 <>

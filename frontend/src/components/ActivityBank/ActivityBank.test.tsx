@@ -72,6 +72,17 @@ describe('ActivityBank', () => {
     })
   })
 
+  describe('FRONTEND-005-AC-17: category is shown as a CategoryChip, not plain "— Category" text', () => {
+    it('renders a CategoryChip, not raw "— Routine" text, in the activity list', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      expect(await screen.findByText('Walk')).toBeInTheDocument()
+      expect(screen.getByTestId('category-chip-ROUTINE')).toBeInTheDocument()
+      expect(screen.queryByText(/— routine/i)).not.toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-002-AC-11: fetch failure shows an alert', () => {
     it('displays the error in a role="alert" element', async () => {
       vi.mocked(activityApi.getAll).mockRejectedValue({ status: 500, message: 'Server error' })

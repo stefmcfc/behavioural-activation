@@ -63,6 +63,16 @@ describe('WeeklyPlanner', () => {
     })
   })
 
+  describe('FRONTEND-005-AC-19: occurrence category is a CategoryChip, not plain "— Category" text', () => {
+    it('renders a CategoryChip for a planned occurrence', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([walk])
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByText('Go for a walk')).toBeInTheDocument()
+      expect(screen.getByTestId('category-chip-ROUTINE')).toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-004-AC-11/AC-12: grid cells render every occurrence in their day+slot, not just the last', () => {
     it('renders two occurrences in the same Monday/Morning cell', async () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([
