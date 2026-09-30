@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-30
+
 - Reordered the Add/Edit activity modal so Category (with its guidance) appears before Name, and
   replaced the plain radio-button category picker with coloured pills using each category's live
   Settings colour — matching `CategoryChip` elsewhere in the app, and updating live if the colour is
