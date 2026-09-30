@@ -31,6 +31,16 @@ const party: Activity = {
   createdAt: '2026-09-01T00:00:00Z',
 }
 
+const jobs: Activity = {
+  id: 'a3',
+  name: 'Apply for jobs',
+  category: 'NECESSARY',
+  description: null,
+  repeatable: false,
+  archived: false,
+  createdAt: '2026-09-01T00:00:00Z',
+}
+
 const sendInvitations: SubTask = {
   id: 's1',
   activityId: 'a2',
@@ -118,8 +128,49 @@ describe('AssignActivityPicker', () => {
 
       await userEvent.click(screen.getByRole('radio', { name: 'Pleasurable' }))
 
-      expect(screen.getByText(/no activities match this category/i)).toBeInTheDocument()
+      expect(screen.getByText(/no activities match these filters/i)).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Go for a walk' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-009-AC-30: filtering by repeatable/one-off', () => {
+    it('shows only repeatable activities when Repeatable is selected', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+
+      await userEvent.click(screen.getByRole('radio', { name: 'Repeatable' }))
+
+      expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
+    })
+
+    it('shows only one-off activities when One-off is selected', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+
+      await userEvent.click(screen.getByRole('radio', { name: 'One-off' }))
+
+      expect(screen.getByRole('button', { name: 'Apply for jobs' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Go for a walk' })).not.toBeInTheDocument()
+    })
+
+    it('combines the type filter with the category filter', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+
+      await userEvent.click(screen.getByRole('radio', { name: 'Necessary' }))
+      await userEvent.click(screen.getByRole('radio', { name: 'Repeatable' }))
+
+      expect(screen.getByText(/no activities match these filters/i)).toBeInTheDocument()
     })
   })
 })

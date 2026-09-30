@@ -1,11 +1,12 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Implemented — all 29 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+**Status**: Implemented — all 32 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
 backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
 confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
-originating "Add" control. **Amended same day** (still on `feature/add-picker-modal`, pre-merge):
-category chips, a category filter, and a bullet-free row-group layout for the picker's activity/
-sub-task list — FRONTEND-009-AC-24–AC-29, see Requirement 9.
+originating "Add" control. **Amended same day, two rounds** (still on `feature/add-picker-modal`,
+pre-merge): round one added category chips, a category filter, and a bullet-free row-group layout
+for the picker's activity/sub-task list — FRONTEND-009-AC-24–AC-29. Round two added a second,
+combinable repeatable/one-off filter — FRONTEND-009-AC-30–AC-32. Both in Requirement 9.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -249,6 +250,29 @@ default bullet markers — which read poorly once a `CategoryChip` pill sits on 
 - **FRONTEND-009-AC-29** [MANUAL]: The category chips, filter pills, and the new row-group/divider
   layout render correctly and legibly in both Light and Dark themes. Verified by a real-browser
   check, since jsdom does not render CSS (`frontend_conventions.md`'s Testing Strategy note).
+- **FRONTEND-009-AC-30** [AUTO]: The picker shall render a second filter — "All"/"Repeatable"/
+  "One-off" (same segmented-pill pattern as AC-25) — above the activity list. Selecting a value
+  shall hide any activity whose own `repeatable` field doesn't match. Unlike the category filter,
+  this has no per-sub-task exception: `SubTask` carries no `repeatable` field of its own (it's an
+  `Activity`-only concept), so a sub-task's visibility for this filter always follows its parent
+  activity's — there is no "keep the activity visible for a matching sub-task" case to handle here.
+- **FRONTEND-009-AC-31** [AUTO]: The category filter and the repeatable/one-off filter combine with
+  AND logic — an activity (or, for the category dimension, one of its sub-tasks) must satisfy both
+  selected filters simultaneously to appear, not either one.
+- **FRONTEND-009-AC-32** [MANUAL]: With both filter rows present (category, then type), the picker
+  still lays out legibly in both Light and Dark themes — the second `<fieldset>` doesn't crowd or
+  visually compete with the first. Verified by a real-browser check.
+
+**Real-data verification (2026-09-30)**: the user added a real "Test category change" activity
+(initially Pleasurable, with two sub-tasks) specifically to confirm AC-26's premise, then its
+category was edited to Necessary through the normal Activity Bank edit flow. Confirmed live: the
+activity's own chip updated to Necessary, its two sub-tasks kept showing the stale Pleasurable chip
+they were created with, and the filter behaved exactly as AC-25/AC-26 specify — filtering to
+Necessary showed the activity with its (non-matching) sub-tasks hidden; filtering to Pleasurable
+kept the (non-matching) activity visible specifically because its sub-tasks matched. This is real
+confirmation of the drift this spec's Requirement 9 rationale already described from code inspection
+alone — now also logged as its own entry in `.claude/ideas/future_ideas.md` ("Sub-task category
+drift when a parent activity's category is edited"), not fixed by this spec.
 
 **Note**: this amendment also narrows `frontend_spec_007_visual_refresh.md`'s
 `FRONTEND-007-AC-26` ("no bespoke button/input override" in `AssignActivityPicker.module.css`) —
@@ -594,3 +618,6 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 - [x] FRONTEND-009-AC-27 — "No activities match this category." when the filter yields nothing
 - [x] FRONTEND-009-AC-28 — no native bullets; divider-separated, indented row-group layout
 - [x] FRONTEND-009-AC-29 — chips/filter/layout render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-30 — repeatable/one-off filter hides non-matching activities (whole-activity, no sub-task exception)
+- [x] FRONTEND-009-AC-31 — category and repeatable/one-off filters combine with AND logic
+- [x] FRONTEND-009-AC-32 — both filter rows lay out legibly in Light and Dark (real-browser check)

@@ -19,6 +19,14 @@ const CATEGORY_FILTER_OPTIONS: readonly { value: CategoryFilter; label: string }
   { value: 'PLEASURABLE', label: CATEGORY_LABELS.PLEASURABLE },
 ]
 
+type RepeatableFilter = 'ALL' | 'REPEATABLE' | 'ONE_OFF'
+
+const REPEATABLE_FILTER_OPTIONS: readonly { value: RepeatableFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'REPEATABLE', label: 'Repeatable' },
+  { value: 'ONE_OFF', label: 'One-off' },
+]
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.message
@@ -64,6 +72,7 @@ export function AssignActivityPicker({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
+  const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
 
   useEffect(() => {
     let cancelled = false
@@ -119,6 +128,12 @@ export function AssignActivityPicker({
   }
 
   const visibleActivities = (activities ?? []).filter((activity) => {
+    if (repeatableFilter !== 'ALL') {
+      const matchesRepeatable =
+        repeatableFilter === 'REPEATABLE' ? activity.repeatable : !activity.repeatable
+      if (!matchesRepeatable) return false
+    }
+
     if (categoryFilter === 'ALL') return true
     if (activity.category === categoryFilter) return true
     const subTasks = subTasksByActivity[activity.id] ?? []
@@ -130,25 +145,47 @@ export function AssignActivityPicker({
       <h3 id="assign-picker-title">Assign an activity or sub-task</h3>
 
       {activities !== null && activities.length > 0 && (
-        <fieldset className={styles.filterFieldset}>
-          <legend>Filter by category</legend>
-          <ul className={styles.filterGroup}>
-            {CATEGORY_FILTER_OPTIONS.map((option) => (
-              <li key={option.value}>
-                <label>
-                  <input
-                    type="radio"
-                    name="assign-picker-category-filter"
-                    value={option.value}
-                    checked={categoryFilter === option.value}
-                    onChange={() => setCategoryFilter(option.value)}
-                  />
-                  {option.label}
-                </label>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
+        <>
+          <fieldset className={styles.filterFieldset}>
+            <legend>Filter by category</legend>
+            <ul className={styles.filterGroup}>
+              {CATEGORY_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-category-filter"
+                      value={option.value}
+                      checked={categoryFilter === option.value}
+                      onChange={() => setCategoryFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+
+          <fieldset className={styles.filterFieldset}>
+            <legend>Filter by type</legend>
+            <ul className={styles.filterGroup}>
+              {REPEATABLE_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-repeatable-filter"
+                      value={option.value}
+                      checked={repeatableFilter === option.value}
+                      onChange={() => setRepeatableFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+        </>
       )}
 
       {loadError && <p role="alert">{loadError}</p>}
@@ -159,7 +196,7 @@ export function AssignActivityPicker({
       )}
 
       {activities !== null && activities.length > 0 && visibleActivities.length === 0 && (
-        <p>No activities match this category.</p>
+        <p>No activities match these filters.</p>
       )}
 
       {visibleActivities.length > 0 && (

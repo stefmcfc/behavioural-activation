@@ -21,6 +21,9 @@ All notable changes to this project are documented in this file, in
   with the new chips. Filtering keeps a non-matching activity visible if one of its sub-tasks still
   matches (a sub-task's category is fixed at creation time and doesn't follow later edits to its
   parent activity's category), so a matching sub-task is never hidden along with its parent.
+- Added a second filter (All/Repeatable/One-off) to the same picker, combining with the category
+  filter (both must match). Unlike the category filter, this one has no sub-task exception — it's
+  an activity-only attribute, so a sub-task's visibility always follows its parent activity's.
 
 ## [0.8.0] - 2026-09-30
 
