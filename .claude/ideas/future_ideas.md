@@ -67,13 +67,14 @@ analysis, activity effectiveness scoring, social/connection activity tracking.
 
 ## Activity Bank UX improvements (batch, 2026-09-29)
 
-**Status**: Not specced. Raised by the user right after shipping spec pair 6
-(repeatable/archived activities), while it was fresh:
+**Status**: Partially specced. Raised by the user right after shipping spec pair 6
+(repeatable/archived activities), while it was fresh. The "Add-activity modal with category
+guidance" item below is now specced — `frontend_spec_013_add_activity_modal.md` (plus a
+newly-confirmed companion, `frontend_spec_014_add_subtask_modal.md`, for the equivalent sub-task
+create/rename flow — not part of the original 2026-09-29 batch, raised and confirmed 2026-09-30
+alongside speccing this item). See `ROADMAP.md`'s "Specced, coming soon" table. The remaining two
+items below are still not specced:
 
-- **Add-activity modal with category guidance**: move activity creation into a modal (off the
-  bottom-of-page inline form) that includes a brief explanation of what each category
-  (Routine/Necessary/Pleasurable) means, with examples — helps a new/returning user pick the right
-  one without having to already know the BA framework's category definitions.
 - **Filter by category**: a category filter on the Activity Bank list, alongside the existing "Show
   archived" toggle.
 - **Sub-task count on the chip**: for an activity with sub-tasks, show a count (e.g. "3") on or

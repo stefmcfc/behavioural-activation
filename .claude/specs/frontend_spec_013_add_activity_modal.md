@@ -1,0 +1,446 @@
+# Add/Edit Activity Modal with Category Guidance (Frontend)
+
+**Status**: Not started
+**Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
+`frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
+2026-09-30 as worth specifying now.
+**Depends on**: `frontend_spec_009_add_picker_modal.md` (the `Modal` primitive this spec wraps
+`ActivityForm` in — **must be implemented first**; this spec imports `Modal.tsx`, it does not
+re-specify or duplicate it), `frontend_spec_002_activity_bank.md` (origin of `ActivityForm.tsx`,
+`ActivityBank.tsx`, `CategoryPicker.tsx`), `frontend_spec_006_repeatable_activities.md` (most recent
+prior state of `ActivityForm`'s fields — adds `repeatable`), `frontend_spec_007_visual_refresh.md`
+(CSS Modules + theme custom-properties convention `CategoryGuidance`'s styles follow)
+**Area**: Frontend (frontend-only — no backend change; `POST`/`PUT /api/v1/activities`'s request/
+response shape is unchanged. Per this project's spec-numbering convention, numbers move in lockstep
+across `planner_spec_NNN`/`frontend_spec_NNN` even when only one side has content, so there is
+deliberately no `planner_spec_013_*.md` — same precedent as `frontend_spec_009_add_picker_modal.md`)
+**Roadmap version**: V1 (extends the core Activity Bank's create/edit interaction from `product.md`'s
+V1 row — not V2's tracking/reflection scope, and not AI)
+
+## Overview
+
+Today, `ActivityBank` renders a single `ActivityForm` unconditionally at the very bottom of the
+page — in create mode by default, swapped into edit mode (same component instance, same position)
+when a row's "Edit" is activated. Both paths send the user's attention to the bottom of a
+potentially long list, the same "too much navigation involved" complaint that motivated
+`frontend_spec_009_add_picker_modal.md` for the Weekly Planner's "Add" picker. This spec applies the
+same fix here: activity creation and editing move into a modal dialog (`Modal`, from
+`frontend_spec_009`) that opens at the point of interaction.
+
+Separately, the user raised (`.claude/ideas/future_ideas.md`, "Activity Bank UX improvements"
+batch): a new/returning user often doesn't already know the Behavioural Activation framework's
+category definitions, and has no guidance in the current bare `CategoryPicker` (three radio buttons
+with only a label each) to help pick the right one. This spec adds a `CategoryGuidance` block,
+rendered inside the same modal alongside `CategoryPicker`, always visible (not hidden behind further
+interaction) — a short purpose statement and one example per category, plus a note that the same
+activity can belong to a different category depending on why it's being done, sourced directly from
+`.claude/HIGH_LEVEL_DESIGN.md`'s own worked examples ("Cooking dinner because food is needed →
+Necessary. Trying a new curry recipe because it sounds enjoyable → Pleasurable. A daily walk as part
+of a routine → Routine. A walk somewhere interesting because it is enjoyable → Pleasurable.") and
+`.claude/steering/product.md`'s framing (an activity "can be Necessary one day and Pleasurable
+another, depending on why it's being done").
+
+This ties back to `.claude/HIGH_LEVEL_DESIGN.md`'s US-001 (add an activity to the catalogue) and
+US-002 (categorise it) — the same user stories `frontend_spec_002_activity_bank.md` delivered the
+first version of; this spec relocates and adds category guidance to that same interaction without
+changing its underlying capability (still `activityApi.create`/`activityApi.update`, unchanged
+request/response shape).
+
+**Confirmed with the user 2026-09-30** (resolving three open questions before writing ACs below):
+1. This is a **separate spec** from the equivalent sub-task modal
+   (`frontend_spec_014_add_subtask_modal.md`) — matching `frontend_spec_009`'s one-spec-per-call-site
+   precedent, even though both reuse the same `Modal` primitive.
+2. **Both Create and Edit move into the modal** — not create-only. `ActivityForm`'s existing edit-mode
+   inline swap-in-place has the identical "attention jumps within a long list" problem as create's
+   bottom-of-page position, so both get fixed together rather than leaving Edit as a follow-up.
+3. **`frontend_spec_009_add_picker_modal.md` must be implemented first.** It's already fully specced
+   and next in the queue; this spec's `Modal` import assumes `Modal.tsx` already exists rather than
+   speccing a second copy or a forward-reference.
+
+**Out of scope**: any redesign of `ActivityForm`'s own field set (name/category/description/
+repeatable — unchanged, `frontend_spec_006`'s scope) or its validation rules. The equivalent sub-task
+modal (`frontend_spec_014_add_subtask_modal.md`, separate spec). `CategoryPicker`'s own radio-button
+interaction pattern (unchanged — `CategoryGuidance` is a new, separate, adjacent block, not a rework
+of the picker itself). Any backend change. A "filter by category" control or a sub-task count on
+`CategoryChip` (separate, unconfirmed ideas in the same `future_ideas.md` batch — not this spec).
+
+## Requirements
+
+### Requirement 1 — Activity creation happens in a modal, not an always-visible bottom-of-page form
+
+As a user, I want clicking "Add activity" to open a focused dialog right there, not have my
+attention sent to a form permanently sitting at the bottom of a potentially long activity list.
+
+- **FRONTEND-013-AC-01** [AUTO]: While `ActivityBank`'s `formTarget` state is `null`, `ActivityBank`
+  shall render no `ActivityForm` anywhere in the document — replacing today's always-visible,
+  always-mounted create form.
+- **FRONTEND-013-AC-02** [AUTO]: When "Add activity" is activated, `ActivityBank` shall set
+  `formTarget` to `'create'`.
+- **FRONTEND-013-AC-03** [AUTO]: While `formTarget` is `'create'`, `ActivityBank` shall render
+  `Modal` with `isOpen` `true`, wrapping `ActivityForm` in create mode.
+
+### Requirement 2 — Editing an activity also happens in the same modal
+
+As a user, I want editing an activity to open the same kind of focused dialog, not swap the
+page-bottom form into edit mode in place.
+
+- **FRONTEND-013-AC-04** [AUTO]: When "Edit" is activated on an activity row, `ActivityBank` shall
+  set `formTarget` to that row's `Activity`.
+- **FRONTEND-013-AC-05** [AUTO]: While `formTarget` is an `Activity`, `ActivityBank` shall render
+  `Modal` with `isOpen` `true`, wrapping `ActivityForm` in edit mode for that activity — replacing
+  today's inline swap-in-place edit form.
+- **FRONTEND-013-AC-06** [AUTO]: While `formTarget` is `null`, each activity row's "Edit" control
+  shall remain visible and clickable exactly as today — only the destination of activation changes
+  (opens the modal instead of swapping the bottom form).
+
+### Requirement 3 — Category guidance helps the user pick a category
+
+As a new or returning user who doesn't already know the Behavioural Activation framework's category
+definitions, I want a plain explanation of what Routine/Necessary/Pleasurable mean, with an example
+each, visible right where I'm choosing — not something I have to already know or look up elsewhere.
+
+- **FRONTEND-013-AC-07** [AUTO]: `ActivityForm` shall render a `CategoryGuidance` block adjacent to
+  `CategoryPicker`, in both create and edit mode, unconditionally visible (not hidden behind a
+  tooltip, expand/collapse, or further interaction).
+- **FRONTEND-013-AC-08** [AUTO]: `CategoryGuidance` shall display, for each of Routine, Necessary,
+  and Pleasurable, a short purpose statement and one concrete example (content per the Component/
+  type changes section below, sourced from `HIGH_LEVEL_DESIGN.md`'s worked examples).
+- **FRONTEND-013-AC-09** [AUTO]: `CategoryGuidance` shall additionally state that the same activity
+  can belong to a different category depending on why it's being done (e.g. cooking dinner because
+  food is needed is Necessary; trying a new recipe because it sounds enjoyable is Pleasurable) —
+  sourced from `product.md`'s own framing, not a new product decision.
+
+### Requirement 4 — Accessible modal naming, and closing behaviour equivalent to today
+
+As a user, I want the dialog announced with a meaningful name, and to be able to back out of it
+cleanly — via Cancel, Escape, or clicking outside — with no side effect, exactly as today's
+`onCancel`/`onSuccess` already guarantee.
+
+- **FRONTEND-013-AC-10** [AUTO]: `ActivityForm` shall render a heading carrying an `id` — text "Add
+  activity" in create mode, "Edit activity" in edit mode — and `ActivityBank` shall pass that same
+  `id` as `Modal`'s `titleId`.
+- **FRONTEND-013-AC-11** [AUTO]: `ActivityForm`'s create-mode submit button shall read "Save
+  activity" (renamed from today's "Add activity", which now names the page-level trigger control
+  instead — the two are both present in the document once the modal is open, so must not share an
+  accessible name). Edit mode's existing "Save changes" label is unchanged.
+- **FRONTEND-013-AC-12** [AUTO]: `ActivityForm` shall render a Cancel button in create mode
+  (previously rendered only in edit mode), invoking the same `onCancel` prop edit mode already uses.
+- **FRONTEND-013-AC-13** [AUTO]: When `ActivityForm`'s Cancel is activated, or a create/edit
+  submission completes successfully, `ActivityBank` shall set `formTarget` to `null` — equivalent to
+  today's `onCancel`/`onSuccess` wiring, now also closing the modal.
+- **FRONTEND-013-AC-14** [AUTO]: When the dialog is closed via `Modal`'s `onClose` (Escape or a
+  backdrop click, per `frontend_spec_009`'s `Modal` contract), `ActivityBank` shall set `formTarget`
+  to `null`, with no call to `activityApi.create`/`activityApi.update`.
+
+### Requirement 5 — Only one modal instance open at a time
+
+As a user, I want activating a second "Add activity" or "Edit" while the modal is already open to
+just retarget it, not stack a second dialog.
+
+- **FRONTEND-013-AC-15** [AUTO]: While the modal is open for one `formTarget` and a different "Add
+  activity"/"Edit" control is activated, `ActivityBank` shall update `formTarget` to the new target
+  without rendering a second `Modal`/dialog — at most one element with `role="dialog"` shall exist in
+  the document at any time.
+
+### Requirement 6 — Real-browser visual verification
+
+As a user, I want the modal and its category guidance to actually look right — legible, sensibly
+laid out — in both themes, not just structurally correct in the DOM.
+
+- **FRONTEND-013-AC-16** [MANUAL]: The modal (backdrop, dialog position) and `CategoryGuidance`
+  (legible at the design system's smaller/quieter text sizes, correct contrast) render correctly in
+  both Light and Dark themes. Verified by a real-browser check, since jsdom does not render CSS
+  (`frontend_conventions.md`'s Testing Strategy note).
+
+## Component/type changes
+
+`utils/categoryGuidance.ts` (new):
+
+```typescript
+import type { ActivityCategory } from '../types/activity'
+
+export interface CategoryGuidanceEntry {
+  readonly purpose: string
+  readonly example: string
+}
+
+export const CATEGORY_GUIDANCE: Record<ActivityCategory, CategoryGuidanceEntry> = {
+  ROUTINE: {
+    purpose:
+      "Something you do as a regular habit or part of your normal rhythm — done because it's " +
+      'routine, not because it’s urgent or especially enjoyable.',
+    example: 'A daily walk you always take.',
+  },
+  NECESSARY: {
+    purpose:
+      "Something that needs doing regardless of how it feels — driven by obligation or " +
+      'practical need.',
+    example: 'Cooking dinner because food is needed.',
+  },
+  PLEASURABLE: {
+    purpose:
+      "Something you do mainly because it's enjoyable or rewarding, not because it's routine " +
+      'or required.',
+    example: 'Trying a new recipe because it sounds fun.',
+  },
+}
+```
+
+`CategoryGuidance.tsx` (new, `frontend/src/components/ActivityBank/`):
+
+```tsx
+import { CATEGORY_LABELS } from '../../utils/categoryLabels'
+import { CATEGORY_GUIDANCE } from '../../utils/categoryGuidance'
+import type { ActivityCategory } from '../../types/activity'
+import styles from './CategoryGuidance.module.css'
+
+const ALL_CATEGORIES: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
+
+export function CategoryGuidance() {
+  return (
+    <div className={styles.guidance}>
+      {ALL_CATEGORIES.map((category) => (
+        <p key={category}>
+          <strong>{CATEGORY_LABELS[category]}</strong> — {CATEGORY_GUIDANCE[category].purpose}{' '}
+          <em>Example: {CATEGORY_GUIDANCE[category].example}</em>
+        </p>
+      ))}
+      <p>
+        The same activity can belong to a different category depending on why you're doing it — a
+        walk can be Routine one day and Pleasurable another.
+      </p>
+    </div>
+  )
+}
+```
+
+`ActivityForm.tsx` (extended — heading, `CategoryGuidance`, renamed create-mode submit button,
+create-mode Cancel):
+
+```tsx
+const headingId = `activity-form-title-${mode}`
+
+// ...
+
+<h3 id={headingId}>{mode === 'edit' ? 'Edit activity' : 'Add activity'}</h3>
+
+<div>{/* name field, unchanged */}</div>
+
+<CategoryPicker value={category} onChange={setCategory} name={`category-${mode}`} />
+<CategoryGuidance />
+
+{/* description, repeatable fields unchanged */}
+
+<button type="submit" disabled={isSubmitting}>
+  {mode === 'edit' ? 'Save changes' : 'Save activity'}
+</button>
+{onCancel && (
+  <button type="button" onClick={onCancel}>
+    Cancel
+  </button>
+)}
+```
+
+`onCancel` becomes required in practice for both modes once `ActivityBank` always supplies it (the
+prop itself can stay optional in the type — no call site outside this spec's scope needs to change).
+
+`ActivityBank.tsx` (state and rendering — the activity list/row markup, `showArchived`, delete/
+unarchive flows are all unrelated and unchanged):
+
+```tsx
+const [formTarget, setFormTarget] = useState<'create' | Activity | null>(null)
+
+const handleCloseForm = () => setFormTarget(null)
+
+const handleFormSuccess = (activity: Activity) => {
+  setActivities((previous) => /* unchanged merge logic */)
+  setFormTarget(null)
+}
+
+// ...
+
+<button type="button" onClick={() => setFormTarget('create')}>
+  Add activity
+</button>
+
+{/* ...activity list, "Edit" now does setFormTarget(activity) instead of setEditingActivity(activity) */}
+
+<Modal
+  isOpen={formTarget !== null}
+  titleId={`activity-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`}
+  onClose={handleCloseForm}
+>
+  {formTarget !== null && (
+    <ActivityForm
+      key={formTarget === 'create' ? 'create' : formTarget.id}
+      mode={formTarget === 'create' ? 'create' : 'edit'}
+      activity={formTarget === 'create' ? undefined : formTarget}
+      onSuccess={handleFormSuccess}
+      onCancel={handleCloseForm}
+    />
+  )}
+</Modal>
+```
+
+`CategoryGuidance.module.css` (new, following `frontend_spec_007_visual_refresh.md`'s theme
+custom-property convention — small, quiet, secondary text, not competing visually with the picker
+itself):
+
+```css
+.guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.guidance strong {
+  color: var(--text-h);
+}
+
+.guidance em {
+  font-style: normal;
+  opacity: 0.8;
+}
+```
+
+## Cross-references
+
+| This spec | Contracts against |
+|---|---|
+| `Modal.tsx` (`frontend_spec_009_add_picker_modal.md`) | Reused unmodified — must be implemented first |
+| `ActivityForm.tsx` (`frontend_spec_002_activity_bank.md`, extended by `frontend_spec_006_repeatable_activities.md`) | Extended — heading + `id`, `CategoryGuidance`, renamed create-mode submit button, create-mode Cancel |
+| `ActivityBank.tsx` | Extended — `formTarget` state replaces `editingActivity`, `Modal` wraps `ActivityForm` |
+| `CategoryPicker.tsx` | Unmodified — `CategoryGuidance` is a new, adjacent, separate block |
+| `CategoryGuidance.tsx` / `utils/categoryGuidance.ts` (new) | No prior art — new files this spec introduces |
+| `POST`/`PUT /api/v1/activities` (`planner_spec_002_activity_bank.md`) | Unchanged — `activityApi.create`/`update`'s request/response shape is untouched |
+| `frontend_spec_014_add_subtask_modal.md` (sibling, same batch) | Separate spec, same `Modal` reuse pattern — no shared state or component beyond `Modal` itself |
+
+`ActivityForm.test.tsx` and `ActivityBank.test.tsx`'s existing tests assert `name: /add activity/i`
+for the create-mode submit button (now "Save activity") and exercise the always-visible bottom form
+directly (now conditionally rendered inside `Modal`, requiring "Add activity"/"Edit" to be clicked
+first) — both will need updating during implementation, not a new AC, an implementation-time
+consequence of AC-02/AC-03/AC-11 noted here per this project's usual practice
+(`frontend_spec_008_occurrence_detail_card.md`'s Test Case notes made the same kind of call-out).
+
+## Test case sketches (Vitest + RTL, red before implementation)
+
+```typescript
+const walk: Activity = {
+  id: 'a1', name: 'Go for a walk', category: 'ROUTINE', description: null,
+  repeatable: true, archived: false, createdAt: '2026-09-01T00:00:00Z',
+}
+
+describe('FRONTEND-013-AC-01/AC-02/AC-03: Add activity opens a modal, not a bottom form', () => {
+  it('renders no form until Add activity is clicked, then opens it in a dialog', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    render(<ActivityBank />)
+
+    await screen.findByText(/no activities yet/i)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+
+    expect(await screen.findByRole('dialog', { name: /add activity/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-013-AC-04/AC-05: Edit opens the same modal in edit mode', () => {
+  it('opens a dialog titled "Edit activity" pre-filled with the row\'s data', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    render(<ActivityBank />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }))
+
+    expect(await screen.findByRole('dialog', { name: /edit activity/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /name/i })).toHaveValue('Go for a walk')
+  })
+})
+
+describe('FRONTEND-013-AC-07/AC-08/AC-09: category guidance is always visible with examples', () => {
+  it('shows a purpose and example for each category, and the cross-category note', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    render(<ActivityBank />)
+
+    await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+    await screen.findByRole('dialog')
+
+    expect(screen.getByText(/cooking dinner because food is needed/i)).toBeInTheDocument()
+    expect(screen.getByText(/a daily walk you always take/i)).toBeInTheDocument()
+    expect(screen.getByText(/trying a new recipe because it sounds fun/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/same activity can belong to a different category/i),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-013-AC-11: create-mode submit button is "Save activity", not "Add activity"', () => {
+  it('does not collide with the page-level trigger\'s own label', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    render(<ActivityBank />)
+
+    await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+    await screen.findByRole('dialog')
+
+    expect(screen.getByRole('button', { name: /^add activity$/i })).toBeInTheDocument() // the trigger, still present
+    expect(screen.getByRole('button', { name: /^save activity$/i })).toBeInTheDocument() // the submit
+  })
+})
+
+describe('FRONTEND-013-AC-12/AC-13: Cancel in create mode closes with no create call', () => {
+  it('calls onCancel equivalent, no activityApi.create, and closes the modal', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    render(<ActivityBank />)
+
+    await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+    await screen.findByRole('dialog')
+
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(activityApi.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-013-AC-15: a second Add/Edit while open retargets, never a second dialog', () => {
+  it('switches from create to edit without stacking a dialog', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    render(<ActivityBank />)
+
+    await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+    await screen.findByRole('dialog', { name: /add activity/i })
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+
+    expect(await screen.findByRole('dialog', { name: /edit activity/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+  })
+})
+```
+
+**Test Case (Green)**: implement `utils/categoryGuidance.ts`, `CategoryGuidance.tsx`/`.module.css`,
+and update `ActivityForm.tsx`/`ActivityBank.tsx` as specified above until every sketch above (and the
+remaining ACs not sketched: AC-06, AC-10, AC-14, AC-16) passes. AC-16 is verified by a real-browser
+pass in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy note.
+
+## Acceptance Criteria Summary
+
+- [ ] FRONTEND-013-AC-01 — no `ActivityForm` renders while `formTarget` is `null`
+- [ ] FRONTEND-013-AC-02 — "Add activity" sets `formTarget` to `'create'`
+- [ ] FRONTEND-013-AC-03 — `formTarget === 'create'` opens the modal with `ActivityForm` in create mode
+- [ ] FRONTEND-013-AC-04 — "Edit" sets `formTarget` to that row's `Activity`
+- [ ] FRONTEND-013-AC-05 — `formTarget` as an `Activity` opens the modal with `ActivityForm` in edit mode
+- [ ] FRONTEND-013-AC-06 — each row's "Edit" control is unchanged at rest, only its destination changes
+- [ ] FRONTEND-013-AC-07 — `CategoryGuidance` renders adjacent to `CategoryPicker`, always visible
+- [ ] FRONTEND-013-AC-08 — a purpose + example per category, from `HIGH_LEVEL_DESIGN.md`'s examples
+- [ ] FRONTEND-013-AC-09 — the same-activity-different-category note, from `product.md`'s framing
+- [ ] FRONTEND-013-AC-10 — `ActivityForm` heading + `id` wired to `Modal`'s `titleId`
+- [ ] FRONTEND-013-AC-11 — create-mode submit button renamed "Save activity"
+- [ ] FRONTEND-013-AC-12 — create mode gains a Cancel button, same `onCancel` as edit mode
+- [ ] FRONTEND-013-AC-13 — Cancel or successful submit sets `formTarget` to `null`
+- [ ] FRONTEND-013-AC-14 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
+- [ ] FRONTEND-013-AC-15 — a second Add/Edit while open retargets, never a second dialog
+- [ ] FRONTEND-013-AC-16 — modal + guidance render correctly in Light and Dark (real-browser check)
