@@ -14,8 +14,10 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-09-30 (added the Weekday/Weekend grid tabs + "Today" view candidate, raised while
-refining `frontend_spec_008`'s detail card and finding the Saturday/Sunday invisible-occurrence bug.
+Last updated: 2026-09-30 (Weekday/Weekend grid tabs + "Today" view candidate now fully specced and
+moved to `ROADMAP.md`'s "Specced, coming soon" — split into two specs per the design pass:
+`frontend_spec_015_weekday_weekend_grid_tabs.md` (the bug fix, must land first) and
+`frontend_spec_016_today_view.md` (the new top-level "Today" tab, depends on 015).
 Earlier note: 2026-09-29, Weekly Planner UX batch now fully specced: occurrence detail card
 (`frontend_spec_008`), "Add" picker modal (`frontend_spec_009`), bucket drag-and-drop reordering
 (`planner_spec_010`/`frontend_spec_010`), and automatic carry-forward
@@ -50,37 +52,6 @@ likely wants two new small icon-triggered menu/dropdown components (Settings, Ac
 existing `/settings` route's content (theme, category colours) would move into the Settings icon's
 menu rather than being its own tab. Needs its own real design pass (icon choice, menu/dropdown
 interaction pattern, keyboard/focus handling) before writing ACs, not just a markup reshuffle.
-
-## Weekday/Weekend grid tabs + a "Today" view
-
-**Status**: Confirmed, not yet specced. Raised 2026-09-30 while refining
-`frontend_spec_008_occurrence_detail_card.md`'s Move sub-state: its day `<select>` offers all seven
-days (`ALL_DAYS` in `planLabels.ts`), but `PlannerGrid` only renders Monday–Friday columns and
-`BucketList` only shows occurrences with a `null` day/slot — so moving something to Saturday or
-Sunday saves successfully on the backend (no validation rejects it) but then has no view that
-displays it; it's simply invisible in the UI. See that spec's Requirement 1 amendment for the full
-finding. Confirmed with the user 2026-09-30 as worth a real fix, not a quick patch (e.g. just
-removing Saturday/Sunday from the day `<select>`) — they want to rethink the grid's shape instead.
-
-Proposed direction (not yet a firm design — needs its own pass before writing ACs):
-- Split the weekly grid into two tabs: **Weekdays** (today's Monday–Friday, 5 columns × 3 slots, as
-  now) and **Weekend** (Saturday/Sunday, presumably 2 columns × 3 slots) — rather than a single
-  7-column grid, which the user judged "too much" for one view.
-- Open question: does the weekend bucket list (the existing flexible, unslotted list) stay visible
-  on both tabs, or only on the Weekend tab? Both are plausible — bucket items are conceptually
-  weekend-scoped already, but a user might want to add to the bucket while looking at their weekday
-  plan too.
-- Also proposed: a **"Today"** view — possibly promoted to a top-level nav tab alongside
-  Activities/Weekly Planner/Settings (`TabNav`, `frontend_spec_005_navigation_and_theme.md`) rather
-  than living inside the planner — showing only the current day's plan, to reduce clutter for the
-  "what do I actually need to do right now" use case the full weekly grid doesn't serve well.
-
-Touches `PlannerGrid.tsx`/`.module.css` (tab/view split), `BucketList.tsx` (visibility scope across
-tabs), `WeeklyPlanner.tsx` (tab state), `OccurrenceItem.tsx`'s Move sub-state (`ALL_DAYS` usage would
-need to follow whichever tab is active, if Saturday/Sunday remain selectable at all once they have a
-real grid home), and possibly `TabNav`/`App.tsx` for a new "Today" top-level tab. Needs its own
-design pass (exact tab/column layout, bucket-list scope decision, whether "Today" is a planner
-sub-view or a real top-level route) before writing ACs.
 
 ## Frontend button visual hierarchy (primary/secondary)
 
