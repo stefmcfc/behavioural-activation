@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-30
+
+- Added a modal/dialog primitive (`Modal.tsx`, wrapping the native `<dialog>` element — zero new
+  dependencies) and relocated the Weekly Planner's "Assign an activity or sub-task" picker into it.
+  Activating "Add" on a grid cell or the weekend bucket list now opens the picker right there,
+  instead of jumping attention to a picker rendered at the very bottom of the page. Picker content
+  and behaviour (fetch, single-selection, Assign/Cancel) are unchanged; closing via Cancel, Escape,
+  or a backdrop click all behave the same, and focus now moves into the dialog on open and returns
+  to the originating "Add" control on close.
+
 ## [0.8.0] - 2026-09-30
 
 - Decluttered the Weekly Planner grid and weekend bucket list: each occurrence's tile now shows

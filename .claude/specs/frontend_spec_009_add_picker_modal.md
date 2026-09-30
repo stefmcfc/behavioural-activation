@@ -1,6 +1,9 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 23 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
+confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
+originating "Add" control.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -518,26 +521,26 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-009-AC-01 — closed `Modal` has no `open` attribute, no `role="dialog"` exposed
-- [ ] FRONTEND-009-AC-02 — `isOpen` false→true calls `showModal()`
-- [ ] FRONTEND-009-AC-03 — `isOpen` true→false calls `close()`
-- [ ] FRONTEND-009-AC-04 — opening moves focus to the dialog itself
-- [ ] FRONTEND-009-AC-05 — closing (any cause) restores focus to the pre-open element
-- [ ] FRONTEND-009-AC-06 — a click whose target is the dialog itself (backdrop) closes it
-- [ ] FRONTEND-009-AC-07 — `aria-labelledby={titleId}` gives the dialog its accessible name
-- [ ] FRONTEND-009-AC-08 — the native `close` event calls `onClose` exactly once
-- [ ] FRONTEND-009-AC-09 — grid "Add" sets `assignTarget` and opens the modal
-- [ ] FRONTEND-009-AC-10 — bucket "Add" sets `assignTarget` (null day/slot) and opens the modal
-- [ ] FRONTEND-009-AC-11 — `assignTarget` null renders `Modal` with `isOpen` false
-- [ ] FRONTEND-009-AC-12 — picker's fetch + single-selection pattern unchanged inside the modal
-- [ ] FRONTEND-009-AC-13 — picker's loading/error/empty states unchanged inside the modal
-- [ ] FRONTEND-009-AC-14 — picker's Assign/Cancel buttons and disabled behaviour unchanged
-- [ ] FRONTEND-009-AC-15 — Cancel sets `assignTarget` null, no `planApi.create` call
-- [ ] FRONTEND-009-AC-16 — successful assign appends the occurrence and closes the modal
-- [ ] FRONTEND-009-AC-17 — Escape closes with `assignTarget` null, no create call
-- [ ] FRONTEND-009-AC-18 — backdrop click closes with `assignTarget` null, no create call
-- [ ] FRONTEND-009-AC-19 — opening moves focus into the dialog, off the Add control
-- [ ] FRONTEND-009-AC-20 — closing (any of the four paths) returns focus to the Add control
-- [ ] FRONTEND-009-AC-21 — a second Add while open retargets, never a second dialog
-- [ ] FRONTEND-009-AC-22 — dialog's accessible name is "Assign an activity or sub-task"
-- [ ] FRONTEND-009-AC-23 — visually correct overlay in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-01 — closed `Modal` has no `open` attribute, no `role="dialog"` exposed
+- [x] FRONTEND-009-AC-02 — `isOpen` false→true calls `showModal()`
+- [x] FRONTEND-009-AC-03 — `isOpen` true→false calls `close()`
+- [x] FRONTEND-009-AC-04 — opening moves focus to the dialog itself
+- [x] FRONTEND-009-AC-05 — closing (any cause) restores focus to the pre-open element
+- [x] FRONTEND-009-AC-06 — a click whose target is the dialog itself (backdrop) closes it
+- [x] FRONTEND-009-AC-07 — `aria-labelledby={titleId}` gives the dialog its accessible name
+- [x] FRONTEND-009-AC-08 — the native `close` event calls `onClose` exactly once
+- [x] FRONTEND-009-AC-09 — grid "Add" sets `assignTarget` and opens the modal
+- [x] FRONTEND-009-AC-10 — bucket "Add" sets `assignTarget` (null day/slot) and opens the modal
+- [x] FRONTEND-009-AC-11 — `assignTarget` null renders `Modal` with `isOpen` false
+- [x] FRONTEND-009-AC-12 — picker's fetch + single-selection pattern unchanged inside the modal
+- [x] FRONTEND-009-AC-13 — picker's loading/error/empty states unchanged inside the modal
+- [x] FRONTEND-009-AC-14 — picker's Assign/Cancel buttons and disabled behaviour unchanged
+- [x] FRONTEND-009-AC-15 — Cancel sets `assignTarget` null, no `planApi.create` call
+- [x] FRONTEND-009-AC-16 — successful assign appends the occurrence and closes the modal
+- [x] FRONTEND-009-AC-17 — Escape closes with `assignTarget` null, no create call
+- [x] FRONTEND-009-AC-18 — backdrop click closes with `assignTarget` null, no create call
+- [x] FRONTEND-009-AC-19 — opening moves focus into the dialog, off the Add control
+- [x] FRONTEND-009-AC-20 — closing (any of the four paths) returns focus to the Add control
+- [x] FRONTEND-009-AC-21 — a second Add while open retargets, never a second dialog
+- [x] FRONTEND-009-AC-22 — dialog's accessible name is "Assign an activity or sub-task"
+- [x] FRONTEND-009-AC-23 — visually correct overlay in Light and Dark (real-browser check)

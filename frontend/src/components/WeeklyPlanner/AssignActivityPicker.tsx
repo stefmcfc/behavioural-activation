@@ -107,8 +107,8 @@ export function AssignActivityPicker({
   }
 
   return (
-    <section aria-label="Assign to plan">
-      <h3>Assign an activity or sub-task</h3>
+    <>
+      <h3 id="assign-picker-title">Assign an activity or sub-task</h3>
 
       {loadError && <p role="alert">{loadError}</p>}
       {activities === null && !loadError && <output>Loading activities…</output>}
@@ -163,6 +163,6 @@ export function AssignActivityPicker({
       <button type="button" onClick={onCancel}>
         Cancel
       </button>
-    </section>
+    </>
   )
 }
