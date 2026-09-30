@@ -84,14 +84,16 @@ export function PlannerGrid({
               )
               return (
                 <div key={`${day}-${slot}`} className={cellClassName(day === todayColumn)}>
-                  <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
-                  <button
-                    type="button"
-                    onClick={() => onAdd(day, slot)}
-                    aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
-                  >
-                    Add
-                  </button>
+                  <div className={styles.cellHeader}>
+                    <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
+                    <button
+                      type="button"
+                      onClick={() => onAdd(day, slot)}
+                      aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
+                    >
+                      Add
+                    </button>
+                  </div>
                   <ul className={styles.list}>
                     {cellOccurrences.map((occurrence) => (
                       <OccurrenceItem

@@ -9,7 +9,8 @@ field legibility) — FRONTEND-008-AC-29–AC-31, same "Amendment" subsections �
 investigation-only item (moving an occurrence to Saturday/Sunday) that surfaced a real bug, logged as
 a new `.claude/SPEC_CANDIDATES.md` entry ("Weekday/Weekend grid tabs + a 'Today' view") rather than
 fixed here. Round three consolidated Move and Move to bucket into one "Rearrange" area and fixed the
-card's CTA alignment — FRONTEND-008-AC-32–AC-34.
+card's CTA alignment — FRONTEND-008-AC-32–AC-34. Round four extended the same right-alignment
+convention outside the card, to the at-rest tile and grid cell — FRONTEND-008-AC-35–AC-36.
 **Priority**: P2 — a direct response to the user's "far too much noise in the calendar" complaint
 about the Weekly Planner, raised after `frontend_spec_006_repeatable_activities.md` shipped.
 **Depends on**: `planner_spec_008_occurrence_detail_card.md` (paired backend spec —
@@ -222,6 +223,18 @@ every single item.
   the occurrence is a bucket item, no "Send to bucket" control renders (unchanged rule: a bucket item
   is already in the bucket). The day/slot Confirm/Cancel pair is renamed "Confirm rearrange"/"Cancel"
   (was "Confirm move"/"Cancel"), consistent with AC-33's rename.
+
+  **Round four (same day, after seeing round three live)**: the right-alignment convention round
+  three applied inside the card is extended to the surrounding at-rest layout it lives in.
+
+- **FRONTEND-008-AC-35** [AUTO]: `OccurrenceItem`'s one-click Complete/Undo control is right-aligned
+  within its tile row (`margin-left: auto` on the button, the same mechanism `.actions`/`.moveActions`
+  already used inside the card), in both the grid and bucket-list contexts — not left-aligned
+  immediately after the category chip/completion icon as before.
+- **FRONTEND-008-AC-36** [AUTO]: `PlannerGrid`'s per-cell "Add" control renders on the same row as
+  that cell's slot label (e.g. "Morning"), right-aligned against it, rather than on its own row below
+  the label. (`BucketList`'s "Add" control, next to its "Weekend bucket list" heading — a different
+  context, not a repeated per-slot control — is unchanged.)
 
 ### Requirement 2 — Show the parent activity on a sub-task occurrence's tile
 
@@ -641,6 +654,8 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 - [x] FRONTEND-008-AC-32 — card CTA rows are consistently right-aligned; Close sits in its own footer
 - [x] FRONTEND-008-AC-33 — "Move" renamed "Rearrange"; "Move to bucket" no longer in the rest-state row
 - [x] FRONTEND-008-AC-34 — "Send to bucket" (grid items) and "Confirm rearrange" live in Rearrange
+- [x] FRONTEND-008-AC-35 — tile's Complete/Undo control is right-aligned (grid and bucket list)
+- [x] FRONTEND-008-AC-36 — grid cell's Add control shares the slot-label row, right-aligned
 - [ ] *(logged, not an AC here)* — Saturday/Sunday Move targets are invisible in the UI once moved
       there; real bug confirmed by code inspection, tracked as a `.claude/SPEC_CANDIDATES.md` entry
       ("Weekday/Weekend grid tabs + a 'Today' view") rather than fixed in this spec

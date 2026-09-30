@@ -11,6 +11,10 @@
   border-bottom: none;
 }
 
+.completeButton {
+  margin-left: auto;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

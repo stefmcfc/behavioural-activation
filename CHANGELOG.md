@@ -31,6 +31,10 @@ All notable changes to this project are documented in this file, in
   "Rearrange" area: the rest-state control is renamed "Rearrange", and its panel now offers either
   picking a new day/slot ("Confirm rearrange") or a one-click "Send to bucket" (the renamed "Move to
   bucket") as an alternative, rather than two separate top-level buttons.
+- Extended the Weekly Planner's right-alignment convention outside the detail card: each occurrence
+  tile's Complete/Undo control is now right-aligned (grid and bucket list alike), and each grid
+  cell's "Add" control now shares its slot-label row (e.g. "Morning") instead of sitting on its own
+  line below it, right-aligned against the label.
 
 ## [0.7.0] - 2026-09-29
 

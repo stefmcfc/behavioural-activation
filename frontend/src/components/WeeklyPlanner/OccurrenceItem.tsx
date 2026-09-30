@@ -106,11 +106,21 @@ export function OccurrenceItem({
       <CategoryChip category={occurrence.category} />
       {occurrence.completed && <CompletionIcon />}
       {occurrence.completed ? (
-        <button type="button" onClick={() => onUndo(occurrence.id)} disabled={isBusy}>
+        <button
+          type="button"
+          className={styles.completeButton}
+          onClick={() => onUndo(occurrence.id)}
+          disabled={isBusy}
+        >
           Undo
         </button>
       ) : (
-        <button type="button" onClick={() => onComplete(occurrence.id)} disabled={isBusy}>
+        <button
+          type="button"
+          className={styles.completeButton}
+          onClick={() => onComplete(occurrence.id)}
+          disabled={isBusy}
+        >
           Complete
         </button>
       )}

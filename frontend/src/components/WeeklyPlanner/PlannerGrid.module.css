@@ -24,14 +24,20 @@
   padding: 0.6rem 0.2rem;
 }
 
+.cellHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
 .slotLabel {
-  display: block;
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.65rem;
   color: var(--text);
-  margin-bottom: 0.4rem;
 }
 
 .cell {
