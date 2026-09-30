@@ -124,6 +124,16 @@ export function OccurrenceItem({
             aria-label={`${occurrence.name} actions`}
             onClick={(event) => event.stopPropagation()}
           >
+          <div className={styles.detailHeader}>
+            <span className={styles.detailName}>{occurrence.name}</span>
+            <CategoryChip category={occurrence.category} />
+          </div>
+          <p className={styles.detailLocation}>
+            {occurrence.dayOfWeek !== null && occurrence.slot !== null
+              ? `${DAY_LABELS[occurrence.dayOfWeek]} · ${SLOT_LABELS[occurrence.slot]}`
+              : 'Weekend bucket list'}
+          </p>
+
           {confirmingRemoveId === occurrence.id && (
             <span className={styles.actions}>
               <button
@@ -141,42 +151,48 @@ export function OccurrenceItem({
 
           {movingId === occurrence.id && (
             <span className={styles.moveControls}>
-              <label htmlFor={moveDaySelectId}>New day</label>
-              <select
-                id={moveDaySelectId}
-                value={moveDay}
-                onChange={(event) => setMoveDay(event.target.value as PlanDayOfWeek)}
-              >
-                {ALL_DAYS.map((day) => (
-                  <option key={day} value={day}>
-                    {DAY_LABELS[day]}
-                  </option>
-                ))}
-              </select>
+              <span className={styles.moveField}>
+                <label htmlFor={moveDaySelectId}>New day</label>
+                <select
+                  id={moveDaySelectId}
+                  value={moveDay}
+                  onChange={(event) => setMoveDay(event.target.value as PlanDayOfWeek)}
+                >
+                  {ALL_DAYS.map((day) => (
+                    <option key={day} value={day}>
+                      {DAY_LABELS[day]}
+                    </option>
+                  ))}
+                </select>
+              </span>
 
-              <label htmlFor={moveSlotSelectId}>New slot</label>
-              <select
-                id={moveSlotSelectId}
-                value={moveSlot}
-                onChange={(event) => setMoveSlot(event.target.value as PlanSlot)}
-              >
-                {ALL_SLOTS.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {SLOT_LABELS[slot]}
-                  </option>
-                ))}
-              </select>
+              <span className={styles.moveField}>
+                <label htmlFor={moveSlotSelectId}>New slot</label>
+                <select
+                  id={moveSlotSelectId}
+                  value={moveSlot}
+                  onChange={(event) => setMoveSlot(event.target.value as PlanSlot)}
+                >
+                  {ALL_SLOTS.map((slot) => (
+                    <option key={slot} value={slot}>
+                      {SLOT_LABELS[slot]}
+                    </option>
+                  ))}
+                </select>
+              </span>
 
-              <button
-                type="button"
-                onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
-                disabled={isBusy}
-              >
-                Confirm move
-              </button>
-              <button type="button" onClick={onCancelMove} disabled={isBusy}>
-                Cancel
-              </button>
+              <span className={styles.moveActions}>
+                <button
+                  type="button"
+                  onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
+                  disabled={isBusy}
+                >
+                  Confirm move
+                </button>
+                <button type="button" onClick={onCancelMove} disabled={isBusy}>
+                  Cancel
+                </button>
+              </span>
             </span>
           )}
 

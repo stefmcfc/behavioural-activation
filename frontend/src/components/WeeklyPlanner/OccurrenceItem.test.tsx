@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { OccurrenceItem } from './OccurrenceItem'
@@ -30,6 +30,21 @@ const subTaskOccurrence: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: 'TUESDAY',
   slot: 'AFTERNOON',
+  completed: false,
+  completedAt: null,
+  createdAt: '2026-10-01T00:00:00Z',
+}
+
+const bucketOccurrence: PlannedOccurrence = {
+  id: 'o3',
+  activityId: 'a3',
+  subTaskId: null,
+  name: 'Paint',
+  parentActivityName: null,
+  category: 'PLEASURABLE',
+  weekStart: '2026-10-05',
+  dayOfWeek: null,
+  slot: null,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -206,6 +221,29 @@ describe('detail card renders as a modal, closed by clicking outside or pressing
 
     await userEvent.keyboard('{Escape}')
     expect(onCloseDetail).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('detail card header shows what was clicked', () => {
+  it('shows the occurrence name and category, plus day/slot for a scheduled item', () => {
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1' })} />)
+
+    const dialog = screen.getByRole('dialog', { name: /walk actions/i })
+    expect(within(dialog).getByText('Walk')).toBeInTheDocument()
+    expect(within(dialog).getByTestId('category-chip-ROUTINE')).toBeInTheDocument()
+    expect(within(dialog).getByText(/monday/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/morning/i)).toBeInTheDocument()
+  })
+
+  it('shows "Weekend bucket list" for an unscheduled bucket item', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true, detailOpenId: 'o3' })}
+      />,
+    )
+
+    const dialog = screen.getByRole('dialog', { name: /paint actions/i })
+    expect(within(dialog).getByText(/weekend bucket list/i)).toBeInTheDocument()
   })
 })
 

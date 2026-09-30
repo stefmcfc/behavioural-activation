@@ -2,9 +2,12 @@
 
 **Status**: Implemented — all 22 ACs verified, including FRONTEND-008-AC-22 (today-highlight visual
 contrast confirmed in a real browser, both Light and Dark). **Amended 2026-09-30** (still on
-`feature/occurrence-detail-card`, pre-merge): a post-implementation UX pass on the card raised four
-refinements, added below as FRONTEND-008-AC-23–AC-28 — see "Amendment" under Requirement 1 and
-Requirement 2.
+`feature/occurrence-detail-card`, pre-merge, two rounds): round one raised four refinements, added as
+FRONTEND-008-AC-23–AC-28 — see "Amendment" under Requirement 1 and Requirement 2. Round two, after
+seeing round one live, raised three more (name-control corner radius, modal header context, Move
+field legibility) — FRONTEND-008-AC-29–AC-31, same "Amendment" subsections — plus a fourth,
+investigation-only item (moving an occurrence to Saturday/Sunday) that surfaced a real bug, tracked
+separately (see the end of Requirement 1's amendment).
 **Priority**: P2 — a direct response to the user's "far too much noise in the calendar" complaint
 about the Weekly Planner, raised after `frontend_spec_006_repeatable_activities.md` shipped.
 **Depends on**: `planner_spec_008_occurrence_detail_card.md` (paired backend spec —
@@ -160,6 +163,41 @@ every single item.
   by giving `.nameButton` a persistent pill/chip treatment (background + border, `appearance: none`
   to prevent OS/browser native button chrome from leaking through as an unstyled hover artifact)
   distinct in color from `CategoryChip`'s category-colored pill, so the two aren't visually confused.
+
+  **Round two (same day, after seeing round one live)**:
+
+- **FRONTEND-008-AC-29** [MANUAL]: `.nameButton`'s corner radius reads as a squared-off chip
+  (`6px`, matching the radius already used for cells/panels elsewhere in the design system — see
+  `PlannerGrid.module.css`'s `.cell`, `BucketList.module.css`), not a fully-rounded pill (`999px`,
+  the radius global `button`/`CategoryChip` use) — deliberately different from those so it doesn't
+  read as "just another action button." Verified by a real-browser check.
+- **FRONTEND-008-AC-30** [AUTO]: The open detail card renders a header showing what was activated:
+  the occurrence's own name and its `CategoryChip`, followed by its current location — the
+  day-of-week and slot labels (e.g. "Monday · Morning") for a scheduled grid item, or the literal
+  text "Weekend bucket list" where `dayOfWeek`/`slot` are both `null`.
+- **FRONTEND-008-AC-31** [MANUAL]: Inside the Move sub-state, the "New day"/"New slot" `<label>`s and
+  their `<select>`s read as one consistent, adequately-spaced form — not the previous single
+  `flex-wrap`d row, which let native `<select>`/`<label>` elements fall back to browser-default font
+  sizing (visibly inconsistent with the surrounding `0.8rem` button text) and crammed everything
+  onto one wrapped line. Each day/slot pair is now its own labeled field (label styled with the same
+  quiet-label typography as `legend`/`.slotLabel` elsewhere: small, uppercase, letter-spaced), and
+  Confirm move/Cancel sit in their own row below both fields. Verified by a real-browser check
+  against both Light and Dark.
+
+  **Investigation raised alongside round two, not yet actioned**: moving an occurrence to Saturday or
+  Sunday (both are valid `PlanDayOfWeek` values, and the Move sub-state's day `<select>` offers all
+  seven via `ALL_DAYS` in `planLabels.ts`) sets `dayOfWeek`/`slot` to a non-null pair the backend
+  accepts unvalidated (`PlanService.validateDaySlotPair` only checks "both null or both set," not
+  which weekday). `PlannerGrid`'s `WEEKDAYS` constant only renders Monday–Friday columns, and
+  `BucketList` only shows occurrences where `dayOfWeek`/`slot` are both `null` — so a Saturday/Sunday
+  + slot occurrence becomes genuinely invisible in both views: still returned by `GET /api/v1/plan`
+  and still counted wherever `occurrences` is iterated, but with no surface that renders it. This is
+  a real bug (confirmed by code inspection: `PlannerGrid.tsx`'s `WEEKDAYS`, `BucketList.tsx`'s
+  `dayOfWeek === null && slot === null` filter, `planLabels.ts`'s `ALL_DAYS` including
+  `SATURDAY`/`SUNDAY`), not yet fixed — no AC number assigned pending a decision on the fix (most
+  likely: restrict the Move day `<select>`'s options to weekdays only, matching the product's
+  existing "Mon–Fri slotted grid + unslotted weekend bucket" model, rather than adding Saturday/
+  Sunday grid columns).
 
 ### Requirement 2 — Show the parent activity on a sub-task occurrence's tile
 
@@ -573,6 +611,11 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 - [x] FRONTEND-008-AC-26 — sibling-occurrence divider visually distinguishable (real-browser check)
 - [x] FRONTEND-008-AC-27 — name control reads as clickable at rest, not hover-only (real-browser check)
 - [x] FRONTEND-008-AC-28 — parent activity name label precedes the sub-task name label
+- [x] FRONTEND-008-AC-29 — name-control corner radius reads as a squared chip, not a full pill
+- [x] FRONTEND-008-AC-30 — modal header shows occurrence name/category and its day/slot or bucket
+- [x] FRONTEND-008-AC-31 — Move sub-state fields are legible and consistently spaced
+- [ ] *(unnumbered)* — Saturday/Sunday Move targets are invisible in the UI once moved there; real
+      bug confirmed by code inspection, fix not yet decided/applied (see Requirement 1's amendment)
 - [x] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
 - [x] FRONTEND-008-AC-17 — no completion indicator when not completed
 - [x] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)

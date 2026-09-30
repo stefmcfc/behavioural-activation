@@ -20,6 +20,11 @@ All notable changes to this project are documented in this file, in
   two occurrences sharing a grid slot, a persistent pill/chip style on the clickable name control
   (previously only visible on hover), and the parent-activity label now precedes the sub-task's own
   name.
+- Refined the occurrence detail card again after a second look: the name control's pill is now
+  squared-off rather than fully rounded, the card gained a header showing what was clicked (the
+  occurrence's name, category, and its day/slot — or "Weekend bucket list" for an unscheduled item),
+  and the Move sub-state's day/slot fields are legible and consistently spaced instead of cramped
+  onto one wrapped line with mismatched font sizes.
 
 ## [0.7.0] - 2026-09-29
 

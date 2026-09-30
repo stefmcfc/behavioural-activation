@@ -238,7 +238,7 @@ describe('WeeklyPlanner', () => {
       await userEvent.click(screen.getByRole('button', { name: /confirm move/i }))
 
       expect(planApi.move).toHaveBeenCalledWith('1', { dayOfWeek: 'TUESDAY', slot: 'AFTERNOON' })
-      expect(await screen.findByText('Go for a walk')).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
     })
   })
 
@@ -267,7 +267,7 @@ describe('WeeklyPlanner', () => {
 
       expect(confirmSpy).not.toHaveBeenCalled()
       expect(planApi.remove).not.toHaveBeenCalled()
-      expect(screen.getByText('Go for a walk')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
     })
 
     it('confirming removal calls planApi.remove and removes the occurrence from view', async () => {
@@ -405,7 +405,7 @@ describe('WeeklyPlanner', () => {
       await userEvent.click(screen.getByRole('button', { name: /confirm remove/i }))
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
-      expect(screen.getByText('Go for a walk')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
     })
 
     it('keeps the occurrence uncompleted when planApi.complete rejects', async () => {
