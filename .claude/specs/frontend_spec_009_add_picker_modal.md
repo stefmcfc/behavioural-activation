@@ -1,6 +1,6 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Implemented — all 36 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+**Status**: Implemented — all 37 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
 backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
 confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
 originating "Add" control. **Amended same day, three rounds** (still on `feature/add-picker-modal`,
@@ -8,7 +8,13 @@ pre-merge): round one added category chips, a category filter, and a bullet-free
 for the picker's activity/sub-task list — FRONTEND-009-AC-24–AC-29. Round two added a second,
 combinable repeatable/one-off filter — FRONTEND-009-AC-30–AC-32. Round three bounded `Modal`'s
 height and gave the picker an independently-scrollable body with a pinned, right-aligned Assign/
-Cancel footer — FRONTEND-009-AC-33–AC-36. All in Requirement 9.
+Cancel footer — FRONTEND-009-AC-33–AC-36. All in Requirement 9. **Real bug found and fixed
+2026-09-30** (while implementing `frontend_spec_013_add_activity_modal.md`, which reuses `Modal`):
+round three's `.dialog { display: flex; ... }` had higher specificity than the browser's own
+`dialog:not([open]) { display: none; }` UA rule, so a *closed* `Modal` instance rendered as a
+visible empty box wherever it sat in the DOM (confirmed live on `/activities`, and would have been
+equally present, if unnoticed, on `/planner` since round three merged). Fixed with an explicit
+`.dialog:not([open]) { display: none; }` rule in `Modal.module.css` — see FRONTEND-009-AC-37.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -286,6 +292,13 @@ scroll out of view entirely.
   height, the internal list scrolls while the Assign/Cancel footer stays pinned and right-aligned, in
   both Light and Dark themes. Verified by a real-browser check (jsdom doesn't lay out scroll
   overflow meaningfully — `frontend_conventions.md`'s Testing Strategy note).
+- **FRONTEND-009-AC-37** [MANUAL]: While `Modal`'s `isOpen` prop is `false`, the underlying
+  `<dialog>` element is not visually rendered — no visible box at its DOM position — in any browser
+  that would otherwise let a CSS `display` declaration on `.dialog` outrank the UA stylesheet's own
+  `dialog:not([open]) { display: none; }` rule (round three's `display: flex` did exactly this).
+  Verified by a real-browser check, since jsdom doesn't apply CSS specificity/cascade the way a real
+  browser does — AC-01's existing `role="dialog"` assertion catches the ARIA-level regression but
+  not this purely visual one, which is why it wasn't caught by the automated suite.
 
 **Real-data verification (2026-09-30)**: the user added a real "Test category change" activity
 (initially Pleasurable, with two sub-tasks) specifically to confirm AC-26's premise, then its
@@ -649,3 +662,4 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 - [x] FRONTEND-009-AC-34 — picker content above Assign/Cancel scrolls independently
 - [x] FRONTEND-009-AC-35 — Assign/Cancel sit outside the scroll region, right-aligned, always visible
 - [x] FRONTEND-009-AC-36 — scroll/pinned-footer behaviour confirmed in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-37 — closed `Modal` renders no visible box (bug fix: `.dialog:not([open])`)

@@ -5,7 +5,14 @@ import type { ActivityCategory } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { Modal } from '../Modal/Modal'
 import styles from './SubTaskList.module.css'
+
+type FormTarget = 'create' | SubTask | null
+
+function formTargetTitleId(formTarget: FormTarget): string {
+  return `sub-task-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
+}
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -37,7 +44,7 @@ interface SubTaskListProps {
 export function SubTaskList({ activityId, category, readOnly = false }: SubTaskListProps) {
   const [subTasks, setSubTasks] = useState<SubTask[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [editingSubTaskId, setEditingSubTaskId] = useState<string | null>(null)
+  const [formTarget, setFormTarget] = useState<FormTarget>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -75,13 +82,15 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
       if (!previous) {
         return [subTask]
       }
-      if (editingSubTaskId) {
+      if (formTarget !== 'create' && formTarget !== null) {
         return previous.map((existing) => (existing.id === subTask.id ? subTask : existing))
       }
       return [...previous, subTask]
     })
-    setEditingSubTaskId(null)
+    setFormTarget(null)
   }
+
+  const handleCloseForm = () => setFormTarget(null)
 
   const handleConfirmDelete = async (id: string) => {
     setDeleteError(null)
@@ -97,25 +106,15 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
     }
   }
 
-  const editingSubTask = subTasks?.find((subTask) => subTask.id === editingSubTaskId)
-
   return (
     <div>
       <h3>Sub-tasks — {CATEGORY_LABELS[category]}</h3>
 
-      {!readOnly &&
-        (editingSubTask ? (
-          <SubTaskForm
-            key={editingSubTask.id}
-            mode="edit"
-            activityId={activityId}
-            subTask={editingSubTask}
-            onSuccess={handleFormSuccess}
-            onCancel={() => setEditingSubTaskId(null)}
-          />
-        ) : (
-          <SubTaskForm key="create" mode="create" activityId={activityId} onSuccess={handleFormSuccess} />
-        ))}
+      {!readOnly && (
+        <button type="button" onClick={() => setFormTarget('create')}>
+          Add sub-task
+        </button>
+      )}
 
       {loadError && (
         <p role="alert">
@@ -157,7 +156,7 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
                   </span>
                 ) : (
                   <span className={styles.actions}>
-                    <button type="button" onClick={() => setEditingSubTaskId(subTask.id)}>
+                    <button type="button" onClick={() => setFormTarget(subTask)}>
                       Rename
                     </button>
                     <button type="button" onClick={() => setConfirmingDeleteId(subTask.id)}>
@@ -169,6 +168,19 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
           ))}
         </ul>
       )}
+
+      <Modal isOpen={formTarget !== null} titleId={formTargetTitleId(formTarget)} onClose={handleCloseForm}>
+        {formTarget !== null && (
+          <SubTaskForm
+            key={formTarget === 'create' ? 'create' : formTarget.id}
+            mode={formTarget === 'create' ? 'create' : 'edit'}
+            activityId={activityId}
+            subTask={formTarget === 'create' ? undefined : formTarget}
+            onSuccess={handleFormSuccess}
+            onCancel={handleCloseForm}
+          />
+        )}
+      </Modal>
     </div>
   )
 }

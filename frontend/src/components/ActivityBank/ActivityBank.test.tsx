@@ -132,12 +132,13 @@ describe('ActivityBank', () => {
       })
       render(<ActivityBank />)
 
-      await userEvent.type(await screen.findByLabelText(/name/i), 'Walk')
+      await userEvent.click(await screen.findByRole('button', { name: /add activity/i }))
+      await userEvent.type(screen.getByLabelText(/name/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(await screen.findByText('Walk')).toBeInTheDocument()
-      expect(screen.getByLabelText(/name/i)).toHaveValue('')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
@@ -166,6 +167,94 @@ describe('ActivityBank', () => {
 
       expect(await screen.findByText('Walk further')).toBeInTheDocument()
       expect(screen.queryByText('Walk', { exact: true })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-013-AC-01/AC-02/AC-03: Add activity opens a modal, not a bottom form', () => {
+    it('renders no form until Add activity is clicked, then opens it in a dialog', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      await screen.findByText(/no activities yet/i)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /^name$/i })).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+
+      expect(await screen.findByRole('dialog', { name: /add activity/i })).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: /^name$/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-013-AC-04/AC-05: Edit opens the same modal in edit mode', () => {
+    it('opens a dialog titled "Edit activity" pre-filled with the row\'s data', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }))
+
+      expect(await screen.findByRole('dialog', { name: /edit activity/i })).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: /^name$/i })).toHaveValue('Walk')
+    })
+  })
+
+  describe('FRONTEND-013-AC-07/AC-08/AC-09: category guidance is always visible with examples', () => {
+    it('shows a purpose and example for each category, and the cross-category note', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await screen.findByRole('dialog')
+
+      expect(screen.getByText(/cooking dinner because food is needed/i)).toBeInTheDocument()
+      expect(screen.getByText(/a daily walk you always take/i)).toBeInTheDocument()
+      expect(screen.getByText(/trying a new recipe because it sounds fun/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/same activity can belong to a different category/i),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-013-AC-11: create-mode submit button is "Save activity", not "Add activity"', () => {
+    it("does not collide with the page-level trigger's own label", async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await screen.findByRole('dialog')
+
+      expect(screen.getByRole('button', { name: /^add activity$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^save activity$/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-013-AC-12/AC-13: Cancel in create mode closes with no create call', () => {
+    it('calls no create and closes the modal', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await screen.findByRole('dialog')
+
+      await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(activityApi.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('FRONTEND-013-AC-15: a second Add/Edit while open retargets, never a second dialog', () => {
+    it('switches from create to edit without stacking a dialog', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await screen.findByRole('dialog', { name: /add activity/i })
+
+      await userEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+
+      expect(await screen.findByRole('dialog', { name: /edit activity/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('dialog')).toHaveLength(1)
     })
   })
 

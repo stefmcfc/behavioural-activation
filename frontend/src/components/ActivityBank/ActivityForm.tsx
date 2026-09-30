@@ -3,6 +3,7 @@ import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
 import { CategoryPicker } from './CategoryPicker'
+import { CategoryGuidance } from './CategoryGuidance'
 
 interface ActivityFormProps {
   readonly mode: 'create' | 'edit'
@@ -80,9 +81,12 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const nameId = `activity-name-${mode}`
   const descriptionId = `activity-description-${mode}`
   const repeatableId = `activity-repeatable-${mode}`
+  const headingId = `activity-form-title-${mode}`
 
   return (
     <form onSubmit={handleSubmit} noValidate>
+      <h3 id={headingId}>{mode === 'edit' ? 'Edit activity' : 'Add activity'}</h3>
+
       <div>
         <label htmlFor={nameId}>Name</label>
         <input
@@ -95,6 +99,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
       </div>
 
       <CategoryPicker value={category} onChange={setCategory} name={`category-${mode}`} />
+      <CategoryGuidance />
 
       <div>
         <label htmlFor={descriptionId}>Description</label>
@@ -124,9 +129,9 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
       {isSubmitting && <output>Saving…</output>}
 
       <button type="submit" disabled={isSubmitting}>
-        {mode === 'edit' ? 'Save changes' : 'Add activity'}
+        {mode === 'edit' ? 'Save changes' : 'Save activity'}
       </button>
-      {mode === 'edit' && onCancel && (
+      {onCancel && (
         <button type="button" onClick={onCancel}>
           Cancel
         </button>

@@ -31,7 +31,7 @@ describe('ActivityForm', () => {
 
       await userEvent.type(screen.getByLabelText(/name/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(activityApi.create).toHaveBeenCalledWith({
         name: 'Walk',
@@ -51,7 +51,7 @@ describe('ActivityForm', () => {
 
       await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(activityApi.create).toHaveBeenCalledWith(
         expect.objectContaining({ repeatable: true }),
@@ -87,7 +87,7 @@ describe('ActivityForm', () => {
       render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
 
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(screen.getByText(/name is required/i)).toBeInTheDocument()
       expect(activityApi.create).not.toHaveBeenCalled()
@@ -99,7 +99,7 @@ describe('ActivityForm', () => {
       render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
 
       await userEvent.type(screen.getByLabelText(/name/i), 'Walk')
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(screen.getByText(/select a category/i)).toBeInTheDocument()
       expect(activityApi.create).not.toHaveBeenCalled()
@@ -113,7 +113,7 @@ describe('ActivityForm', () => {
 
       await userEvent.type(screen.getByLabelText(/name/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByLabelText(/name/i)).toHaveValue('Walk')
@@ -133,14 +133,14 @@ describe('ActivityForm', () => {
 
       await userEvent.type(screen.getByLabelText(/name/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
-      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
 
-      expect(screen.getByRole('button', { name: /add activity/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /save activity/i })).toBeDisabled()
       expect(screen.getByRole('status')).toBeInTheDocument()
 
       resolveCreate({ ...walk })
       await waitFor(() =>
-        expect(screen.getByRole('button', { name: /add activity/i })).not.toBeDisabled(),
+        expect(screen.getByRole('button', { name: /save activity/i })).not.toBeDisabled(),
       )
     })
   })

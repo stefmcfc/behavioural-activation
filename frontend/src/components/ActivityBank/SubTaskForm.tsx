@@ -62,9 +62,12 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
   }
 
   const nameId = `sub-task-name-${mode}-${subTask?.id ?? 'new'}`
+  const headingId = `sub-task-form-title-${mode}`
 
   return (
     <form onSubmit={handleSubmit} noValidate>
+      <h3 id={headingId}>{mode === 'edit' ? 'Rename sub-task' : 'Add sub-task'}</h3>
+
       <div>
         <label htmlFor={nameId}>Sub-task name</label>
         <input
@@ -81,7 +84,7 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
       {isSubmitting && <output>Saving…</output>}
 
       <button type="submit" disabled={isSubmitting}>
-        {mode === 'edit' ? 'Save changes' : 'Add sub-task'}
+        {mode === 'edit' ? 'Save changes' : 'Save sub-task'}
       </button>
       {onCancel && (
         <button type="button" onClick={onCancel}>

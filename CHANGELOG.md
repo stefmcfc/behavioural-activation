@@ -6,6 +6,23 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-30
+
+- Added an "Add activity" button to the Activity Bank, and moved activity creation *and* editing
+  into a modal (previously an always-visible form at the bottom of the page for create, an inline
+  swap-in-place for edit). The modal includes a new `CategoryGuidance` block — a short purpose
+  statement and one example for each of Routine/Necessary/Pleasurable, plus a note that the same
+  activity can belong to a different category depending on why it's being done — always visible
+  next to the category picker, to help a new or returning user who doesn't already know the
+  Behavioural Activation framework's category definitions.
+- Added an "Add sub-task" button to each activity's sub-task checklist, and moved sub-task creation
+  *and* renaming into the same kind of modal (previously an always-visible form at the top of the
+  checklist for create, an inline swap-in-place for rename). No category guidance needed here — a
+  sub-task's category is inherited from its parent activity and was never user-selected.
+- Fixed a `Modal` regression: a closed dialog was rendering as a visible empty box wherever it sat
+  in the page, because an earlier change (`display: flex` on `.dialog`, for the Weekly Planner
+  picker's scrollable body) outranked the browser's own `dialog:not([open]) { display: none }` rule.
+
 ## [0.9.0] - 2026-09-30
 
 - Added a modal/dialog primitive (`Modal.tsx`, wrapping the native `<dialog>` element — zero new

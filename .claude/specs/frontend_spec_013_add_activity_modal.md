@@ -1,6 +1,8 @@
 # Add/Edit Activity Modal with Category Guidance (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 16 ACs verified (2026-09-30), including FRONTEND-013-AC-16 (modal and
+`CategoryGuidance` confirmed legible in a real browser, both Light and Dark). Full real-browser pass
+also confirmed the create→list, edit→prefill→save, and Cancel flows end to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now.
@@ -428,19 +430,19 @@ pass in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy no
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-013-AC-01 — no `ActivityForm` renders while `formTarget` is `null`
-- [ ] FRONTEND-013-AC-02 — "Add activity" sets `formTarget` to `'create'`
-- [ ] FRONTEND-013-AC-03 — `formTarget === 'create'` opens the modal with `ActivityForm` in create mode
-- [ ] FRONTEND-013-AC-04 — "Edit" sets `formTarget` to that row's `Activity`
-- [ ] FRONTEND-013-AC-05 — `formTarget` as an `Activity` opens the modal with `ActivityForm` in edit mode
-- [ ] FRONTEND-013-AC-06 — each row's "Edit" control is unchanged at rest, only its destination changes
-- [ ] FRONTEND-013-AC-07 — `CategoryGuidance` renders adjacent to `CategoryPicker`, always visible
-- [ ] FRONTEND-013-AC-08 — a purpose + example per category, from `HIGH_LEVEL_DESIGN.md`'s examples
-- [ ] FRONTEND-013-AC-09 — the same-activity-different-category note, from `product.md`'s framing
-- [ ] FRONTEND-013-AC-10 — `ActivityForm` heading + `id` wired to `Modal`'s `titleId`
-- [ ] FRONTEND-013-AC-11 — create-mode submit button renamed "Save activity"
-- [ ] FRONTEND-013-AC-12 — create mode gains a Cancel button, same `onCancel` as edit mode
-- [ ] FRONTEND-013-AC-13 — Cancel or successful submit sets `formTarget` to `null`
-- [ ] FRONTEND-013-AC-14 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
-- [ ] FRONTEND-013-AC-15 — a second Add/Edit while open retargets, never a second dialog
-- [ ] FRONTEND-013-AC-16 — modal + guidance render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-013-AC-01 — no `ActivityForm` renders while `formTarget` is `null`
+- [x] FRONTEND-013-AC-02 — "Add activity" sets `formTarget` to `'create'`
+- [x] FRONTEND-013-AC-03 — `formTarget === 'create'` opens the modal with `ActivityForm` in create mode
+- [x] FRONTEND-013-AC-04 — "Edit" sets `formTarget` to that row's `Activity`
+- [x] FRONTEND-013-AC-05 — `formTarget` as an `Activity` opens the modal with `ActivityForm` in edit mode
+- [x] FRONTEND-013-AC-06 — each row's "Edit" control is unchanged at rest, only its destination changes
+- [x] FRONTEND-013-AC-07 — `CategoryGuidance` renders adjacent to `CategoryPicker`, always visible
+- [x] FRONTEND-013-AC-08 — a purpose + example per category, from `HIGH_LEVEL_DESIGN.md`'s examples
+- [x] FRONTEND-013-AC-09 — the same-activity-different-category note, from `product.md`'s framing
+- [x] FRONTEND-013-AC-10 — `ActivityForm` heading + `id` wired to `Modal`'s `titleId`
+- [x] FRONTEND-013-AC-11 — create-mode submit button renamed "Save activity"
+- [x] FRONTEND-013-AC-12 — create mode gains a Cancel button, same `onCancel` as edit mode
+- [x] FRONTEND-013-AC-13 — Cancel or successful submit sets `formTarget` to `null`
+- [x] FRONTEND-013-AC-14 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
+- [x] FRONTEND-013-AC-15 — a second Add/Edit while open retargets, never a second dialog
+- [x] FRONTEND-013-AC-16 — modal + guidance render correctly in Light and Dark (real-browser check)

@@ -1,6 +1,9 @@
 # Add/Rename Sub-task Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 13 ACs verified (2026-09-30), including FRONTEND-014-AC-13 (modal
+confirmed legible in a real browser, both Light and Dark, when triggered from a nested expanded
+activity row). Full real-browser pass also confirmed the add→list and rename→prefill→save flows end
+to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now, alongside `frontend_spec_013_add_activity_modal.md`.
@@ -302,16 +305,16 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-014-AC-01 — no `SubTaskForm` renders while `formTarget` is `null`
-- [ ] FRONTEND-014-AC-02 — "Add sub-task" sets `formTarget` to `'create'` (when not `readOnly`)
-- [ ] FRONTEND-014-AC-03 — `formTarget === 'create'` opens the modal with `SubTaskForm` in create mode
-- [ ] FRONTEND-014-AC-04 — `readOnly` renders no "Add sub-task" control
-- [ ] FRONTEND-014-AC-05 — "Rename" sets `formTarget` to that row's `SubTask` (when not `readOnly`)
-- [ ] FRONTEND-014-AC-06 — `formTarget` as a `SubTask` opens the modal with `SubTaskForm` in edit mode
-- [ ] FRONTEND-014-AC-07 — `SubTaskForm` heading + `id` wired to `Modal`'s `titleId`
-- [ ] FRONTEND-014-AC-08 — create-mode submit button renamed "Save sub-task"
-- [ ] FRONTEND-014-AC-09 — create mode gains a Cancel button, same `onCancel` as edit mode
-- [ ] FRONTEND-014-AC-10 — Cancel or successful submit sets `formTarget` to `null`
-- [ ] FRONTEND-014-AC-11 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
-- [ ] FRONTEND-014-AC-12 — a second Add/Rename while open retargets, never a second dialog
-- [ ] FRONTEND-014-AC-13 — modal renders correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-014-AC-01 — no `SubTaskForm` renders while `formTarget` is `null`
+- [x] FRONTEND-014-AC-02 — "Add sub-task" sets `formTarget` to `'create'` (when not `readOnly`)
+- [x] FRONTEND-014-AC-03 — `formTarget === 'create'` opens the modal with `SubTaskForm` in create mode
+- [x] FRONTEND-014-AC-04 — `readOnly` renders no "Add sub-task" control
+- [x] FRONTEND-014-AC-05 — "Rename" sets `formTarget` to that row's `SubTask` (when not `readOnly`)
+- [x] FRONTEND-014-AC-06 — `formTarget` as a `SubTask` opens the modal with `SubTaskForm` in edit mode
+- [x] FRONTEND-014-AC-07 — `SubTaskForm` heading + `id` wired to `Modal`'s `titleId`
+- [x] FRONTEND-014-AC-08 — create-mode submit button renamed "Save sub-task"
+- [x] FRONTEND-014-AC-09 — create mode gains a Cancel button, same `onCancel` as edit mode
+- [x] FRONTEND-014-AC-10 — Cancel or successful submit sets `formTarget` to `null`
+- [x] FRONTEND-014-AC-11 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
+- [x] FRONTEND-014-AC-12 — a second Add/Rename while open retargets, never a second dialog
+- [x] FRONTEND-014-AC-13 — modal renders correctly in Light and Dark (real-browser check)

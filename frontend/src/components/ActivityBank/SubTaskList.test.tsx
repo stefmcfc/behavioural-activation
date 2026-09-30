@@ -75,17 +75,77 @@ describe('SubTaskList', () => {
     })
   })
 
-  describe('FRONTEND-003-AC-07: successful create adds to the checklist and clears the form', () => {
-    it('shows the new sub-task and resets the name field', async () => {
+  describe('FRONTEND-014-AC-01/AC-02/AC-03: Add sub-task opens a modal, not an inline top-of-list form', () => {
+    it('renders no form until Add sub-task is clicked, then opens it in a dialog', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      await screen.findByText(/no sub-tasks yet/i)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+
+      expect(await screen.findByRole('dialog', { name: /add sub-task/i })).toBeInTheDocument()
+      expect(screen.getByRole('textbox', { name: /sub-task name/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-014-AC-08: create-mode submit button is "Save sub-task", not "Add sub-task"', () => {
+    it("does not collide with the page-level trigger's own label", async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await screen.findByRole('dialog')
+
+      expect(screen.getByRole('button', { name: /^add sub-task$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^save sub-task$/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-014-AC-09/AC-10: Cancel in create mode closes with no create call', () => {
+    it('calls no create and closes the modal', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await screen.findByRole('dialog')
+
+      await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(subTaskApi.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('FRONTEND-014-AC-12: a second Add/Rename while open retargets, never a second dialog', () => {
+    it('switches from create to rename without stacking a dialog', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+
+      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await screen.findByRole('dialog', { name: /add sub-task/i })
+
+      await userEvent.click(screen.getByRole('button', { name: /^rename$/i }))
+
+      expect(await screen.findByRole('dialog', { name: /rename sub-task/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    })
+  })
+
+  describe('FRONTEND-003-AC-07: successful create adds to the checklist and closes the modal', () => {
+    it('shows the new sub-task and closes the dialog', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       vi.mocked(subTaskApi.create).mockResolvedValue({ ...guestList })
       render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
 
-      await userEvent.type(await screen.findByLabelText(/sub-task name/i), 'Create a guest list')
-      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /add sub-task/i }))
+      await userEvent.type(screen.getByLabelText(/sub-task name/i), 'Create a guest list')
+      await userEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
 
       expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
-      expect(screen.getByLabelText(/sub-task name/i)).toHaveValue('')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
@@ -96,6 +156,7 @@ describe('SubTaskList', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: /rename/i }))
 
+      expect(await screen.findByRole('dialog', { name: /rename sub-task/i })).toBeInTheDocument()
       expect(screen.getByLabelText(/sub-task name/i)).toHaveValue('Create a guest list')
       expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument()
     })
@@ -204,6 +265,7 @@ describe('SubTaskList', () => {
       render(<SubTaskList activityId="a1" category="PLEASURABLE" readOnly />)
 
       expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /add sub-task/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
