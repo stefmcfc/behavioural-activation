@@ -209,12 +209,12 @@ describe('FRONTEND-008-AC-12: Complete/Undo works with the card closed or open',
   })
 })
 
-describe('detail card renders as a modal, closed by clicking outside or pressing Escape', () => {
-  it('calls onCloseDetail when the overlay outside the card is clicked', async () => {
+describe('detail card renders as a native dialog, closed by clicking the backdrop or pressing Escape', () => {
+  it('calls onCloseDetail when the dialog backdrop (the dialog element itself) is clicked', () => {
     const onCloseDetail = vi.fn()
     render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
 
-    await userEvent.click(screen.getByRole('dialog', { name: /walk actions/i }).parentElement!)
+    fireEvent.click(screen.getByRole('dialog', { name: /walk actions/i }))
     expect(onCloseDetail).toHaveBeenCalledTimes(1)
   })
 
@@ -222,15 +222,15 @@ describe('detail card renders as a modal, closed by clicking outside or pressing
     const onCloseDetail = vi.fn()
     render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
 
-    await userEvent.click(screen.getByRole('dialog', { name: /walk actions/i }))
+    await userEvent.click(within(screen.getByRole('dialog')).getByText('Walk'))
     expect(onCloseDetail).not.toHaveBeenCalled()
   })
 
-  it('calls onCloseDetail when Escape is pressed while the card is open', async () => {
+  it('calls onCloseDetail when the dialog fires its native close event (Escape in a real browser)', () => {
     const onCloseDetail = vi.fn()
     render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
 
-    await userEvent.keyboard('{Escape}')
+    fireEvent(screen.getByRole('dialog', { name: /walk actions/i }), new Event('close'))
     expect(onCloseDetail).toHaveBeenCalledTimes(1)
   })
 })

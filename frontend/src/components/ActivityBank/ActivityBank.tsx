@@ -116,6 +116,64 @@ export function ActivityBank() {
     }
   }
 
+  const renderRowActions = (activity: Activity) => {
+    const toggleSubTasks = () =>
+      setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
+    const subTasksLabel = expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'
+
+    if (activity.archived) {
+      return (
+        <>
+          <button type="button" onClick={toggleSubTasks}>
+            {subTasksLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleUnarchive(activity.id)}
+            disabled={unarchivingId === activity.id}
+          >
+            Unarchive
+          </button>
+        </>
+      )
+    }
+
+    if (confirmingDeleteId === activity.id) {
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => handleConfirmDelete(activity.id)}
+            disabled={deletingId === activity.id}
+          >
+            Confirm delete
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmingDeleteId(null)}
+            disabled={deletingId === activity.id}
+          >
+            Cancel
+          </button>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <button type="button" onClick={toggleSubTasks}>
+          {subTasksLabel}
+        </button>
+        <button type="button" onClick={() => setFormTarget(activity)}>
+          Edit
+        </button>
+        <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
+          Delete
+        </button>
+      </>
+    )
+  }
+
   return (
     <section>
       <h2>Activity Bank</h2>
@@ -126,7 +184,7 @@ export function ActivityBank() {
             type="checkbox"
             checked={showArchived}
             onChange={(event) => setShowArchived(event.target.checked)}
-          />
+          />{' '}
           Show archived
         </label>
 
@@ -159,63 +217,7 @@ export function ActivityBank() {
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
 
-              {activity.archived ? (
-                <span className={styles.actions}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedActivityId((current) =>
-                        current === activity.id ? null : activity.id,
-                      )
-                    }
-                  >
-                    {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleUnarchive(activity.id)}
-                    disabled={unarchivingId === activity.id}
-                  >
-                    Unarchive
-                  </button>
-                </span>
-              ) : confirmingDeleteId === activity.id ? (
-                <span className={styles.actions}>
-                  <button
-                    type="button"
-                    onClick={() => handleConfirmDelete(activity.id)}
-                    disabled={deletingId === activity.id}
-                  >
-                    Confirm delete
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingDeleteId(null)}
-                    disabled={deletingId === activity.id}
-                  >
-                    Cancel
-                  </button>
-                </span>
-              ) : (
-                <span className={styles.actions}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedActivityId((current) =>
-                        current === activity.id ? null : activity.id,
-                      )
-                    }
-                  >
-                    {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
-                  </button>
-                  <button type="button" onClick={() => setFormTarget(activity)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
-                    Delete
-                  </button>
-                </span>
-              )}
+              <span className={styles.actions}>{renderRowActions(activity)}</span>
 
               {activity.description && <p>{activity.description}</p>}
 

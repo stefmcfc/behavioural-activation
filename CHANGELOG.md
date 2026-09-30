@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-09-30
+
+- The Weekly Planner's occurrence detail card is now built on the same native `<dialog>`-based
+  `Modal` used elsewhere in the app (previously a hand-built overlay), giving it real keyboard
+  focus-trapping. No visual or workflow change.
+
 ## [0.10.1] - 2026-09-30
 
 - Reordered the Add/Edit activity modal so Category (with its guidance) appears before Name, and

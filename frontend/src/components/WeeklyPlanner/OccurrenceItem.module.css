@@ -96,28 +96,19 @@
   flex-shrink: 0;
 }
 
-.detailOverlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: var(--overlay);
-  z-index: 100;
+.detailDialog {
+  width: min(90vw, 22rem);
 }
 
-.detailCard {
+.detailScrollBody {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: 100%;
-  max-width: 22rem;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0 6px;
+  margin: 0 -6px;
 }
 
 .detailHeader {
@@ -145,6 +136,7 @@
 .footer {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
   margin-top: 0.2rem;
   padding-top: 0.6rem;
   border-top: 1px solid var(--border);

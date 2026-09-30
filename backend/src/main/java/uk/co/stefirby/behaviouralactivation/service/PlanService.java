@@ -190,7 +190,7 @@ public class PlanService {
             List<UUID> subTaskIds = subTasks.stream().map(SubTask::getId).toList();
             Set<UUID> completedSubTaskIds = completionRecordRepository
                 .findByOwnerAndPlannedOccurrence_SubTask_IdIn(owner, subTaskIds).stream()
-                .map(record -> record.getPlannedOccurrence().getSubTask().getId())
+                .map(completion -> completion.getPlannedOccurrence().getSubTask().getId())
                 .collect(Collectors.toSet());
             done = completedSubTaskIds.containsAll(subTaskIds); // AC-14/AC-15
         }
@@ -295,7 +295,7 @@ public class PlanService {
     }
 
     private void validateWeekStart(LocalDate weekStart) {
-        if (weekStart == null || weekStart.getDayOfWeek() != DayOfWeek.MONDAY) {
+        if (weekStart == null || !weekStart.getDayOfWeek().equals(DayOfWeek.MONDAY)) {
             throw new InvalidPlanRequestException("weekStart is required and must be a Monday");
         }
     }

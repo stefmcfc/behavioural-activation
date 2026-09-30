@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
@@ -37,7 +37,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 
@@ -125,7 +125,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
               type="checkbox"
               checked={repeatable}
               onChange={(event) => setRepeatable(event.target.checked)}
-            />
+            />{' '}
             Repeatable
           </label>
           <p className={styles.repeatableHint}>
