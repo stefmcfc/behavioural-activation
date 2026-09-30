@@ -6,6 +6,36 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-30
+
+- Decluttered the Weekly Planner grid and weekend bucket list: each occurrence's tile now shows
+  only its name, category, a completion icon, and a one-click Complete/Undo control. Move, Move to
+  bucket, Remove, and Carry forward have moved into a detail card, opened by activating the
+  occurrence's name — relocated, not removed. A planned sub-task's tile now also shows which
+  activity it belongs to (`parentActivityName`, resolved server-side), and the weekly grid
+  highlights today's weekday column when viewing the current week.
+- Refined the occurrence detail card after a first real-browser pass: it now renders as a dimmed
+  overlay modal (was inline, which cramped narrow grid columns), closeable by its Close control,
+  clicking outside the card, or Escape. Also: a visibly stronger divider (`--border-strong`) between
+  two occurrences sharing a grid slot, a persistent pill/chip style on the clickable name control
+  (previously only visible on hover), and the parent-activity label now precedes the sub-task's own
+  name.
+- Refined the occurrence detail card again after a second look: the name control's pill is now
+  squared-off rather than fully rounded, the card gained a header showing what was clicked (the
+  occurrence's name, category, and its day/slot — or "Weekend bucket list" for an unscheduled item),
+  and the Move sub-state's day/slot fields are legible and consistently spaced instead of cramped
+  onto one wrapped line with mismatched font sizes.
+- Refined the occurrence detail card a third time: every CTA row is now consistently right-aligned,
+  with Close moved into its own footer below a divider instead of sitting left-aligned against
+  right-aligned rows above it. "Move" and "Move to bucket" have been consolidated into one
+  "Rearrange" area: the rest-state control is renamed "Rearrange", and its panel now offers either
+  picking a new day/slot ("Confirm rearrange") or a one-click "Send to bucket" (the renamed "Move to
+  bucket") as an alternative, rather than two separate top-level buttons.
+- Extended the Weekly Planner's right-alignment convention outside the detail card: each occurrence
+  tile's Complete/Undo control is now right-aligned (grid and bucket list alike), and each grid
+  cell's "Add" control now shares its slot-label row (e.g. "Morning") instead of sitting on its own
+  line below it, right-aligned against the label.
+
 ## [0.7.0] - 2026-09-29
 
 - Added repeatable vs. one-off activities: `Activity` gains `repeatable`/`archived` fields, new

@@ -27,9 +27,12 @@ function computeZeroCategories(
 interface BucketListProps {
   readonly occurrences: readonly PlannedOccurrence[]
   readonly busyId: string | null
+  readonly detailOpenId: string | null
   readonly confirmingRemoveId: string | null
   readonly movingId: string | null
   readonly onAdd: () => void
+  readonly onOpenDetail: (id: string) => void
+  readonly onCloseDetail: () => void
   readonly onStartRemove: (id: string) => void
   readonly onConfirmRemove: (id: string) => void
   readonly onCancelRemove: () => void
@@ -44,9 +47,12 @@ interface BucketListProps {
 export function BucketList({
   occurrences,
   busyId,
+  detailOpenId,
   confirmingRemoveId,
   movingId,
   onAdd,
+  onOpenDetail,
+  onCloseDetail,
   onStartRemove,
   onConfirmRemove,
   onCancelRemove,
@@ -85,8 +91,11 @@ export function BucketList({
               occurrence={occurrence}
               isBucketItem
               busyId={busyId}
+              detailOpenId={detailOpenId}
               confirmingRemoveId={confirmingRemoveId}
               movingId={movingId}
+              onOpenDetail={onOpenDetail}
+              onCloseDetail={onCloseDetail}
               onStartRemove={onStartRemove}
               onConfirmRemove={onConfirmRemove}
               onCancelRemove={onCancelRemove}

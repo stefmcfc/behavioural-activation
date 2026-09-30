@@ -1,6 +1,16 @@
 # Occurrence Detail Card (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 22 ACs verified, including FRONTEND-008-AC-22 (today-highlight visual
+contrast confirmed in a real browser, both Light and Dark). **Amended 2026-09-30** (still on
+`feature/occurrence-detail-card`, pre-merge, three rounds): round one raised four refinements, added
+as FRONTEND-008-AC-23–AC-28 — see "Amendment" under Requirement 1 and Requirement 2. Round two, after
+seeing round one live, raised three more (name-control corner radius, modal header context, Move
+field legibility) — FRONTEND-008-AC-29–AC-31, same "Amendment" subsections — plus a fourth,
+investigation-only item (moving an occurrence to Saturday/Sunday) that surfaced a real bug, logged as
+a new `.claude/SPEC_CANDIDATES.md` entry ("Weekday/Weekend grid tabs + a 'Today' view") rather than
+fixed here. Round three consolidated Move and Move to bucket into one "Rearrange" area and fixed the
+card's CTA alignment — FRONTEND-008-AC-32–AC-34. Round four extended the same right-alignment
+convention outside the card, to the at-rest tile and grid cell — FRONTEND-008-AC-35–AC-36.
 **Priority**: P2 — a direct response to the user's "far too much noise in the calendar" complaint
 about the Weekly Planner, raised after `frontend_spec_006_repeatable_activities.md` shipped.
 **Depends on**: `planner_spec_008_occurrence_detail_card.md` (paired backend spec —
@@ -49,6 +59,18 @@ reorganises that same surface without changing its underlying capabilities.
    state (`detailOpenId`) that the existing `confirmingRemoveId`/`movingId` states now nest inside of.
    A future, separate "Add picker modal" spec (`.claude/SPEC_CANDIDATES.md`) may introduce a real
    modal primitive later; this spec doesn't need to invent one to satisfy its own requirement.
+
+   **Amended 2026-09-30**: a real-browser pass surfaced that this card, rendered inline inside a
+   narrow grid cell (`PlannerGrid`'s columns are `minmax(8rem, 1fr)`), forced Move/Move to
+   bucket/Remove/Carry forward to wrap into a cramped vertical stack that pushed the rest of the
+   cell's content down awkwardly — "a bit cramped," in the user's words. The card now renders as a
+   `position: fixed` overlay (dimmed backdrop, centered card) instead of expanding inline within the
+   tile's own flex row. This is still not a React-portal dialog with focus-trap infrastructure — it's
+   the same DOM-inline `<div>`, just given fixed positioning so it visually escapes the cramped
+   column — so the architectural note above (no portal, no new modal primitive/library) still holds;
+   only the *visual* presentation changed, not the state-management shape. Clicking the backdrop
+   outside the card, or pressing Escape, now also closes it (both equivalent to Close — see
+   FRONTEND-008-AC-23–AC-25).
 
 2. **Show the parent activity on a sub-task occurrence's tile.** Consumes
    `planner_spec_008_occurrence_detail_card.md`'s new `parentActivityName` field.
@@ -121,6 +143,99 @@ every single item.
 - **FRONTEND-008-AC-12** [AUTO]: The Complete/Undo control shall render directly on the tile and
   remain clickable regardless of whether that occurrence's detail card is open or closed.
 
+#### Amendment — modal presentation, click-outside/Escape to close, divider and name-control visibility
+
+- **FRONTEND-008-AC-23** [AUTO]: While a detail card is open for an occurrence, `OccurrenceItem`
+  shall render it inside a full-viewport overlay (dimmed backdrop, card centered within it) rather
+  than expanding inline within the tile's own row.
+- **FRONTEND-008-AC-24** [AUTO]: When the overlay is activated outside the card's own bounds,
+  `OccurrenceItem` shall call `onCloseDetail()` — equivalent to Close, no move/remove/carry-forward
+  side effect. Activating inside the card itself shall not close it (the click must not propagate to
+  the overlay).
+- **FRONTEND-008-AC-25** [AUTO]: While a detail card is open, pressing Escape shall call
+  `onCloseDetail()`, equivalent to Close.
+- **FRONTEND-008-AC-26** [MANUAL]: The divider between two sibling occurrences stacked in the same
+  grid cell or bucket-list group (e.g. two occurrences in the same day/slot) is visually
+  distinguishable at a glance, not just structurally present — verified by a real-browser check
+  against both Light and Dark, since jsdom cannot render CSS/contrast
+  (`frontend_conventions.md`). Implemented via a new `--border-strong` theme token (higher-contrast
+  than the existing hairline `--border`), applied to `OccurrenceItem`'s row divider.
+- **FRONTEND-008-AC-27** [MANUAL]: The occurrence name control (the tile's click target that opens
+  its detail card) is visually identifiable as clickable at rest, not only revealed by a hover-only
+  text-decoration change — verified by a real-browser check against both Light and Dark. Implemented
+  by giving `.nameButton` a persistent pill/chip treatment (background + border, `appearance: none`
+  to prevent OS/browser native button chrome from leaking through as an unstyled hover artifact)
+  distinct in color from `CategoryChip`'s category-colored pill, so the two aren't visually confused.
+
+  **Round two (same day, after seeing round one live)**:
+
+- **FRONTEND-008-AC-29** [MANUAL]: `.nameButton`'s corner radius reads as a squared-off chip
+  (`6px`, matching the radius already used for cells/panels elsewhere in the design system — see
+  `PlannerGrid.module.css`'s `.cell`, `BucketList.module.css`), not a fully-rounded pill (`999px`,
+  the radius global `button`/`CategoryChip` use) — deliberately different from those so it doesn't
+  read as "just another action button." Verified by a real-browser check.
+- **FRONTEND-008-AC-30** [AUTO]: The open detail card renders a header showing what was activated:
+  the occurrence's own name and its `CategoryChip`, followed by its current location — the
+  day-of-week and slot labels (e.g. "Monday · Morning") for a scheduled grid item, or the literal
+  text "Weekend bucket list" where `dayOfWeek`/`slot` are both `null`.
+- **FRONTEND-008-AC-31** [MANUAL]: Inside the Move sub-state, the "New day"/"New slot" `<label>`s and
+  their `<select>`s read as one consistent, adequately-spaced form — not the previous single
+  `flex-wrap`d row, which let native `<select>`/`<label>` elements fall back to browser-default font
+  sizing (visibly inconsistent with the surrounding `0.8rem` button text) and crammed everything
+  onto one wrapped line. Each day/slot pair is now its own labeled field (label styled with the same
+  quiet-label typography as `legend`/`.slotLabel` elsewhere: small, uppercase, letter-spaced), and
+  Confirm move/Cancel sit in their own row below both fields. Verified by a real-browser check
+  against both Light and Dark.
+
+  **Investigation raised alongside round two**: moving an occurrence to Saturday or Sunday (both are
+  valid `PlanDayOfWeek` values, and the Move sub-state's day `<select>` offers all seven via
+  `ALL_DAYS` in `planLabels.ts`) sets `dayOfWeek`/`slot` to a non-null pair the backend accepts
+  unvalidated (`PlanService.validateDaySlotPair` only checks "both null or both set," not which
+  weekday). `PlannerGrid`'s `WEEKDAYS` constant only renders Monday–Friday columns, and `BucketList`
+  only shows occurrences where `dayOfWeek`/`slot` are both `null` — so a Saturday/Sunday + slot
+  occurrence becomes genuinely invisible in both views: still returned by `GET /api/v1/plan` and
+  still counted wherever `occurrences` is iterated, but with no surface that renders it. This is a
+  real bug (confirmed by code inspection: `PlannerGrid.tsx`'s `WEEKDAYS`, `BucketList.tsx`'s
+  `dayOfWeek === null && slot === null` filter, `planLabels.ts`'s `ALL_DAYS` including
+  `SATURDAY`/`SUNDAY`). Not fixed here — the user confirmed 2026-09-30 they want a real redesign
+  (weekday/weekend grid tabs, possibly a top-level "Today" view) rather than a quick patch, so it's
+  logged as a `.claude/SPEC_CANDIDATES.md` entry ("Weekday/Weekend grid tabs + a 'Today' view")
+  instead of getting an AC number in this spec.
+
+  **Round three (same day, after seeing round two live)**: two more refinements plus a consolidation.
+
+- **FRONTEND-008-AC-32** [MANUAL]: Every CTA row inside the open detail card — the rest-state
+  actions (Rearrange/Remove/Carry forward), the Confirm rearrange/Cancel pair, and the Close
+  control — is right-aligned within the card, consistently. Close specifically sits in its own
+  footer area below a hairline divider (`.footer`, `border-top: 1px solid var(--border)`), so it
+  reads as a distinct closing action rather than looking arbitrarily left-aligned against
+  right-aligned actions above it (the bug the user flagged: Close previously kept its pre-modal
+  `align-self: flex-start` while nothing actually right-aligned the rows above it either). Verified
+  by a real-browser check against both Light and Dark.
+- **FRONTEND-008-AC-33** [AUTO]: The rest-state "Move" control is renamed "Rearrange" everywhere in
+  its visible label (the underlying `onStartMove`/`movingId`/`onConfirmMove`/`onCancelMove` prop and
+  state names are unchanged — internal implementation detail, not user-facing copy). Its former
+  sibling "Move to bucket" control no longer renders in the rest-state row.
+- **FRONTEND-008-AC-34** [AUTO]: Inside the Rearrange sub-state (`movingId === occurrence.id`), where
+  the occurrence is a grid item (`isBucketItem` is `false`), a "Send to bucket" control (the renamed,
+  relocated former "Move to bucket") renders alongside the day/slot fields — a one-click alternative
+  to picking a day/slot and confirming, calling the same `onMoveToBucket` handler as before. Where
+  the occurrence is a bucket item, no "Send to bucket" control renders (unchanged rule: a bucket item
+  is already in the bucket). The day/slot Confirm/Cancel pair is renamed "Confirm rearrange"/"Cancel"
+  (was "Confirm move"/"Cancel"), consistent with AC-33's rename.
+
+  **Round four (same day, after seeing round three live)**: the right-alignment convention round
+  three applied inside the card is extended to the surrounding at-rest layout it lives in.
+
+- **FRONTEND-008-AC-35** [AUTO]: `OccurrenceItem`'s one-click Complete/Undo control is right-aligned
+  within its tile row (`margin-left: auto` on the button, the same mechanism `.actions`/`.moveActions`
+  already used inside the card), in both the grid and bucket-list contexts — not left-aligned
+  immediately after the category chip/completion icon as before.
+- **FRONTEND-008-AC-36** [AUTO]: `PlannerGrid`'s per-cell "Add" control renders on the same row as
+  that cell's slot label (e.g. "Morning"), right-aligned against it, rather than on its own row below
+  the label. (`BucketList`'s "Add" control, next to its "Weekend bucket list" heading — a different
+  context, not a repeated per-slot control — is unchanged.)
+
 ### Requirement 2 — Show the parent activity on a sub-task occurrence's tile
 
 As a user, I want to see which activity a planned sub-task belongs to, so I don't have to remember or
@@ -135,6 +250,9 @@ guess from the sub-task's own name alone.
 - **FRONTEND-008-AC-15** [AUTO]: Where `occurrence.subTaskId` is `null` (a whole-activity occurrence),
   `OccurrenceItem` shall never render parent-activity text, regardless of `parentActivityName`'s
   value.
+- **FRONTEND-008-AC-28** [AUTO] (amends AC-14, added 2026-09-30): the parent activity name label
+  shall render before (precede in DOM order) the sub-task's own name control, not after —
+  read top-to-bottom/left-to-right as "which activity this belongs to" first, then "which sub-task."
 
 ### Requirement 3 — Completion as an accessible icon, not text
 
@@ -509,25 +627,42 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-008-AC-01 — at-rest tile hides Move/Move to bucket/Remove/Carry forward
-- [ ] FRONTEND-008-AC-02 — activating the name control calls `onOpenDetail`
-- [ ] FRONTEND-008-AC-03 — open card renders Move and Remove
-- [ ] FRONTEND-008-AC-04 — grid item's open card additionally renders Move to bucket
-- [ ] FRONTEND-008-AC-05 — bucket item's open card additionally renders Carry forward
-- [ ] FRONTEND-008-AC-06 — Remove inside the card enters the existing inline confirm sub-state
-- [ ] FRONTEND-008-AC-07 — Move inside the card enters the existing day/slot-select sub-state
-- [ ] FRONTEND-008-AC-08 — an open card renders a Close control with no side effect
-- [ ] FRONTEND-008-AC-09 — re-activating the name while open closes the card (toggle)
-- [ ] FRONTEND-008-AC-10 — at most one occurrence's card open at a time
-- [ ] FRONTEND-008-AC-11 — opening a different card clears a stale move/remove sub-state
-- [ ] FRONTEND-008-AC-12 — Complete/Undo works regardless of card open/closed state
-- [ ] FRONTEND-008-AC-13 — `PlannedOccurrence.parentActivityName` type field added
-- [ ] FRONTEND-008-AC-14 — parent activity name shown for a sub-task occurrence when present
-- [ ] FRONTEND-008-AC-15 — parent activity name never shown for a whole-activity occurrence
-- [ ] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
-- [ ] FRONTEND-008-AC-17 — no completion indicator when not completed
-- [ ] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)
-- [ ] FRONTEND-008-AC-19 — no highlight when viewing a past/future week, in either layout
-- [ ] FRONTEND-008-AC-20 — no highlight when today is a Saturday/Sunday, in either layout
-- [ ] FRONTEND-008-AC-21 — today-column check reuses `getMondayOfCurrentWeek()`, no second helper
-- [ ] FRONTEND-008-AC-22 — highlight visually distinguishable in Light and Dark (real-browser check)
+- [x] FRONTEND-008-AC-01 — at-rest tile hides Move/Move to bucket/Remove/Carry forward
+- [x] FRONTEND-008-AC-02 — activating the name control calls `onOpenDetail`
+- [x] FRONTEND-008-AC-03 — open card renders Move and Remove
+- [x] FRONTEND-008-AC-04 — grid item's open card additionally renders Move to bucket
+- [x] FRONTEND-008-AC-05 — bucket item's open card additionally renders Carry forward
+- [x] FRONTEND-008-AC-06 — Remove inside the card enters the existing inline confirm sub-state
+- [x] FRONTEND-008-AC-07 — Move inside the card enters the existing day/slot-select sub-state
+- [x] FRONTEND-008-AC-08 — an open card renders a Close control with no side effect
+- [x] FRONTEND-008-AC-09 — re-activating the name while open closes the card (toggle)
+- [x] FRONTEND-008-AC-10 — at most one occurrence's card open at a time
+- [x] FRONTEND-008-AC-11 — opening a different card clears a stale move/remove sub-state
+- [x] FRONTEND-008-AC-12 — Complete/Undo works regardless of card open/closed state
+- [x] FRONTEND-008-AC-13 — `PlannedOccurrence.parentActivityName` type field added
+- [x] FRONTEND-008-AC-14 — parent activity name shown for a sub-task occurrence when present
+- [x] FRONTEND-008-AC-15 — parent activity name never shown for a whole-activity occurrence
+- [x] FRONTEND-008-AC-23 — detail card renders inside a full-viewport dimmed overlay, not inline
+- [x] FRONTEND-008-AC-24 — clicking the overlay outside the card closes it; clicking inside doesn't
+- [x] FRONTEND-008-AC-25 — pressing Escape while the card is open closes it
+- [x] FRONTEND-008-AC-26 — sibling-occurrence divider visually distinguishable (real-browser check)
+- [x] FRONTEND-008-AC-27 — name control reads as clickable at rest, not hover-only (real-browser check)
+- [x] FRONTEND-008-AC-28 — parent activity name label precedes the sub-task name label
+- [x] FRONTEND-008-AC-29 — name-control corner radius reads as a squared chip, not a full pill
+- [x] FRONTEND-008-AC-30 — modal header shows occurrence name/category and its day/slot or bucket
+- [x] FRONTEND-008-AC-31 — Move sub-state fields are legible and consistently spaced
+- [x] FRONTEND-008-AC-32 — card CTA rows are consistently right-aligned; Close sits in its own footer
+- [x] FRONTEND-008-AC-33 — "Move" renamed "Rearrange"; "Move to bucket" no longer in the rest-state row
+- [x] FRONTEND-008-AC-34 — "Send to bucket" (grid items) and "Confirm rearrange" live in Rearrange
+- [x] FRONTEND-008-AC-35 — tile's Complete/Undo control is right-aligned (grid and bucket list)
+- [x] FRONTEND-008-AC-36 — grid cell's Add control shares the slot-label row, right-aligned
+- [ ] *(logged, not an AC here)* — Saturday/Sunday Move targets are invisible in the UI once moved
+      there; real bug confirmed by code inspection, tracked as a `.claude/SPEC_CANDIDATES.md` entry
+      ("Weekday/Weekend grid tabs + a 'Today' view") rather than fixed in this spec
+- [x] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
+- [x] FRONTEND-008-AC-17 — no completion indicator when not completed
+- [x] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)
+- [x] FRONTEND-008-AC-19 — no highlight when viewing a past/future week, in either layout
+- [x] FRONTEND-008-AC-20 — no highlight when today is a Saturday/Sunday, in either layout
+- [x] FRONTEND-008-AC-21 — today-column check reuses `getMondayOfCurrentWeek()`, no second helper
+- [x] FRONTEND-008-AC-22 — highlight visually distinguishable in Light and Dark (real-browser check)

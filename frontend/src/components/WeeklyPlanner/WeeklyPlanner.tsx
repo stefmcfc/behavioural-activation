@@ -44,6 +44,19 @@ function shiftWeek(weekStart: string, days: number): string {
   return formatDate(date)
 }
 
+function getTodayPlanDayOfWeek(): PlanDayOfWeek | null {
+  const byJsDay: Record<number, PlanDayOfWeek | null> = {
+    0: null, // Sunday -- outside the Mon-Fri grid
+    1: 'MONDAY',
+    2: 'TUESDAY',
+    3: 'WEDNESDAY',
+    4: 'THURSDAY',
+    5: 'FRIDAY',
+    6: null, // Saturday -- outside the Mon-Fri grid
+  }
+  return byJsDay[new Date().getDay()]
+}
+
 export function WeeklyPlanner() {
   const [weekStart, setWeekStart] = useState(() => getMondayOfCurrentWeek())
   const [occurrences, setOccurrences] = useState<PlannedOccurrence[] | null>(null)
@@ -53,6 +66,7 @@ export function WeeklyPlanner() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [confirmingRemoveId, setConfirmingRemoveId] = useState<string | null>(null)
   const [movingId, setMovingId] = useState<string | null>(null)
+  const [detailOpenId, setDetailOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -167,6 +181,24 @@ export function WeeklyPlanner() {
     }
   }
 
+  const handleOpenDetail = (id: string) => {
+    if (confirmingRemoveId && confirmingRemoveId !== id) {
+      setConfirmingRemoveId(null)
+    }
+    if (movingId && movingId !== id) {
+      setMovingId(null)
+    }
+    setDetailOpenId(id)
+  }
+
+  const handleCloseDetail = () => {
+    setDetailOpenId(null)
+    setConfirmingRemoveId(null)
+    setMovingId(null)
+  }
+
+  const todayColumn = weekStart === getMondayOfCurrentWeek() ? getTodayPlanDayOfWeek() : null
+
   const handleCarryForward = async (id: string) => {
     setActionError(null)
     setBusyId(id)
@@ -213,9 +245,13 @@ export function WeeklyPlanner() {
           <PlannerGrid
             occurrences={occurrences}
             busyId={busyId}
+            detailOpenId={detailOpenId}
             confirmingRemoveId={confirmingRemoveId}
             movingId={movingId}
+            todayColumn={todayColumn}
             onAdd={(dayOfWeek, slot) => setAssignTarget({ dayOfWeek, slot })}
+            onOpenDetail={handleOpenDetail}
+            onCloseDetail={handleCloseDetail}
             onStartRemove={setConfirmingRemoveId}
             onConfirmRemove={handleConfirmRemove}
             onCancelRemove={() => setConfirmingRemoveId(null)}
@@ -230,9 +266,12 @@ export function WeeklyPlanner() {
           <BucketList
             occurrences={occurrences}
             busyId={busyId}
+            detailOpenId={detailOpenId}
             confirmingRemoveId={confirmingRemoveId}
             movingId={movingId}
             onAdd={() => setAssignTarget({ dayOfWeek: null, slot: null })}
+            onOpenDetail={handleOpenDetail}
+            onCloseDetail={handleCloseDetail}
             onStartRemove={setConfirmingRemoveId}
             onConfirmRemove={handleConfirmRemove}
             onCancelRemove={() => setConfirmingRemoveId(null)}

@@ -11,9 +11,12 @@ describe('FRONTEND-007-AC-24: bucket list wrapper is a flat panel', () => {
       <BucketList
         occurrences={[]}
         busyId={null}
+        detailOpenId={null}
         confirmingRemoveId={null}
         movingId={null}
         onAdd={noop}
+        onOpenDetail={noop}
+        onCloseDetail={noop}
         onStartRemove={noop}
         onConfirmRemove={noop}
         onCancelRemove={noop}

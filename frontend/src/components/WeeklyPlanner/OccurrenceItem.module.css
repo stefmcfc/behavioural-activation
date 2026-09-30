@@ -3,21 +3,149 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.6rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border-strong);
   padding: 0.85rem 0;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.completeButton {
+  margin-left: auto;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.4rem;
-  margin-left: auto;
 }
 
 .moveControls {
   display: flex;
-  flex-basis: 100%;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.moveField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.moveField label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.moveField select {
+  font-size: 0.85rem;
+}
+
+.moveActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sendToBucketButton {
+  margin-right: auto;
+}
+
+.moveConfirmActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.nameButton {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.2rem 0.7rem;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nameButton:hover,
+.nameButton:focus-visible {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.parentActivityName {
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.completionIcon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.detailOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--overlay);
+  z-index: 100;
+}
+
+.detailCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 22rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.detailHeader {
+  display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.detailName {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-h);
+}
+
+.detailLocation {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.68rem;
+  color: var(--text);
+  margin: -0.4rem 0 0.2rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
 }

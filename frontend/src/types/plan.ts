@@ -16,6 +16,7 @@ export interface PlannedOccurrence {
   activityId: string | null
   subTaskId: string | null
   name: string
+  parentActivityName: string | null
   category: ActivityCategory
   weekStart: string
   dayOfWeek: PlanDayOfWeek | null

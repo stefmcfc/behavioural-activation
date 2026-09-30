@@ -173,12 +173,15 @@ belongs to a different user returns `404` in every case identically, never `403`
 
 `name` in every response is resolved live from the linked `Activity`/`SubTask` at response time
 (not stored on `PlannedOccurrence`) — renaming the underlying activity/sub-task later changes the
-displayed name of every occurrence referencing it. Every response also includes `completed`
-(boolean) and `completedAt` (`null` unless complete), reflecting the occurrence's `CompletionRecord`
-if any. Deleting an `Activity` or `SubTask` cascade-deletes its `PlannedOccurrence`s automatically
-(database-level `ON DELETE CASCADE`), and deleting a `PlannedOccurrence` (directly, or transitively
-via its parent `Activity`/`SubTask`) cascade-deletes its `CompletionRecord` the same way — not via
-any explicit endpoint call.
+displayed name of every occurrence referencing it. Every response also includes
+`parentActivityName`: `null` when the occurrence targets an `Activity` directly, or that activity's
+name (also resolved live, same as `name`) when it targets a `SubTask` — lets a sub-task's tile show
+which activity it belongs to. Every response also includes `completed` (boolean) and `completedAt`
+(`null` unless complete), reflecting the occurrence's `CompletionRecord` if any. Deleting an
+`Activity` or `SubTask` cascade-deletes its `PlannedOccurrence`s automatically (database-level
+`ON DELETE CASCADE`), and deleting a `PlannedOccurrence` (directly, or transitively via its parent
+`Activity`/`SubTask`) cascade-deletes its `CompletionRecord` the same way — not via any explicit
+endpoint call.
 
 ## Occurrences & Completion
 

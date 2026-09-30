@@ -14,9 +14,13 @@ const WEEKDAYS: readonly PlanDayOfWeek[] = [
 interface PlannerGridProps {
   readonly occurrences: readonly PlannedOccurrence[]
   readonly busyId: string | null
+  readonly detailOpenId: string | null
   readonly confirmingRemoveId: string | null
   readonly movingId: string | null
+  readonly todayColumn: PlanDayOfWeek | null
   readonly onAdd: (dayOfWeek: PlanDayOfWeek, slot: PlanSlot) => void
+  readonly onOpenDetail: (id: string) => void
+  readonly onCloseDetail: () => void
   readonly onStartRemove: (id: string) => void
   readonly onConfirmRemove: (id: string) => void
   readonly onCancelRemove: () => void
@@ -28,12 +32,24 @@ interface PlannerGridProps {
   readonly onUndo: (id: string) => void
 }
 
+function cellClassName(isToday: boolean): string {
+  return isToday ? `${styles.cell} ${styles.today}` : styles.cell
+}
+
+function dayLabelClassName(isToday: boolean): string {
+  return isToday ? `${styles.dayLabel} ${styles.today}` : styles.dayLabel
+}
+
 export function PlannerGrid({
   occurrences,
   busyId,
+  detailOpenId,
   confirmingRemoveId,
   movingId,
+  todayColumn,
   onAdd,
+  onOpenDetail,
+  onCloseDetail,
   onStartRemove,
   onConfirmRemove,
   onCancelRemove,
@@ -57,7 +73,7 @@ export function PlannerGrid({
       <div className={styles.scroll}>
         <div className={styles.grid}>
           {WEEKDAYS.map((day) => (
-            <div key={day} className={styles.dayLabel}>
+            <div key={day} className={dayLabelClassName(day === todayColumn)}>
               {DAY_LABELS[day]}
             </div>
           ))}
@@ -67,15 +83,17 @@ export function PlannerGrid({
                 (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
               )
               return (
-                <div key={`${day}-${slot}`} className={styles.cell}>
-                  <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
-                  <button
-                    type="button"
-                    onClick={() => onAdd(day, slot)}
-                    aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
-                  >
-                    Add
-                  </button>
+                <div key={`${day}-${slot}`} className={cellClassName(day === todayColumn)}>
+                  <div className={styles.cellHeader}>
+                    <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
+                    <button
+                      type="button"
+                      onClick={() => onAdd(day, slot)}
+                      aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
+                    >
+                      Add
+                    </button>
+                  </div>
                   <ul className={styles.list}>
                     {cellOccurrences.map((occurrence) => (
                       <OccurrenceItem
@@ -83,8 +101,11 @@ export function PlannerGrid({
                         occurrence={occurrence}
                         isBucketItem={false}
                         busyId={busyId}
+                        detailOpenId={detailOpenId}
                         confirmingRemoveId={confirmingRemoveId}
                         movingId={movingId}
+                        onOpenDetail={onOpenDetail}
+                        onCloseDetail={onCloseDetail}
                         onStartRemove={onStartRemove}
                         onConfirmRemove={onConfirmRemove}
                         onCancelRemove={onCancelRemove}
