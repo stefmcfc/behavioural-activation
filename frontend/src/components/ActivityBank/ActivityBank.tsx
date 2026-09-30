@@ -5,7 +5,14 @@ import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { Modal } from '../Modal/Modal'
 import styles from './ActivityBank.module.css'
+
+type FormTarget = 'create' | Activity | null
+
+function formTargetTitleId(formTarget: FormTarget): string {
+  return `activity-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -25,7 +32,7 @@ function getErrorMessage(error: unknown): string {
 export function ActivityBank() {
   const [activities, setActivities] = useState<Activity[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
+  const [formTarget, setFormTarget] = useState<FormTarget>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -85,13 +92,15 @@ export function ActivityBank() {
       if (!previous) {
         return [activity]
       }
-      if (editingActivity) {
+      if (formTarget !== 'create' && formTarget !== null) {
         return previous.map((existing) => (existing.id === activity.id ? activity : existing))
       }
       return [...previous, activity]
     })
-    setEditingActivity(null)
+    setFormTarget(null)
   }
+
+  const handleCloseForm = () => setFormTarget(null)
 
   const handleConfirmDelete = async (id: string) => {
     setDeleteError(null)
@@ -111,14 +120,20 @@ export function ActivityBank() {
     <section>
       <h2>Activity Bank</h2>
 
-      <label>
-        <input
-          type="checkbox"
-          checked={showArchived}
-          onChange={(event) => setShowArchived(event.target.checked)}
-        />
-        Show archived
-      </label>
+      <div className={styles.toolbar}>
+        <label className={styles.archivedToggle}>
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(event) => setShowArchived(event.target.checked)}
+          />
+          Show archived
+        </label>
+
+        <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+          Add activity
+        </button>
+      </div>
 
       {loadError && (
         <p role="alert">
@@ -193,7 +208,7 @@ export function ActivityBank() {
                   >
                     {expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'}
                   </button>
-                  <button type="button" onClick={() => setEditingActivity(activity)}>
+                  <button type="button" onClick={() => setFormTarget(activity)}>
                     Edit
                   </button>
                   <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
@@ -218,13 +233,17 @@ export function ActivityBank() {
         </ul>
       )}
 
-      <ActivityForm
-        key={editingActivity?.id ?? 'create'}
-        mode={editingActivity ? 'edit' : 'create'}
-        activity={editingActivity ?? undefined}
-        onSuccess={handleFormSuccess}
-        onCancel={editingActivity ? () => setEditingActivity(null) : undefined}
-      />
+      <Modal isOpen={formTarget !== null} titleId={formTargetTitleId(formTarget)} onClose={handleCloseForm}>
+        {formTarget !== null && (
+          <ActivityForm
+            key={formTarget === 'create' ? 'create' : formTarget.id}
+            mode={formTarget === 'create' ? 'create' : 'edit'}
+            activity={formTarget === 'create' ? undefined : formTarget}
+            onSuccess={handleFormSuccess}
+            onCancel={handleCloseForm}
+          />
+        )}
+      </Modal>
     </section>
   )
 }

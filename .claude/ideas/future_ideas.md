@@ -114,13 +114,13 @@ analysis, activity effectiveness scoring, social/connection activity tracking.
 
 ## Activity Bank UX improvements (batch, 2026-09-29)
 
-**Status**: Partially specced. Raised by the user right after shipping spec pair 6
+**Status**: Partially delivered. Raised by the user right after shipping spec pair 6
 (repeatable/archived activities), while it was fresh. The "Add-activity modal with category
-guidance" item below is now specced — `frontend_spec_013_add_activity_modal.md` (plus a
+guidance" item below shipped 2026-09-30 as `frontend_spec_013_add_activity_modal.md`, alongside a
 newly-confirmed companion, `frontend_spec_014_add_subtask_modal.md`, for the equivalent sub-task
-create/rename flow — not part of the original 2026-09-29 batch, raised and confirmed 2026-09-30
-alongside speccing this item). See `ROADMAP.md`'s "Specced, coming soon" table. The remaining two
-items below are still not specced:
+create/rename flow (not part of the original 2026-09-29 batch, raised and confirmed 2026-09-30
+alongside speccing this item). See `ROADMAP.md`'s "Delivered" table. The remaining two items below
+are still not specced:
 
 - **Filter by category**: a category filter on the Activity Bank list, alongside the existing "Show
   archived" toggle.

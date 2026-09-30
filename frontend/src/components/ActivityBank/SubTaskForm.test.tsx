@@ -27,7 +27,7 @@ describe('SubTaskForm', () => {
       render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
 
       await userEvent.type(screen.getByLabelText(/sub-task name/i), 'Create a guest list')
-      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
 
       expect(subTaskApi.create).toHaveBeenCalledWith('a1', { name: 'Create a guest list' })
     })
@@ -37,7 +37,7 @@ describe('SubTaskForm', () => {
     it('shows an inline validation error and does not call create', async () => {
       render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
 
-      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
 
       expect(screen.getByText(/name is required/i)).toBeInTheDocument()
       expect(subTaskApi.create).not.toHaveBeenCalled()
@@ -55,14 +55,14 @@ describe('SubTaskForm', () => {
       render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
 
       await userEvent.type(screen.getByLabelText(/sub-task name/i), 'Create a guest list')
-      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
 
-      expect(screen.getByRole('button', { name: /add sub-task/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /save sub-task/i })).toBeDisabled()
       expect(screen.getByRole('status')).toBeInTheDocument()
 
       resolveCreate({ ...guestList })
       await waitFor(() =>
-        expect(screen.getByRole('button', { name: /add sub-task/i })).not.toBeDisabled(),
+        expect(screen.getByRole('button', { name: /save sub-task/i })).not.toBeDisabled(),
       )
     })
   })
@@ -111,7 +111,7 @@ describe('SubTaskForm', () => {
       render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
 
       await userEvent.type(screen.getByLabelText(/sub-task name/i), 'Create a guest list')
-      await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByLabelText(/sub-task name/i)).toHaveValue('Create a guest list')

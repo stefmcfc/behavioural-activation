@@ -6,6 +6,47 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-30
+
+- Reordered the Add/Edit activity modal so Category (with its guidance) appears before Name, and
+  replaced the plain radio-button category picker with coloured pills using each category's live
+  Settings colour — matching `CategoryChip` elsewhere in the app, and updating live if the colour is
+  changed while the modal is open.
+- Gave the Name, Description, and Sub-task name fields the same quiet-label typography (small, bold,
+  uppercase, letter-spaced) as the category picker's legend, stacked above their inputs instead of
+  inline beside them.
+- Right-aligned the Save/Cancel buttons in the Add/Edit Activity and Add/Rename Sub-task modals.
+- Added a short explanatory note next to the Repeatable checkbox distinguishing repeatable activities
+  (recur indefinitely) from one-off activities (auto-archived once every planned occurrence is
+  completed).
+- Fixed a regression where the Add/Edit Activity and Add/Rename Sub-task modals' Save/Cancel buttons
+  could be clipped outside the dialog's visible bounds once their content grew taller than the
+  dialog's max height — both forms now use an independently-scrollable content area with a pinned
+  footer, matching the Weekly Planner picker's existing layout.
+- Fixed a bug where clicking a category pill in the Add/Edit Activity modal showed a focus outline
+  clipped on its left edge — the scrollable content area now reserves enough padding to fully contain
+  the outline.
+- Grouped the Activity Bank's "Show archived" and "Add activity" controls into a single bordered
+  toolbar row, right-aligned "Add activity", and replaced the plain "Show archived" checkbox with a
+  pill matching the rest of the app's segmented-control styling.
+
+## [0.10.0] - 2026-09-30
+
+- Added an "Add activity" button to the Activity Bank, and moved activity creation *and* editing
+  into a modal (previously an always-visible form at the bottom of the page for create, an inline
+  swap-in-place for edit). The modal includes a new `CategoryGuidance` block — a short purpose
+  statement and one example for each of Routine/Necessary/Pleasurable, plus a note that the same
+  activity can belong to a different category depending on why it's being done — always visible
+  next to the category picker, to help a new or returning user who doesn't already know the
+  Behavioural Activation framework's category definitions.
+- Added an "Add sub-task" button to each activity's sub-task checklist, and moved sub-task creation
+  *and* renaming into the same kind of modal (previously an always-visible form at the top of the
+  checklist for create, an inline swap-in-place for rename). No category guidance needed here — a
+  sub-task's category is inherited from its parent activity and was never user-selected.
+- Fixed a `Modal` regression: a closed dialog was rendering as a visible empty box wherever it sat
+  in the page, because an earlier change (`display: flex` on `.dialog`, for the Weekly Planner
+  picker's scrollable body) outranked the browser's own `dialog:not([open]) { display: none }` rule.
+
 ## [0.9.0] - 2026-09-30
 
 - Added a modal/dialog primitive (`Modal.tsx`, wrapping the native `<dialog>` element — zero new

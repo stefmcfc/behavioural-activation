@@ -1,6 +1,9 @@
 # Add/Rename Sub-task Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 17 ACs verified (2026-09-30), including FRONTEND-014-AC-13 and the
+Round 2 amendment's FRONTEND-014-AC-16/AC-17 (modal confirmed legible in a real browser, both Light
+and Dark, when triggered from a nested expanded activity row). Full real-browser pass also confirmed
+the add→list and rename→prefill→save flows end to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now, alongside `frontend_spec_013_add_activity_modal.md`.
@@ -120,31 +123,75 @@ expanded-row context — in both themes, not just structurally correct in the DO
   activity row. Verified by a real-browser check, since jsdom does not render CSS
   (`frontend_conventions.md`'s Testing Strategy note).
 
+### Requirement 6 — Round 2 amendment: consistency with `frontend_spec_013`'s styling refinements
+
+When `frontend_spec_013_add_activity_modal.md` picked up its Round 2 amendment (quiet-label field
+typography, right-aligned CTAs, and a scrollable-body + pinned-footer split to fix a clipped-footer
+regression once `ActivityForm`'s content grew taller than `Modal`'s `max-height`), the same structural
+fix was applied to `SubTaskForm` for consistency, even though its shorter single-field content hadn't
+yet been observed to overflow — matching the pattern `AssignActivityPicker`/`ActivityForm` both use,
+rather than leaving `SubTaskForm` as the only form in the modal family without it.
+
+- **FRONTEND-014-AC-14** [AUTO]: `SubTaskForm`'s Sub-task name field's `<label>` shall share
+  `CategoryPicker`'s quiet-label typography (small, bold, uppercase, letter-spaced), stacked directly
+  above its input.
+- **FRONTEND-014-AC-15** [AUTO]: `SubTaskForm` shall render its content (heading, Sub-task name field,
+  and any validation/submit error) inside an independently-scrollable region, with the Save/Cancel
+  footer — right-aligned — outside that region so it stays visible regardless of content height or
+  `Modal`'s `max-height`, matching `frontend_spec_013`'s `ActivityForm` fix.
+- **FRONTEND-014-AC-16** [MANUAL]: The restyled `SubTaskForm` (quiet label, right-aligned pinned
+  footer) renders correctly in both Light and Dark themes in a real browser.
+- **FRONTEND-014-AC-17** [AUTO]: `SubTaskForm`'s `.scrollBody` reserves the same horizontal padding
+  as `ActivityForm`'s (`frontend_spec_013_add_activity_modal.md`'s `FRONTEND-013-AC-24`), applied for
+  consistency even though `SubTaskForm` has no focusable pill today — so a future addition to this
+  form doesn't reintroduce the same outline-clipping bug found and fixed there.
+
 ## Component/type changes
 
-`SubTaskForm.tsx` (extended — heading, renamed create-mode submit button, create-mode Cancel):
+`SubTaskForm.tsx` (extended — heading, renamed create-mode submit button, create-mode Cancel; Round 2
+amendment gives the Sub-task name field the shared quiet-label typography and splits content into a
+scrollable body + pinned, right-aligned footer):
 
 ```tsx
 const headingId = `sub-task-form-title-${mode}`
 
 // ...
 
-<h3 id={headingId}>{mode === 'edit' ? 'Rename sub-task' : 'Add sub-task'}</h3>
+<form onSubmit={handleSubmit} noValidate className={styles.form}>
+  <div className={styles.scrollBody}>
+    <h3 id={headingId}>{mode === 'edit' ? 'Rename sub-task' : 'Add sub-task'}</h3>
 
-<div>{/* name field, unchanged */}</div>
+    <div className={styles.field}>
+      <label className={styles.fieldLabel} htmlFor={nameId}>Sub-task name</label>
+      <input id={nameId} /* ... */ />
+    </div>
 
-{validationError && <p>{validationError}</p>}
-{submitError && <p role="alert">{submitError}</p>}
-{isSubmitting && <output>Saving…</output>}
+    {validationError && <p>{validationError}</p>}
+    {submitError && <p role="alert">{submitError}</p>}
+    {isSubmitting && <output>Saving…</output>}
+  </div>
 
-<button type="submit" disabled={isSubmitting}>
-  {mode === 'edit' ? 'Save changes' : 'Save sub-task'}
-</button>
-{onCancel && (
-  <button type="button" onClick={onCancel}>
-    Cancel
-  </button>
-)}
+  <div className={styles.actions}>
+    <button type="submit" disabled={isSubmitting}>
+      {mode === 'edit' ? 'Save changes' : 'Save sub-task'}
+    </button>
+    {onCancel && (
+      <button type="button" onClick={onCancel}>
+        Cancel
+      </button>
+    )}
+  </div>
+</form>
+```
+
+`SubTaskForm.module.css` (Round 2 amendment — same `.form`/`.scrollBody`/`.fieldLabel`/`.actions`
+structure as `ActivityForm.module.css`):
+
+```css
+.form { display: flex; flex-direction: column; min-height: 0; }
+.scrollBody { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding: 0 6px; margin: 0 -6px; }
+.fieldLabel { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.actions { display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0; border-top: 1px solid var(--border); }
 ```
 
 `SubTaskList.tsx` (state and rendering — fetch/loading/error/empty states, delete flow, and the
@@ -302,16 +349,20 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-014-AC-01 — no `SubTaskForm` renders while `formTarget` is `null`
-- [ ] FRONTEND-014-AC-02 — "Add sub-task" sets `formTarget` to `'create'` (when not `readOnly`)
-- [ ] FRONTEND-014-AC-03 — `formTarget === 'create'` opens the modal with `SubTaskForm` in create mode
-- [ ] FRONTEND-014-AC-04 — `readOnly` renders no "Add sub-task" control
-- [ ] FRONTEND-014-AC-05 — "Rename" sets `formTarget` to that row's `SubTask` (when not `readOnly`)
-- [ ] FRONTEND-014-AC-06 — `formTarget` as a `SubTask` opens the modal with `SubTaskForm` in edit mode
-- [ ] FRONTEND-014-AC-07 — `SubTaskForm` heading + `id` wired to `Modal`'s `titleId`
-- [ ] FRONTEND-014-AC-08 — create-mode submit button renamed "Save sub-task"
-- [ ] FRONTEND-014-AC-09 — create mode gains a Cancel button, same `onCancel` as edit mode
-- [ ] FRONTEND-014-AC-10 — Cancel or successful submit sets `formTarget` to `null`
-- [ ] FRONTEND-014-AC-11 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
-- [ ] FRONTEND-014-AC-12 — a second Add/Rename while open retargets, never a second dialog
-- [ ] FRONTEND-014-AC-13 — modal renders correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-014-AC-01 — no `SubTaskForm` renders while `formTarget` is `null`
+- [x] FRONTEND-014-AC-02 — "Add sub-task" sets `formTarget` to `'create'` (when not `readOnly`)
+- [x] FRONTEND-014-AC-03 — `formTarget === 'create'` opens the modal with `SubTaskForm` in create mode
+- [x] FRONTEND-014-AC-04 — `readOnly` renders no "Add sub-task" control
+- [x] FRONTEND-014-AC-05 — "Rename" sets `formTarget` to that row's `SubTask` (when not `readOnly`)
+- [x] FRONTEND-014-AC-06 — `formTarget` as a `SubTask` opens the modal with `SubTaskForm` in edit mode
+- [x] FRONTEND-014-AC-07 — `SubTaskForm` heading + `id` wired to `Modal`'s `titleId`
+- [x] FRONTEND-014-AC-08 — create-mode submit button renamed "Save sub-task"
+- [x] FRONTEND-014-AC-09 — create mode gains a Cancel button, same `onCancel` as edit mode
+- [x] FRONTEND-014-AC-10 — Cancel or successful submit sets `formTarget` to `null`
+- [x] FRONTEND-014-AC-11 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
+- [x] FRONTEND-014-AC-12 — a second Add/Rename while open retargets, never a second dialog
+- [x] FRONTEND-014-AC-13 — modal renders correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-014-AC-14 — Sub-task name label shares the quiet-label typography, stacked above its input
+- [x] FRONTEND-014-AC-15 — content scrolls independently of the pinned, right-aligned Save/Cancel footer
+- [x] FRONTEND-014-AC-16 — restyled form + pinned footer render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-014-AC-17 — `.scrollBody` reserves the same outline-clearance padding as `ActivityForm`'s, for consistency

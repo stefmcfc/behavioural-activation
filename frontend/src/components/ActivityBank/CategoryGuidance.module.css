@@ -1,0 +1,16 @@
+.guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.guidance strong {
+  color: var(--text-h);
+}
+
+.guidance em {
+  font-style: normal;
+  opacity: 0.8;
+}

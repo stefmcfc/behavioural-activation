@@ -1,15 +1,41 @@
+import { useSyncExternalStore, type CSSProperties } from 'react'
 import type { ActivityCategory } from '../../types/activity'
+import { getCategoryColor, subscribeToCategoryColorChanges } from '../../utils/categoryColors'
+import { getReadableTextColor } from '../../utils/contrast'
+import { CATEGORY_LABELS } from '../../utils/categoryLabels'
+import styles from './CategoryPicker.module.css'
 
-interface CategoryOption {
-  value: ActivityCategory
-  label: string
+const ALL_CATEGORIES: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
+
+interface CategoryOptionProps {
+  readonly category: ActivityCategory
+  readonly checked: boolean
+  readonly name: string
+  readonly onChange: (category: ActivityCategory) => void
 }
 
-const CATEGORY_OPTIONS: readonly CategoryOption[] = [
-  { value: 'ROUTINE', label: 'Routine' },
-  { value: 'NECESSARY', label: 'Necessary' },
-  { value: 'PLEASURABLE', label: 'Pleasurable' },
-]
+function CategoryOption({ category, checked, name, onChange }: CategoryOptionProps) {
+  const backgroundColor = useSyncExternalStore(subscribeToCategoryColorChanges, () =>
+    getCategoryColor(category),
+  )
+  const textColor = getReadableTextColor(backgroundColor)
+  const style: CSSProperties | undefined = checked
+    ? { backgroundColor, borderColor: backgroundColor, color: textColor }
+    : undefined
+
+  return (
+    <label className={styles.option} style={style}>
+      <input
+        type="radio"
+        name={name}
+        value={category}
+        checked={checked}
+        onChange={() => onChange(category)}
+      />
+      {CATEGORY_LABELS[category]}
+    </label>
+  )
+}
 
 interface CategoryPickerProps {
   readonly value: ActivityCategory | null
@@ -19,20 +45,19 @@ interface CategoryPickerProps {
 
 export function CategoryPicker({ value, onChange, name = 'category' }: CategoryPickerProps) {
   return (
-    <fieldset>
+    <fieldset className={styles.fieldset}>
       <legend>Category</legend>
-      {CATEGORY_OPTIONS.map((option) => (
-        <label key={option.value}>
-          <input
-            type="radio"
+      <div className={styles.group}>
+        {ALL_CATEGORIES.map((category) => (
+          <CategoryOption
+            key={category}
+            category={category}
+            checked={value === category}
             name={name}
-            value={option.value}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
+            onChange={onChange}
           />
-          {option.label}
-        </label>
-      ))}
+        ))}
+      </div>
     </fieldset>
   )
 }

@@ -1,0 +1,38 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.scrollBody {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 0 6px;
+  margin: 0 -6px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 1rem 0;
+}
+
+.fieldLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}

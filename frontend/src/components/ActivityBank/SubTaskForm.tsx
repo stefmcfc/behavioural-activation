@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
+import styles from './SubTaskForm.module.css'
 
 interface SubTaskFormProps {
   readonly mode: 'create' | 'edit'
@@ -62,32 +63,41 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
   }
 
   const nameId = `sub-task-name-${mode}-${subTask?.id ?? 'new'}`
+  const headingId = `sub-task-form-title-${mode}`
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <div>
-        <label htmlFor={nameId}>Sub-task name</label>
-        <input
-          id={nameId}
-          name="name"
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
+    <form onSubmit={handleSubmit} noValidate className={styles.form}>
+      <div className={styles.scrollBody}>
+        <h3 id={headingId}>{mode === 'edit' ? 'Rename sub-task' : 'Add sub-task'}</h3>
+
+        <div className={styles.field}>
+          <label className={styles.fieldLabel} htmlFor={nameId}>
+            Sub-task name
+          </label>
+          <input
+            id={nameId}
+            name="name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </div>
+
+        {validationError && <p>{validationError}</p>}
+        {submitError && <p role="alert">{submitError}</p>}
+        {isSubmitting && <output>Saving…</output>}
       </div>
 
-      {validationError && <p>{validationError}</p>}
-      {submitError && <p role="alert">{submitError}</p>}
-      {isSubmitting && <output>Saving…</output>}
-
-      <button type="submit" disabled={isSubmitting}>
-        {mode === 'edit' ? 'Save changes' : 'Add sub-task'}
-      </button>
-      {onCancel && (
-        <button type="button" onClick={onCancel}>
-          Cancel
+      <div className={styles.actions}>
+        <button type="submit" disabled={isSubmitting}>
+          {mode === 'edit' ? 'Save changes' : 'Save sub-task'}
         </button>
-      )}
+        {onCancel && (
+          <button type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   )
 }
