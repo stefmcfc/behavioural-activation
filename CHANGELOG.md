@@ -6,6 +6,22 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+- Reordered the Add/Edit activity modal so Category (with its guidance) appears before Name, and
+  replaced the plain radio-button category picker with coloured pills using each category's live
+  Settings colour — matching `CategoryChip` elsewhere in the app, and updating live if the colour is
+  changed while the modal is open.
+- Gave the Name, Description, and Sub-task name fields the same quiet-label typography (small, bold,
+  uppercase, letter-spaced) as the category picker's legend, stacked above their inputs instead of
+  inline beside them.
+- Right-aligned the Save/Cancel buttons in the Add/Edit Activity and Add/Rename Sub-task modals.
+- Added a short explanatory note next to the Repeatable checkbox distinguishing repeatable activities
+  (recur indefinitely) from one-off activities (auto-archived once every planned occurrence is
+  completed).
+- Fixed a regression where the Add/Edit Activity and Add/Rename Sub-task modals' Save/Cancel buttons
+  could be clipped outside the dialog's visible bounds once their content grew taller than the
+  dialog's max height — both forms now use an independently-scrollable content area with a pinned
+  footer, matching the Weekly Planner picker's existing layout.
+
 ## [0.10.0] - 2026-09-30
 
 - Added an "Add activity" button to the Activity Bank, and moved activity creation *and* editing

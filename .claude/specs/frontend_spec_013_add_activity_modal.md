@@ -1,8 +1,10 @@
 # Add/Edit Activity Modal with Category Guidance (Frontend)
 
-**Status**: Implemented — all 16 ACs verified (2026-09-30), including FRONTEND-013-AC-16 (modal and
-`CategoryGuidance` confirmed legible in a real browser, both Light and Dark). Full real-browser pass
-also confirmed the create→list, edit→prefill→save, and Cancel flows end to end against real Postgres.
+**Status**: Implemented — all 23 ACs verified (2026-09-30), including FRONTEND-013-AC-16 and the
+Round 2 amendment's FRONTEND-013-AC-23 (modal, `CategoryGuidance`, coloured category pills, and the
+repeatable info box all confirmed legible in a real browser, both Light and Dark). Full real-browser
+pass also confirmed the create→list, edit→prefill→save, and Cancel flows end to end against real
+Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now.
@@ -154,6 +156,52 @@ laid out — in both themes, not just structurally correct in the DOM.
   both Light and Dark themes. Verified by a real-browser check, since jsdom does not render CSS
   (`frontend_conventions.md`'s Testing Strategy note).
 
+### Requirement 7 — Round 2 amendment: visual polish after first real-browser review
+
+After PR #11 (implementing this spec and `frontend_spec_014_add_subtask_modal.md`) was opened, the
+user reviewed real-browser screenshots and asked for five refinements, confirmed 2026-09-30: (1)
+Category should appear before Name, not after; (2) Category options should render as coloured pills
+matching the app's live category colours, not plain radio buttons; (3) the Name/Description labels
+should share the same quiet typography as the Category legend, with the input stacked underneath
+rather than inline; (4) Save/Cancel should be right-aligned; (5) an info box near "Repeatable" should
+explain what repeatable vs. one-off means in this app's context. Implementing (3)/(4) surfaced a
+regression: the taller form (guidance text + new hint) overflowed `Modal`'s
+`max-height: min(85vh, 40rem)` with `overflow: hidden`, clipping the Save/Cancel buttons entirely off
+-screen and out of the accessibility tree. Fixed by giving `ActivityForm` the same scrollable-body +
+pinned-footer split `AssignActivityPicker` already uses (`frontend_spec_009`).
+
+- **FRONTEND-013-AC-17** [AUTO]: `ActivityForm` shall render `CategoryPicker` (and its adjacent
+  `CategoryGuidance`) before the Name field, in both create and edit mode.
+- **FRONTEND-013-AC-18** [MANUAL]: Each `CategoryPicker` option shall render as a coloured pill using
+  that category's live colour from `getCategoryColor` (`utils/categoryColors.ts` — the same
+  Settings-customisable colours `CategoryChip` uses), with `getReadableTextColor` applied to the
+  selected pill's text, and shall update live if the user changes a category colour in Settings while
+  the modal is open (`useSyncExternalStore(subscribeToCategoryColorChanges, ...)`, same mechanism as
+  `CategoryChip`). Verified by a real-browser check — colour contrast isn't visible to jsdom.
+  Unselected pills use the theme's neutral `--surface`/`--border`, not a category colour.
+  Note: this AC also resolves the "awkward fieldset/legend indentation" feedback — replacing the
+  bare-`<fieldset>`/radio layout removes the browser's default fieldset border and padding as a
+  byproduct of the new pill markup, not a separate change.
+- **FRONTEND-013-AC-19** [AUTO]: The Name and Description fields' `<label>` elements shall share
+  `CategoryPicker`'s legend typography (small, bold, uppercase, letter-spaced — the shared "quiet
+  label" convention already used elsewhere in this app, e.g. `PlannerGrid`'s day/slot labels), each
+  stacked directly above its input rather than inline beside it.
+- **FRONTEND-013-AC-20** [AUTO]: `ActivityForm`'s Save/Cancel buttons shall be right-aligned within
+  their footer row.
+- **FRONTEND-013-AC-21** [AUTO]: `ActivityForm` shall render a short explanatory note next to the
+  Repeatable checkbox distinguishing repeatable activities (default; recur indefinitely) from one-off
+  activities (auto-archived once every planned occurrence is completed — per
+  `frontend_spec_006_repeatable_activities.md`'s existing auto-archive behaviour, described here for
+  the user, not a new behaviour).
+- **FRONTEND-013-AC-22** [AUTO]: `ActivityForm` shall render its content (heading, `CategoryPicker`,
+  `CategoryGuidance`, Name, Description, Repeatable + hint, and any validation/submit error) inside an
+  independently-scrollable region, with the Save/Cancel footer outside that region so it stays visible
+  regardless of content height or `Modal`'s `max-height` — fixing the clipped-footer regression
+  described above.
+- **FRONTEND-013-AC-23** [MANUAL]: The reordered, coloured-pill, restyled `ActivityForm` (including
+  the pinned footer under scroll) renders correctly in both Light and Dark themes, and the Save/Cancel
+  footer remains visible and operable after scrolling the form's content in a real browser.
+
 ## Component/type changes
 
 `utils/categoryGuidance.ts` (new):
@@ -217,34 +265,92 @@ export function CategoryGuidance() {
 ```
 
 `ActivityForm.tsx` (extended — heading, `CategoryGuidance`, renamed create-mode submit button,
-create-mode Cancel):
+create-mode Cancel; Round 2 amendment reorders Category before Name, gives Name/Description the
+shared quiet-label typography, and splits content into a scrollable body + pinned, right-aligned
+footer):
 
 ```tsx
 const headingId = `activity-form-title-${mode}`
 
 // ...
 
-<h3 id={headingId}>{mode === 'edit' ? 'Edit activity' : 'Add activity'}</h3>
+<form onSubmit={handleSubmit} noValidate className={styles.form}>
+  <div className={styles.scrollBody}>
+    <h3 id={headingId}>{mode === 'edit' ? 'Edit activity' : 'Add activity'}</h3>
 
-<div>{/* name field, unchanged */}</div>
+    <CategoryPicker value={category} onChange={setCategory} name={`category-${mode}`} />
+    <CategoryGuidance />
 
-<CategoryPicker value={category} onChange={setCategory} name={`category-${mode}`} />
-<CategoryGuidance />
+    <div className={styles.field}>
+      <label className={styles.fieldLabel} htmlFor={nameId}>Name</label>
+      <input id={nameId} /* ... */ />
+    </div>
 
-{/* description, repeatable fields unchanged */}
+    <div className={styles.field}>
+      <label className={styles.fieldLabel} htmlFor={descriptionId}>Description</label>
+      <textarea id={descriptionId} /* ... */ />
+    </div>
 
-<button type="submit" disabled={isSubmitting}>
-  {mode === 'edit' ? 'Save changes' : 'Save activity'}
-</button>
-{onCancel && (
-  <button type="button" onClick={onCancel}>
-    Cancel
-  </button>
-)}
+    <div className={styles.repeatableField}>
+      <label htmlFor={repeatableId}>
+        <input id={repeatableId} type="checkbox" /* ... */ />
+        Repeatable
+      </label>
+      <p className={styles.repeatableHint}>
+        Repeatable activities (the default) are things you do again and again, like "Go for a
+        walk" — they stay in your Activity Bank indefinitely. Turn this off for a one-off, like
+        "Apply for jobs": once every planned occurrence of it is completed, it's automatically
+        archived out of your everyday list (you can still view and unarchive it later).
+      </p>
+    </div>
+
+    {/* validation/submit error, unchanged */}
+  </div>
+
+  <div className={styles.actions}>
+    <button type="submit" disabled={isSubmitting}>
+      {mode === 'edit' ? 'Save changes' : 'Save activity'}
+    </button>
+    {onCancel && (
+      <button type="button" onClick={onCancel}>
+        Cancel
+      </button>
+    )}
+  </div>
+</form>
 ```
 
 `onCancel` becomes required in practice for both modes once `ActivityBank` always supplies it (the
 prop itself can stay optional in the type — no call site outside this spec's scope needs to change).
+
+`CategoryPicker.tsx` (Round 2 amendment — rewritten from plain radio buttons to coloured pills):
+
+```tsx
+function CategoryOption({ category, checked, name, onChange }: CategoryOptionProps) {
+  const backgroundColor = useSyncExternalStore(subscribeToCategoryColorChanges, () =>
+    getCategoryColor(category),
+  )
+  const textColor = getReadableTextColor(backgroundColor)
+  const style = checked ? { backgroundColor, borderColor: backgroundColor, color: textColor } : undefined
+
+  return (
+    <label className={styles.option} style={style}>
+      <input type="radio" name={name} value={category} checked={checked} onChange={() => onChange(category)} />
+      {CATEGORY_LABELS[category]}
+    </label>
+  )
+}
+```
+
+`ActivityForm.module.css` (Round 2 amendment — `.form`/`.scrollBody` split, `.fieldLabel` quiet-label
+typography, right-aligned `.actions` footer):
+
+```css
+.form { display: flex; flex-direction: column; min-height: 0; }
+.scrollBody { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.fieldLabel { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.actions { display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0; border-top: 1px solid var(--border); }
+```
 
 `ActivityBank.tsx` (state and rendering — the activity list/row markup, `showArchived`, delete/
 unarchive flows are all unrelated and unchanged):
@@ -314,7 +420,7 @@ itself):
 | `Modal.tsx` (`frontend_spec_009_add_picker_modal.md`) | Reused unmodified — must be implemented first |
 | `ActivityForm.tsx` (`frontend_spec_002_activity_bank.md`, extended by `frontend_spec_006_repeatable_activities.md`) | Extended — heading + `id`, `CategoryGuidance`, renamed create-mode submit button, create-mode Cancel |
 | `ActivityBank.tsx` | Extended — `formTarget` state replaces `editingActivity`, `Modal` wraps `ActivityForm` |
-| `CategoryPicker.tsx` | Unmodified — `CategoryGuidance` is a new, adjacent, separate block |
+| `CategoryPicker.tsx` | Round 2 amendment: rewritten from plain radio buttons to coloured pills (`getCategoryColor`/`getReadableTextColor`, same as `CategoryChip`) |
 | `CategoryGuidance.tsx` / `utils/categoryGuidance.ts` (new) | No prior art — new files this spec introduces |
 | `POST`/`PUT /api/v1/activities` (`planner_spec_002_activity_bank.md`) | Unchanged — `activityApi.create`/`update`'s request/response shape is untouched |
 | `frontend_spec_014_add_subtask_modal.md` (sibling, same batch) | Separate spec, same `Modal` reuse pattern — no shared state or component beyond `Modal` itself |
@@ -446,3 +552,10 @@ pass in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy no
 - [x] FRONTEND-013-AC-14 — `Modal`'s `onClose` (Escape/backdrop) sets `formTarget` to `null`, no API call
 - [x] FRONTEND-013-AC-15 — a second Add/Edit while open retargets, never a second dialog
 - [x] FRONTEND-013-AC-16 — modal + guidance render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-013-AC-17 — Category (+ guidance) renders before Name
+- [x] FRONTEND-013-AC-18 — Category options render as coloured, live-updating pills
+- [x] FRONTEND-013-AC-19 — Name/Description labels share the quiet-label typography, stacked above their inputs
+- [x] FRONTEND-013-AC-20 — Save/Cancel are right-aligned
+- [x] FRONTEND-013-AC-21 — a repeatable-vs-one-off explanatory note renders next to the checkbox
+- [x] FRONTEND-013-AC-22 — content scrolls independently of the pinned Save/Cancel footer
+- [x] FRONTEND-013-AC-23 — reordered/restyled form + pinned footer render correctly in Light and Dark (real-browser check)
