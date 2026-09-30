@@ -183,6 +183,32 @@ describe('FRONTEND-008-AC-12: Complete/Undo works with the card closed or open',
   })
 })
 
+describe('detail card renders as a modal, closed by clicking outside or pressing Escape', () => {
+  it('calls onCloseDetail when the overlay outside the card is clicked', async () => {
+    const onCloseDetail = vi.fn()
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
+
+    await userEvent.click(screen.getByRole('dialog', { name: /walk actions/i }).parentElement!)
+    expect(onCloseDetail).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call onCloseDetail when clicking inside the card', async () => {
+    const onCloseDetail = vi.fn()
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
+
+    await userEvent.click(screen.getByRole('dialog', { name: /walk actions/i }))
+    expect(onCloseDetail).not.toHaveBeenCalled()
+  })
+
+  it('calls onCloseDetail when Escape is pressed while the card is open', async () => {
+    const onCloseDetail = vi.fn()
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onCloseDetail })} />)
+
+    await userEvent.keyboard('{Escape}')
+    expect(onCloseDetail).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('FRONTEND-008-AC-14/AC-15: parent activity name shown only for sub-task occurrences', () => {
   it('renders the parent activity name for a sub-task, not for a whole-activity occurrence', () => {
     const { rerender } = render(<OccurrenceItem {...baseProps({ occurrence: subTaskOccurrence })} />)
@@ -190,6 +216,16 @@ describe('FRONTEND-008-AC-14/AC-15: parent activity name shown only for sub-task
 
     rerender(<OccurrenceItem {...baseProps()} />)
     expect(screen.queryByText('Write a novel')).not.toBeInTheDocument()
+  })
+
+  it('renders the parent activity name before the sub-task name', () => {
+    render(<OccurrenceItem {...baseProps({ occurrence: subTaskOccurrence })} />)
+
+    const parentName = screen.getByText('Write a novel')
+    const subTaskName = screen.getByRole('button', { name: 'Chapter one' })
+    expect(
+      parentName.compareDocumentPosition(subTaskName) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 
   it('never renders parent-activity text for a whole-activity occurrence even if the field is set', () => {

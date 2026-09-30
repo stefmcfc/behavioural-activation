@@ -1,7 +1,10 @@
 # Occurrence Detail Card (Frontend)
 
 **Status**: Implemented — all 22 ACs verified, including FRONTEND-008-AC-22 (today-highlight visual
-contrast confirmed in a real browser, both Light and Dark).
+contrast confirmed in a real browser, both Light and Dark). **Amended 2026-09-30** (still on
+`feature/occurrence-detail-card`, pre-merge): a post-implementation UX pass on the card raised four
+refinements, added below as FRONTEND-008-AC-23–AC-28 — see "Amendment" under Requirement 1 and
+Requirement 2.
 **Priority**: P2 — a direct response to the user's "far too much noise in the calendar" complaint
 about the Weekly Planner, raised after `frontend_spec_006_repeatable_activities.md` shipped.
 **Depends on**: `planner_spec_008_occurrence_detail_card.md` (paired backend spec —
@@ -50,6 +53,18 @@ reorganises that same surface without changing its underlying capabilities.
    state (`detailOpenId`) that the existing `confirmingRemoveId`/`movingId` states now nest inside of.
    A future, separate "Add picker modal" spec (`.claude/SPEC_CANDIDATES.md`) may introduce a real
    modal primitive later; this spec doesn't need to invent one to satisfy its own requirement.
+
+   **Amended 2026-09-30**: a real-browser pass surfaced that this card, rendered inline inside a
+   narrow grid cell (`PlannerGrid`'s columns are `minmax(8rem, 1fr)`), forced Move/Move to
+   bucket/Remove/Carry forward to wrap into a cramped vertical stack that pushed the rest of the
+   cell's content down awkwardly — "a bit cramped," in the user's words. The card now renders as a
+   `position: fixed` overlay (dimmed backdrop, centered card) instead of expanding inline within the
+   tile's own flex row. This is still not a React-portal dialog with focus-trap infrastructure — it's
+   the same DOM-inline `<div>`, just given fixed positioning so it visually escapes the cramped
+   column — so the architectural note above (no portal, no new modal primitive/library) still holds;
+   only the *visual* presentation changed, not the state-management shape. Clicking the backdrop
+   outside the card, or pressing Escape, now also closes it (both equivalent to Close — see
+   FRONTEND-008-AC-23–AC-25).
 
 2. **Show the parent activity on a sub-task occurrence's tile.** Consumes
    `planner_spec_008_occurrence_detail_card.md`'s new `parentActivityName` field.
@@ -122,6 +137,30 @@ every single item.
 - **FRONTEND-008-AC-12** [AUTO]: The Complete/Undo control shall render directly on the tile and
   remain clickable regardless of whether that occurrence's detail card is open or closed.
 
+#### Amendment — modal presentation, click-outside/Escape to close, divider and name-control visibility
+
+- **FRONTEND-008-AC-23** [AUTO]: While a detail card is open for an occurrence, `OccurrenceItem`
+  shall render it inside a full-viewport overlay (dimmed backdrop, card centered within it) rather
+  than expanding inline within the tile's own row.
+- **FRONTEND-008-AC-24** [AUTO]: When the overlay is activated outside the card's own bounds,
+  `OccurrenceItem` shall call `onCloseDetail()` — equivalent to Close, no move/remove/carry-forward
+  side effect. Activating inside the card itself shall not close it (the click must not propagate to
+  the overlay).
+- **FRONTEND-008-AC-25** [AUTO]: While a detail card is open, pressing Escape shall call
+  `onCloseDetail()`, equivalent to Close.
+- **FRONTEND-008-AC-26** [MANUAL]: The divider between two sibling occurrences stacked in the same
+  grid cell or bucket-list group (e.g. two occurrences in the same day/slot) is visually
+  distinguishable at a glance, not just structurally present — verified by a real-browser check
+  against both Light and Dark, since jsdom cannot render CSS/contrast
+  (`frontend_conventions.md`). Implemented via a new `--border-strong` theme token (higher-contrast
+  than the existing hairline `--border`), applied to `OccurrenceItem`'s row divider.
+- **FRONTEND-008-AC-27** [MANUAL]: The occurrence name control (the tile's click target that opens
+  its detail card) is visually identifiable as clickable at rest, not only revealed by a hover-only
+  text-decoration change — verified by a real-browser check against both Light and Dark. Implemented
+  by giving `.nameButton` a persistent pill/chip treatment (background + border, `appearance: none`
+  to prevent OS/browser native button chrome from leaking through as an unstyled hover artifact)
+  distinct in color from `CategoryChip`'s category-colored pill, so the two aren't visually confused.
+
 ### Requirement 2 — Show the parent activity on a sub-task occurrence's tile
 
 As a user, I want to see which activity a planned sub-task belongs to, so I don't have to remember or
@@ -136,6 +175,9 @@ guess from the sub-task's own name alone.
 - **FRONTEND-008-AC-15** [AUTO]: Where `occurrence.subTaskId` is `null` (a whole-activity occurrence),
   `OccurrenceItem` shall never render parent-activity text, regardless of `parentActivityName`'s
   value.
+- **FRONTEND-008-AC-28** [AUTO] (amends AC-14, added 2026-09-30): the parent activity name label
+  shall render before (precede in DOM order) the sub-task's own name control, not after —
+  read top-to-bottom/left-to-right as "which activity this belongs to" first, then "which sub-task."
 
 ### Requirement 3 — Completion as an accessible icon, not text
 
@@ -525,6 +567,12 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 - [x] FRONTEND-008-AC-13 — `PlannedOccurrence.parentActivityName` type field added
 - [x] FRONTEND-008-AC-14 — parent activity name shown for a sub-task occurrence when present
 - [x] FRONTEND-008-AC-15 — parent activity name never shown for a whole-activity occurrence
+- [x] FRONTEND-008-AC-23 — detail card renders inside a full-viewport dimmed overlay, not inline
+- [x] FRONTEND-008-AC-24 — clicking the overlay outside the card closes it; clicking inside doesn't
+- [x] FRONTEND-008-AC-25 — pressing Escape while the card is open closes it
+- [x] FRONTEND-008-AC-26 — sibling-occurrence divider visually distinguishable (real-browser check)
+- [x] FRONTEND-008-AC-27 — name control reads as clickable at rest, not hover-only (real-browser check)
+- [x] FRONTEND-008-AC-28 — parent activity name label precedes the sub-task name label
 - [x] FRONTEND-008-AC-16 — completion icon with accessible name "Completed" when completed
 - [x] FRONTEND-008-AC-17 — no completion indicator when not completed
 - [x] FRONTEND-008-AC-18 — today's weekday highlighted during the current week (day-columns: column; day-rows: section — amended by `frontend_spec_012`)

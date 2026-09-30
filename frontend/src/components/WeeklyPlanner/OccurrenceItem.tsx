@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
@@ -82,14 +82,27 @@ export function OccurrenceItem({
     }
   }
 
+  useEffect(() => {
+    if (!isDetailOpen) {
+      return
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onCloseDetail()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isDetailOpen, onCloseDetail])
+
   return (
     <li className={styles.row}>
-      <button type="button" className={styles.nameButton} onClick={handleNameClick}>
-        {occurrence.name}
-      </button>
       {occurrence.subTaskId !== null && occurrence.parentActivityName !== null && (
         <span className={styles.parentActivityName}>{occurrence.parentActivityName}</span>
       )}
+      <button type="button" className={styles.nameButton} onClick={handleNameClick}>
+        {occurrence.name}
+      </button>
       <CategoryChip category={occurrence.category} />
       {occurrence.completed && <CompletionIcon />}
       {occurrence.completed ? (
@@ -103,7 +116,14 @@ export function OccurrenceItem({
       )}
 
       {isDetailOpen && (
-        <div className={styles.detailCard} role="group" aria-label={`${occurrence.name} actions`}>
+        <div className={styles.detailOverlay} onClick={onCloseDetail}>
+          <div
+            className={styles.detailCard}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${occurrence.name} actions`}
+            onClick={(event) => event.stopPropagation()}
+          >
           {confirmingRemoveId === occurrence.id && (
             <span className={styles.actions}>
               <button
@@ -192,6 +212,7 @@ export function OccurrenceItem({
           <button type="button" className={styles.closeButton} onClick={onCloseDetail}>
             Close
           </button>
+          </div>
         </div>
       )}
     </li>

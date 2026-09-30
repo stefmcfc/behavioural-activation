@@ -427,15 +427,15 @@ describe('WeeklyPlanner', () => {
 
       await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
       expect(
-        screen.getByRole('group', { name: /go for a walk actions/i }),
+        screen.getByRole('dialog', { name: /go for a walk actions/i }),
       ).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: 'Paint' }))
 
       expect(
-        screen.queryByRole('group', { name: /go for a walk actions/i }),
+        screen.queryByRole('dialog', { name: /go for a walk actions/i }),
       ).not.toBeInTheDocument()
-      expect(screen.getByRole('group', { name: /paint actions/i })).toBeInTheDocument()
+      expect(screen.getByRole('dialog', { name: /paint actions/i })).toBeInTheDocument()
     })
   })
 

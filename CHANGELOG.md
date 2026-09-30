@@ -10,10 +10,16 @@ All notable changes to this project are documented in this file, in
 
 - Decluttered the Weekly Planner grid and weekend bucket list: each occurrence's tile now shows
   only its name, category, a completion icon, and a one-click Complete/Undo control. Move, Move to
-  bucket, Remove, and Carry forward have moved into an inline detail card, opened by activating the
+  bucket, Remove, and Carry forward have moved into a detail card, opened by activating the
   occurrence's name — relocated, not removed. A planned sub-task's tile now also shows which
   activity it belongs to (`parentActivityName`, resolved server-side), and the weekly grid
   highlights today's weekday column when viewing the current week.
+- Refined the occurrence detail card after a first real-browser pass: it now renders as a dimmed
+  overlay modal (was inline, which cramped narrow grid columns), closeable by its Close control,
+  clicking outside the card, or Escape. Also: a visibly stronger divider (`--border-strong`) between
+  two occurrences sharing a grid slot, a persistent pill/chip style on the clickable name control
+  (previously only visible on hover), and the parent-activity label now precedes the sub-task's own
+  name.
 
 ## [0.7.0] - 2026-09-29
 
