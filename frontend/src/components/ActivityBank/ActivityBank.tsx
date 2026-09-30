@@ -120,18 +120,20 @@ export function ActivityBank() {
     <section>
       <h2>Activity Bank</h2>
 
-      <label>
-        <input
-          type="checkbox"
-          checked={showArchived}
-          onChange={(event) => setShowArchived(event.target.checked)}
-        />
-        Show archived
-      </label>
+      <div className={styles.toolbar}>
+        <label className={styles.archivedToggle}>
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(event) => setShowArchived(event.target.checked)}
+          />
+          Show archived
+        </label>
 
-      <button type="button" onClick={() => setFormTarget('create')}>
-        Add activity
-      </button>
+        <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+          Add activity
+        </button>
+      </div>
 
       {loadError && (
         <p role="alert">

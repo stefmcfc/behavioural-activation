@@ -1,9 +1,10 @@
 # Add/Edit Activity Modal with Category Guidance (Frontend)
 
-**Status**: Implemented — all 24 ACs verified (2026-09-30), including FRONTEND-013-AC-16 and the
-Round 2 amendment's FRONTEND-013-AC-23/AC-24 (modal, `CategoryGuidance`, coloured category pills
-(including their focus outline, unclipped), and the repeatable info box all confirmed legible in a
-real browser, both Light and Dark). Full real-browser pass also confirmed the create→list,
+**Status**: Implemented — all 28 ACs verified (2026-09-30), including FRONTEND-013-AC-16, the
+Round 2 amendment's FRONTEND-013-AC-23/AC-24, and the Round 3 amendment's FRONTEND-013-AC-27/AC-28
+(modal, `CategoryGuidance`, coloured category pills (including their focus outline, unclipped), the
+repeatable info box, and the "Show archived"/"Add activity" toolbar all confirmed legible in a real
+browser, both Light and Dark). Full real-browser pass also confirmed the create→list,
 edit→prefill→save, and Cancel flows end to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
@@ -218,6 +219,34 @@ exactly on the scroll clip boundary (zero clearance), clipped by subpixel roundi
   both Light and Dark themes. `AssignActivityPicker`'s equivalent filter pills (`frontend_spec_009`)
   were checked and found not to exhibit this bug — its filter pills sit inside a padded `.panel`
   wrapper, giving their outline enough clearance already; no fix needed there.
+
+### Requirement 8 — Round 3 amendment: the "Add activity"/"Show archived" toolbar row
+
+After the Round 2 review, the user flagged the `ActivityBank` header row — "Show archived" and "Add
+activity", sitting directly under the "Activity Bank" `h2` — as visually inconsistent with the rest
+of the app: a plain native checkbox instead of a pill, "Add activity" left-aligned rather than
+right-aligned, and no visual grouping to read as a toolbar rather than just more list content.
+Confirmed in scope for this spec (not a new spec candidate) because "Add activity" is a control this
+spec itself introduced (Requirement 1) — its own presentation is fair game for the same real-browser
+polish pass the rest of the spec already went through, not a separate unrelated feature.
+
+- **FRONTEND-013-AC-25** [AUTO]: `ActivityBank` shall render "Show archived" and "Add activity"
+  inside a single shared container (`.toolbar`), rather than as bare siblings directly under the
+  `<h2>`.
+- **FRONTEND-013-AC-26** [AUTO]: Within that container, "Add activity" shall be right-aligned
+  (`margin-left: auto` inside a flex row).
+- **FRONTEND-013-AC-27** [MANUAL]: The "Show archived" checkbox shall render as a pill using the same
+  segmented-control idiom as `CategoryPicker`/Settings' theme picker (visually-hidden native
+  checkbox, `:has(input:checked)` for the filled/accent state, `:focus-within` outline) rather than a
+  bare native checkbox. Verified by a real-browser check in both Light and Dark that the checked and
+  unchecked states are both legible and the focus outline is not clipped (the same class of bug fixed
+  by `FRONTEND-013-AC-24` — this new pill is not inside a `.scrollBody`, so it isn't at risk, but the
+  real-browser check confirms that directly rather than assuming it).
+- **FRONTEND-013-AC-28** [MANUAL]: The `.toolbar` container shall render with a background and border
+  that visually distinguish it from the plain list rows below it, reading as a toolbar/header rather
+  than another content row — matching the existing bordered-panel treatment already used by
+  `AssignActivityPicker`'s `.panel` (`frontend_spec_009`). Verified by a real-browser check in both
+  Light and Dark.
 
 ## Component/type changes
 
@@ -439,13 +468,54 @@ itself):
 }
 ```
 
+`ActivityBank.tsx`/`ActivityBank.module.css` (Round 3 amendment — "Show archived"/"Add activity"
+toolbar):
+
+```tsx
+<div className={styles.toolbar}>
+  <label className={styles.archivedToggle}>
+    <input type="checkbox" checked={showArchived} onChange={/* ... */} />
+    Show archived
+  </label>
+
+  <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+    Add activity
+  </button>
+</div>
+```
+
+```css
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px; /* matches AssignActivityPicker's .panel */
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.archivedToggle { /* same segmented-pill idiom as CategoryPicker/.themeList */
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.85rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.archivedToggle:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.archivedToggle:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.archivedToggle input[type='checkbox'] { /* visually-hidden, same clip-rect technique */ }
+
+.addButton { margin-left: auto; }
+```
+
 ## Cross-references
 
 | This spec | Contracts against |
 |---|---|
 | `Modal.tsx` (`frontend_spec_009_add_picker_modal.md`) | Reused unmodified — must be implemented first |
 | `ActivityForm.tsx` (`frontend_spec_002_activity_bank.md`, extended by `frontend_spec_006_repeatable_activities.md`) | Extended — heading + `id`, `CategoryGuidance`, renamed create-mode submit button, create-mode Cancel |
-| `ActivityBank.tsx` | Extended — `formTarget` state replaces `editingActivity`, `Modal` wraps `ActivityForm` |
+| `ActivityBank.tsx` | Extended — `formTarget` state replaces `editingActivity`, `Modal` wraps `ActivityForm`; Round 3 amendment: "Show archived"/"Add activity" moved into a shared `.toolbar` container |
 | `CategoryPicker.tsx` | Round 2 amendment: rewritten from plain radio buttons to coloured pills (`getCategoryColor`/`getReadableTextColor`, same as `CategoryChip`) |
 | `CategoryGuidance.tsx` / `utils/categoryGuidance.ts` (new) | No prior art — new files this spec introduces |
 | `POST`/`PUT /api/v1/activities` (`planner_spec_002_activity_bank.md`) | Unchanged — `activityApi.create`/`update`'s request/response shape is untouched |
@@ -586,3 +656,7 @@ pass in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy no
 - [x] FRONTEND-013-AC-22 — content scrolls independently of the pinned Save/Cancel footer
 - [x] FRONTEND-013-AC-23 — reordered/restyled form + pinned footer render correctly in Light and Dark (real-browser check)
 - [x] FRONTEND-013-AC-24 — a focused category pill's outline is never clipped by `.scrollBody`'s overflow (real-browser check)
+- [x] FRONTEND-013-AC-25 — "Show archived" + "Add activity" share a single `.toolbar` container
+- [x] FRONTEND-013-AC-26 — "Add activity" is right-aligned within the toolbar
+- [x] FRONTEND-013-AC-27 — "Show archived" renders as a pill (segmented-control idiom), legible checked/unchecked, unclipped focus outline (real-browser check)
+- [x] FRONTEND-013-AC-28 — the toolbar has a background/border reading as a header, not a list row (real-browser check)

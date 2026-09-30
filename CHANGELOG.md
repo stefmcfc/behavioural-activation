@@ -24,6 +24,9 @@ All notable changes to this project are documented in this file, in
 - Fixed a bug where clicking a category pill in the Add/Edit Activity modal showed a focus outline
   clipped on its left edge — the scrollable content area now reserves enough padding to fully contain
   the outline.
+- Grouped the Activity Bank's "Show archived" and "Add activity" controls into a single bordered
+  toolbar row, right-aligned "Add activity", and replaced the plain "Show archived" checkbox with a
+  pill matching the rest of the app's segmented-control styling.
 
 ## [0.10.0] - 2026-09-30
 
