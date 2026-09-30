@@ -86,14 +86,13 @@ describe('FRONTEND-007-AC-25: occurrence rows match identically in grid and buck
   })
 })
 
-describe('FRONTEND-008-AC-01: at-rest tile hides Move/Move to bucket/Remove/Carry forward', () => {
+describe('FRONTEND-008-AC-01: at-rest tile hides Rearrange/Remove/Carry forward', () => {
   it('renders only name, category, and Complete when no card is open', () => {
     render(<OccurrenceItem {...baseProps()} />)
 
     expect(screen.getByRole('button', { name: 'Walk' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /complete/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^move$/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /move to bucket/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^rearrange$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^remove$/i })).not.toBeInTheDocument()
   })
 
@@ -104,7 +103,7 @@ describe('FRONTEND-008-AC-01: at-rest tile hides Move/Move to bucket/Remove/Carr
   })
 })
 
-describe('FRONTEND-008-AC-02/AC-03/AC-04: activating the tile opens a card with Move/Move to bucket/Remove', () => {
+describe('FRONTEND-008-AC-02/AC-03/AC-04: activating the tile opens a card with Rearrange/Remove', () => {
   it('calls onOpenDetail, then renders the relocated actions once open', () => {
     const onOpenDetail = vi.fn()
     const { rerender } = render(<OccurrenceItem {...baseProps({ onOpenDetail })} />)
@@ -113,18 +112,30 @@ describe('FRONTEND-008-AC-02/AC-03/AC-04: activating the tile opens a card with 
     expect(onOpenDetail).toHaveBeenCalledWith('o1')
 
     rerender(<OccurrenceItem {...baseProps({ onOpenDetail, detailOpenId: 'o1' })} />)
-    expect(screen.getByRole('button', { name: /^move$/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /move to bucket/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^rearrange$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^remove$/i })).toBeInTheDocument()
+  })
+
+  it('offers Send to bucket inside Rearrange for a grid item, not for a bucket item', async () => {
+    const { rerender } = render(
+      <OccurrenceItem {...baseProps({ detailOpenId: 'o1', movingId: 'o1' })} />,
+    )
+    expect(screen.getByRole('button', { name: /send to bucket/i })).toBeInTheDocument()
+
+    rerender(
+      <OccurrenceItem
+        {...baseProps({ isBucketItem: true, detailOpenId: 'o1', movingId: 'o1' })}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: /send to bucket/i })).not.toBeInTheDocument()
   })
 })
 
-describe('FRONTEND-008-AC-05: an open bucket item card shows Carry forward, not Move to bucket', () => {
+describe('FRONTEND-008-AC-05: an open bucket item card shows Carry forward', () => {
   it('renders Carry forward for a bucket item with its card open', () => {
     render(<OccurrenceItem {...baseProps({ isBucketItem: true, detailOpenId: 'o1' })} />)
 
     expect(screen.getByRole('button', { name: /carry forward/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /move to bucket/i })).not.toBeInTheDocument()
   })
 })
 
@@ -148,18 +159,18 @@ describe('FRONTEND-008-AC-06: Remove inside the card enters the existing inline 
   })
 })
 
-describe('FRONTEND-008-AC-07: Move inside the card enters the existing day/slot-select sub-state', () => {
-  it('shows day/slot selects and Confirm move/Cancel after Move is activated', async () => {
+describe('FRONTEND-008-AC-07: Rearrange inside the card enters the existing day/slot-select sub-state', () => {
+  it('shows day/slot selects and Confirm rearrange/Cancel after Rearrange is activated', async () => {
     const onStartMove = vi.fn()
     const { rerender } = render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onStartMove })} />)
 
-    await userEvent.click(screen.getByRole('button', { name: /^move$/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^rearrange$/i }))
     expect(onStartMove).toHaveBeenCalledWith('o1')
 
     rerender(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', onStartMove, movingId: 'o1' })} />)
     expect(screen.getByLabelText(/new day/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/new slot/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /confirm move/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /confirm rearrange/i })).toBeInTheDocument()
   })
 })
 

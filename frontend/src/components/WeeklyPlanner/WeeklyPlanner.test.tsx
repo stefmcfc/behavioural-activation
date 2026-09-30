@@ -232,24 +232,25 @@ describe('WeeklyPlanner', () => {
       render(<WeeklyPlanner />)
 
       await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
-      await userEvent.click(await screen.findByRole('button', { name: /^move$/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /^rearrange$/i }))
       await userEvent.selectOptions(screen.getByLabelText(/new day/i), 'TUESDAY')
       await userEvent.selectOptions(screen.getByLabelText(/new slot/i), 'AFTERNOON')
-      await userEvent.click(screen.getByRole('button', { name: /confirm move/i }))
+      await userEvent.click(screen.getByRole('button', { name: /confirm rearrange/i }))
 
       expect(planApi.move).toHaveBeenCalledWith('1', { dayOfWeek: 'TUESDAY', slot: 'AFTERNOON' })
       expect(await screen.findByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-004-AC-24: "Move to bucket" clears dayOfWeek/slot', () => {
+  describe('FRONTEND-004-AC-24: "Send to bucket" clears dayOfWeek/slot', () => {
     it('calls planApi.move with both cleared', async () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([walk])
       vi.mocked(planApi.move).mockResolvedValue({ ...walk, dayOfWeek: null, slot: null })
       render(<WeeklyPlanner />)
 
       await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
-      await userEvent.click(await screen.findByRole('button', { name: /move to bucket/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /^rearrange$/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /send to bucket/i }))
 
       expect(planApi.move).toHaveBeenCalledWith('1', { dayOfWeek: null, slot: null })
     })
@@ -445,7 +446,7 @@ describe('WeeklyPlanner', () => {
       render(<WeeklyPlanner />)
 
       await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
-      await userEvent.click(screen.getByRole('button', { name: /^move$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /^rearrange$/i }))
       expect(screen.getByLabelText(/new day/i)).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: 'Paint' }))

@@ -14,8 +14,8 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.4rem;
-  margin-left: auto;
 }
 
 .moveControls {
@@ -43,6 +43,18 @@
 }
 
 .moveActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.sendToBucketButton {
+  margin-right: auto;
+}
+
+.moveConfirmActions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
@@ -126,7 +138,10 @@
   margin: -0.4rem 0 0.2rem;
 }
 
-.closeButton {
-  align-self: flex-start;
+.footer {
+  display: flex;
+  justify-content: flex-end;
   margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
 }

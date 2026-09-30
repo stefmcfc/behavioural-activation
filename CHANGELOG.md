@@ -25,6 +25,12 @@ All notable changes to this project are documented in this file, in
   occurrence's name, category, and its day/slot — or "Weekend bucket list" for an unscheduled item),
   and the Move sub-state's day/slot fields are legible and consistently spaced instead of cramped
   onto one wrapped line with mismatched font sizes.
+- Refined the occurrence detail card a third time: every CTA row is now consistently right-aligned,
+  with Close moved into its own footer below a divider instead of sitting left-aligned against
+  right-aligned rows above it. "Move" and "Move to bucket" have been consolidated into one
+  "Rearrange" area: the rest-state control is renamed "Rearrange", and its panel now offers either
+  picking a new day/slot ("Confirm rearrange") or a one-click "Send to bucket" (the renamed "Move to
+  bucket") as an alternative, rather than two separate top-level buttons.
 
 ## [0.7.0] - 2026-09-29
 

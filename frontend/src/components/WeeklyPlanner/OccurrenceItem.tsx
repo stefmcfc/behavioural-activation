@@ -182,16 +182,28 @@ export function OccurrenceItem({
               </span>
 
               <span className={styles.moveActions}>
-                <button
-                  type="button"
-                  onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
-                  disabled={isBusy}
-                >
-                  Confirm move
-                </button>
-                <button type="button" onClick={onCancelMove} disabled={isBusy}>
-                  Cancel
-                </button>
+                {!isBucketItem && (
+                  <button
+                    type="button"
+                    className={styles.sendToBucketButton}
+                    onClick={() => onMoveToBucket(occurrence.id)}
+                    disabled={isBusy}
+                  >
+                    Send to bucket
+                  </button>
+                )}
+                <span className={styles.moveConfirmActions}>
+                  <button
+                    type="button"
+                    onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
+                    disabled={isBusy}
+                  >
+                    Confirm rearrange
+                  </button>
+                  <button type="button" onClick={onCancelMove} disabled={isBusy}>
+                    Cancel
+                  </button>
+                </span>
               </span>
             </span>
           )}
@@ -199,17 +211,8 @@ export function OccurrenceItem({
           {confirmingRemoveId !== occurrence.id && movingId !== occurrence.id && (
             <span className={styles.actions}>
               <button type="button" onClick={() => onStartMove(occurrence.id)} disabled={isBusy}>
-                Move
+                Rearrange
               </button>
-              {!isBucketItem && (
-                <button
-                  type="button"
-                  onClick={() => onMoveToBucket(occurrence.id)}
-                  disabled={isBusy}
-                >
-                  Move to bucket
-                </button>
-              )}
               <button type="button" onClick={() => onStartRemove(occurrence.id)} disabled={isBusy}>
                 Remove
               </button>
@@ -225,9 +228,11 @@ export function OccurrenceItem({
             </span>
           )}
 
-          <button type="button" className={styles.closeButton} onClick={onCloseDetail}>
-            Close
-          </button>
+          <div className={styles.footer}>
+            <button type="button" onClick={onCloseDetail}>
+              Close
+            </button>
+          </div>
           </div>
         </div>
       )}
