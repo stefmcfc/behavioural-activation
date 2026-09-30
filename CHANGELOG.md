@@ -15,6 +15,12 @@ All notable changes to this project are documented in this file, in
   and behaviour (fetch, single-selection, Assign/Cancel) are unchanged; closing via Cancel, Escape,
   or a backdrop click all behave the same, and focus now moves into the dialog on open and returns
   to the originating "Add" control on close.
+- Added a category chip and a category filter (All/Routine/Necessary/Pleasurable) to the "Assign an
+  activity or sub-task" picker, and replaced its unstyled nested bullet list with a divider-
+  separated, indented row-group layout — the previous default browser bullets didn't combine well
+  with the new chips. Filtering keeps a non-matching activity visible if one of its sub-tasks still
+  matches (a sub-task's category is fixed at creation time and doesn't follow later edits to its
+  parent activity's category), so a matching sub-task is never hidden along with its parent.
 
 ## [0.8.0] - 2026-09-30
 

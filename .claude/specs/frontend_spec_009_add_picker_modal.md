@@ -1,9 +1,11 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Implemented — all 23 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+**Status**: Implemented — all 29 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
 backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
 confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
-originating "Add" control.
+originating "Add" control. **Amended same day** (still on `feature/add-picker-modal`, pre-merge):
+category chips, a category filter, and a bullet-free row-group layout for the picker's activity/
+sub-task list — FRONTEND-009-AC-24–AC-29, see Requirement 9.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -213,6 +215,48 @@ in both themes, not just structurally correct in the DOM.
   Dark themes. Verified by a real-browser check, since jsdom does not render CSS/backdrop
   (`frontend_conventions.md`'s Testing Strategy note). No automation route exists for this today;
   a future visual-regression tool (not present in this project) would be the route to automate it.
+
+### Requirement 9 — Amendment (2026-09-30): category display and filtering in the picker
+
+As a user picking from a potentially long activity/sub-task list, I want to see each item's
+category at a glance and filter down to just one, rather than scanning every name myself. Raised
+after seeing the relocated picker live: its nested sub-task `<ul>` had no styling at all (unlike the
+outer list, which already had `list-style: none` via `.panel`), so it fell back to the browser's
+default bullet markers — which read poorly once a `CategoryChip` pill sits on the same row.
+
+- **FRONTEND-009-AC-24** [AUTO]: Each activity row and each sub-task row in the picker shall render
+  a `CategoryChip` for its own category (`activity.category` / `subTask.category` respectively).
+- **FRONTEND-009-AC-25** [AUTO]: The picker shall render a category filter — "All" plus one option
+  per `ActivityCategory`, single-select (mirroring `Settings.tsx`'s `.themeList` segmented-pill
+  pattern: a visually-hidden radio group behind pill-styled labels) — above the activity list.
+  Selecting a category shall hide any activity row whose own category doesn't match the selection
+  and that has no sub-task matching it either.
+- **FRONTEND-009-AC-26** [AUTO]: Where an activity's own category doesn't match the selected filter
+  but at least one of its sub-tasks does, the activity row shall still render (so the matching
+  sub-task remains reachable, since a sub-task's category is fixed at creation time and is not
+  updated if its parent activity's category is later edited — confirmed via `SubTask.java`'s own
+  field comment and `ActivityService.update()`, which only touches the `Activity` row) — and only
+  that activity's non-matching sub-tasks shall be hidden, not all of them.
+- **FRONTEND-009-AC-27** [AUTO]: Where the selected filter is not "All" and no activity or sub-task
+  matches it, the picker shall render "No activities match this category." in place of the list —
+  distinct from the existing "No activities yet" empty state, which only applies when the activity
+  bank itself is empty.
+- **FRONTEND-009-AC-28** [AUTO]: The picker's activity list shall render with no native bullet
+  markers at any nesting level, and shall visually group each activity with its own sub-tasks —
+  divider-separated activity groups (matching the hairline-divider convention `OccurrenceItem`
+  already uses between sibling occurrences), sub-tasks indented under their activity with a
+  connector rule — rather than an unstyled nested `<ul>`.
+- **FRONTEND-009-AC-29** [MANUAL]: The category chips, filter pills, and the new row-group/divider
+  layout render correctly and legibly in both Light and Dark themes. Verified by a real-browser
+  check, since jsdom does not render CSS (`frontend_conventions.md`'s Testing Strategy note).
+
+**Note**: this amendment also narrows `frontend_spec_007_visual_refresh.md`'s
+`FRONTEND-007-AC-26` ("no bespoke button/input override" in `AssignActivityPicker.module.css`) —
+the visually-hidden `input[type="radio"]` this filter needs is the same established segmented-
+control idiom `Settings.module.css`'s `.themeList` already uses elsewhere in the app; it hides the
+native control rather than giving it a bespoke visible style, so it doesn't violate what that AC
+actually guards against (uniform *visible* button/input treatment). `moduleStyles.test.ts`'s guard
+for this file was narrowed accordingly (still forbids every other `input[type=...]`), not removed.
 
 ## Component/type changes
 
@@ -544,3 +588,9 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 - [x] FRONTEND-009-AC-21 — a second Add while open retargets, never a second dialog
 - [x] FRONTEND-009-AC-22 — dialog's accessible name is "Assign an activity or sub-task"
 - [x] FRONTEND-009-AC-23 — visually correct overlay in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-24 — each activity/sub-task row shows a `CategoryChip` for its own category
+- [x] FRONTEND-009-AC-25 — category filter hides non-matching activities (own + sub-task category)
+- [x] FRONTEND-009-AC-26 — a non-matching activity stays visible if a sub-task matches; only that sub-task's siblings are hidden
+- [x] FRONTEND-009-AC-27 — "No activities match this category." when the filter yields nothing
+- [x] FRONTEND-009-AC-28 — no native bullets; divider-separated, indented row-group layout
+- [x] FRONTEND-009-AC-29 — chips/filter/layout render correctly in Light and Dark (real-browser check)
