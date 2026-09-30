@@ -6,6 +6,29 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-30
+
+- Added a modal/dialog primitive (`Modal.tsx`, wrapping the native `<dialog>` element — zero new
+  dependencies) and relocated the Weekly Planner's "Assign an activity or sub-task" picker into it.
+  Activating "Add" on a grid cell or the weekend bucket list now opens the picker right there,
+  instead of jumping attention to a picker rendered at the very bottom of the page. Picker content
+  and behaviour (fetch, single-selection, Assign/Cancel) are unchanged; closing via Cancel, Escape,
+  or a backdrop click all behave the same, and focus now moves into the dialog on open and returns
+  to the originating "Add" control on close.
+- Added a category chip and a category filter (All/Routine/Necessary/Pleasurable) to the "Assign an
+  activity or sub-task" picker, and replaced its unstyled nested bullet list with a divider-
+  separated, indented row-group layout — the previous default browser bullets didn't combine well
+  with the new chips. Filtering keeps a non-matching activity visible if one of its sub-tasks still
+  matches (a sub-task's category is fixed at creation time and doesn't follow later edits to its
+  parent activity's category), so a matching sub-task is never hidden along with its parent.
+- Added a second filter (All/Repeatable/One-off) to the same picker, combining with the category
+  filter (both must match). Unlike the category filter, this one has no sub-task exception — it's
+  an activity-only attribute, so a sub-task's visibility always follows its parent activity's.
+- Bounded the modal's height and gave the picker's Assign/Cancel controls their own pinned,
+  right-aligned footer, so they stay visible and reachable regardless of how long the (now
+  filterable) activity list gets — previously the whole dialog, controls included, scrolled as one
+  block against the browser's default `<dialog>` sizing.
+
 ## [0.8.0] - 2026-09-30
 
 - Decluttered the Weekly Planner grid and weekend bucket list: each occurrence's tile now shows

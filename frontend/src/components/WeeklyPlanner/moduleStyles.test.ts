@@ -26,6 +26,11 @@ describe('FRONTEND-007-AC-26: assign picker panel + no bespoke button/input over
     const css = readFileSync(resolve(__dirname, './AssignActivityPicker.module.css'), 'utf-8')
     expect(css).toMatch(/\.panel\s*\{/)
     expect(css).not.toMatch(/\bbutton\s*\{/)
-    expect(css).not.toMatch(/input\[type=/)
+    // Amended by frontend_spec_009_add_picker_modal.md's category-filter addition: the visually-
+    // hidden `input[type="radio"]` paired with a pill-styled <label> is the same established
+    // segmented-control idiom Settings.module.css's .themeList already uses -- it hides the native
+    // control, it doesn't give it a bespoke visible style, so it doesn't violate the "uniform
+    // button/input treatment" this AC actually guards against. Still forbid every other input type.
+    expect(css).not.toMatch(/input\[type=["'](?!radio)/)
   })
 })

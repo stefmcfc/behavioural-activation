@@ -1,6 +1,14 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 36 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
+confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
+originating "Add" control. **Amended same day, three rounds** (still on `feature/add-picker-modal`,
+pre-merge): round one added category chips, a category filter, and a bullet-free row-group layout
+for the picker's activity/sub-task list — FRONTEND-009-AC-24–AC-29. Round two added a second,
+combinable repeatable/one-off filter — FRONTEND-009-AC-30–AC-32. Round three bounded `Modal`'s
+height and gave the picker an independently-scrollable body with a pinned, right-aligned Assign/
+Cancel footer — FRONTEND-009-AC-33–AC-36. All in Requirement 9.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -210,6 +218,93 @@ in both themes, not just structurally correct in the DOM.
   Dark themes. Verified by a real-browser check, since jsdom does not render CSS/backdrop
   (`frontend_conventions.md`'s Testing Strategy note). No automation route exists for this today;
   a future visual-regression tool (not present in this project) would be the route to automate it.
+
+### Requirement 9 — Amendment (2026-09-30): category display and filtering in the picker
+
+As a user picking from a potentially long activity/sub-task list, I want to see each item's
+category at a glance and filter down to just one, rather than scanning every name myself. Raised
+after seeing the relocated picker live: its nested sub-task `<ul>` had no styling at all (unlike the
+outer list, which already had `list-style: none` via `.panel`), so it fell back to the browser's
+default bullet markers — which read poorly once a `CategoryChip` pill sits on the same row.
+
+- **FRONTEND-009-AC-24** [AUTO]: Each activity row and each sub-task row in the picker shall render
+  a `CategoryChip` for its own category (`activity.category` / `subTask.category` respectively).
+- **FRONTEND-009-AC-25** [AUTO]: The picker shall render a category filter — "All" plus one option
+  per `ActivityCategory`, single-select (mirroring `Settings.tsx`'s `.themeList` segmented-pill
+  pattern: a visually-hidden radio group behind pill-styled labels) — above the activity list.
+  Selecting a category shall hide any activity row whose own category doesn't match the selection
+  and that has no sub-task matching it either.
+- **FRONTEND-009-AC-26** [AUTO]: Where an activity's own category doesn't match the selected filter
+  but at least one of its sub-tasks does, the activity row shall still render (so the matching
+  sub-task remains reachable, since a sub-task's category is fixed at creation time and is not
+  updated if its parent activity's category is later edited — confirmed via `SubTask.java`'s own
+  field comment and `ActivityService.update()`, which only touches the `Activity` row) — and only
+  that activity's non-matching sub-tasks shall be hidden, not all of them.
+- **FRONTEND-009-AC-27** [AUTO]: Where the selected filter is not "All" and no activity or sub-task
+  matches it, the picker shall render "No activities match this category." in place of the list —
+  distinct from the existing "No activities yet" empty state, which only applies when the activity
+  bank itself is empty.
+- **FRONTEND-009-AC-28** [AUTO]: The picker's activity list shall render with no native bullet
+  markers at any nesting level, and shall visually group each activity with its own sub-tasks —
+  divider-separated activity groups (matching the hairline-divider convention `OccurrenceItem`
+  already uses between sibling occurrences), sub-tasks indented under their activity with a
+  connector rule — rather than an unstyled nested `<ul>`.
+- **FRONTEND-009-AC-29** [MANUAL]: The category chips, filter pills, and the new row-group/divider
+  layout render correctly and legibly in both Light and Dark themes. Verified by a real-browser
+  check, since jsdom does not render CSS (`frontend_conventions.md`'s Testing Strategy note).
+- **FRONTEND-009-AC-30** [AUTO]: The picker shall render a second filter — "All"/"Repeatable"/
+  "One-off" (same segmented-pill pattern as AC-25) — above the activity list. Selecting a value
+  shall hide any activity whose own `repeatable` field doesn't match. Unlike the category filter,
+  this has no per-sub-task exception: `SubTask` carries no `repeatable` field of its own (it's an
+  `Activity`-only concept), so a sub-task's visibility for this filter always follows its parent
+  activity's — there is no "keep the activity visible for a matching sub-task" case to handle here.
+- **FRONTEND-009-AC-31** [AUTO]: The category filter and the repeatable/one-off filter combine with
+  AND logic — an activity (or, for the category dimension, one of its sub-tasks) must satisfy both
+  selected filters simultaneously to appear, not either one.
+- **FRONTEND-009-AC-32** [MANUAL]: With both filter rows present (category, then type), the picker
+  still lays out legibly in both Light and Dark themes — the second `<fieldset>` doesn't crowd or
+  visually compete with the first. Verified by a real-browser check.
+
+**Round three (same day, after seeing round two live)**: the growing filter/list content could push
+Assign/Cancel below the fold, and — since `Modal`'s `.dialog` had no `max-height` — the browser's
+default `<dialog>` sizing let the *whole* dialog (filters, list, and Assign/Cancel together) scroll
+as one block, so the controls needed for the picker's actual point (confirming a selection) could
+scroll out of view entirely.
+
+- **FRONTEND-009-AC-33** [AUTO]: `Modal`'s `.dialog` shall be bounded to a maximum height rather than
+  growing to fit arbitrarily tall content — this is a `Modal`-level change (`Modal.module.css`), so
+  it benefits every call site, not just this picker.
+- **FRONTEND-009-AC-34** [AUTO]: Within `AssignActivityPicker`, everything above the Assign/Cancel
+  row (heading, filters, activity/sub-task list, load/submit errors) shall sit inside its own
+  independently-scrollable region, so that region — not the dialog as a whole — is what scrolls when
+  content overflows.
+- **FRONTEND-009-AC-35** [AUTO]: The Assign/Cancel row shall render outside that scrollable region,
+  right-aligned (matching `OccurrenceItem`'s existing detail-card footer convention — a hairline
+  divider above a `justify-content: flex-end` row), and shall remain visible regardless of the
+  scrollable region's scroll position.
+- **FRONTEND-009-AC-36** [MANUAL]: With enough activities/sub-tasks to overflow the dialog's bounded
+  height, the internal list scrolls while the Assign/Cancel footer stays pinned and right-aligned, in
+  both Light and Dark themes. Verified by a real-browser check (jsdom doesn't lay out scroll
+  overflow meaningfully — `frontend_conventions.md`'s Testing Strategy note).
+
+**Real-data verification (2026-09-30)**: the user added a real "Test category change" activity
+(initially Pleasurable, with two sub-tasks) specifically to confirm AC-26's premise, then its
+category was edited to Necessary through the normal Activity Bank edit flow. Confirmed live: the
+activity's own chip updated to Necessary, its two sub-tasks kept showing the stale Pleasurable chip
+they were created with, and the filter behaved exactly as AC-25/AC-26 specify — filtering to
+Necessary showed the activity with its (non-matching) sub-tasks hidden; filtering to Pleasurable
+kept the (non-matching) activity visible specifically because its sub-tasks matched. This is real
+confirmation of the drift this spec's Requirement 9 rationale already described from code inspection
+alone — now also logged as its own entry in `.claude/ideas/future_ideas.md` ("Sub-task category
+drift when a parent activity's category is edited"), not fixed by this spec.
+
+**Note**: this amendment also narrows `frontend_spec_007_visual_refresh.md`'s
+`FRONTEND-007-AC-26` ("no bespoke button/input override" in `AssignActivityPicker.module.css`) —
+the visually-hidden `input[type="radio"]` this filter needs is the same established segmented-
+control idiom `Settings.module.css`'s `.themeList` already uses elsewhere in the app; it hides the
+native control rather than giving it a bespoke visible style, so it doesn't violate what that AC
+actually guards against (uniform *visible* button/input treatment). `moduleStyles.test.ts`'s guard
+for this file was narrowed accordingly (still forbids every other `input[type=...]`), not removed.
 
 ## Component/type changes
 
@@ -518,26 +613,39 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-009-AC-01 — closed `Modal` has no `open` attribute, no `role="dialog"` exposed
-- [ ] FRONTEND-009-AC-02 — `isOpen` false→true calls `showModal()`
-- [ ] FRONTEND-009-AC-03 — `isOpen` true→false calls `close()`
-- [ ] FRONTEND-009-AC-04 — opening moves focus to the dialog itself
-- [ ] FRONTEND-009-AC-05 — closing (any cause) restores focus to the pre-open element
-- [ ] FRONTEND-009-AC-06 — a click whose target is the dialog itself (backdrop) closes it
-- [ ] FRONTEND-009-AC-07 — `aria-labelledby={titleId}` gives the dialog its accessible name
-- [ ] FRONTEND-009-AC-08 — the native `close` event calls `onClose` exactly once
-- [ ] FRONTEND-009-AC-09 — grid "Add" sets `assignTarget` and opens the modal
-- [ ] FRONTEND-009-AC-10 — bucket "Add" sets `assignTarget` (null day/slot) and opens the modal
-- [ ] FRONTEND-009-AC-11 — `assignTarget` null renders `Modal` with `isOpen` false
-- [ ] FRONTEND-009-AC-12 — picker's fetch + single-selection pattern unchanged inside the modal
-- [ ] FRONTEND-009-AC-13 — picker's loading/error/empty states unchanged inside the modal
-- [ ] FRONTEND-009-AC-14 — picker's Assign/Cancel buttons and disabled behaviour unchanged
-- [ ] FRONTEND-009-AC-15 — Cancel sets `assignTarget` null, no `planApi.create` call
-- [ ] FRONTEND-009-AC-16 — successful assign appends the occurrence and closes the modal
-- [ ] FRONTEND-009-AC-17 — Escape closes with `assignTarget` null, no create call
-- [ ] FRONTEND-009-AC-18 — backdrop click closes with `assignTarget` null, no create call
-- [ ] FRONTEND-009-AC-19 — opening moves focus into the dialog, off the Add control
-- [ ] FRONTEND-009-AC-20 — closing (any of the four paths) returns focus to the Add control
-- [ ] FRONTEND-009-AC-21 — a second Add while open retargets, never a second dialog
-- [ ] FRONTEND-009-AC-22 — dialog's accessible name is "Assign an activity or sub-task"
-- [ ] FRONTEND-009-AC-23 — visually correct overlay in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-01 — closed `Modal` has no `open` attribute, no `role="dialog"` exposed
+- [x] FRONTEND-009-AC-02 — `isOpen` false→true calls `showModal()`
+- [x] FRONTEND-009-AC-03 — `isOpen` true→false calls `close()`
+- [x] FRONTEND-009-AC-04 — opening moves focus to the dialog itself
+- [x] FRONTEND-009-AC-05 — closing (any cause) restores focus to the pre-open element
+- [x] FRONTEND-009-AC-06 — a click whose target is the dialog itself (backdrop) closes it
+- [x] FRONTEND-009-AC-07 — `aria-labelledby={titleId}` gives the dialog its accessible name
+- [x] FRONTEND-009-AC-08 — the native `close` event calls `onClose` exactly once
+- [x] FRONTEND-009-AC-09 — grid "Add" sets `assignTarget` and opens the modal
+- [x] FRONTEND-009-AC-10 — bucket "Add" sets `assignTarget` (null day/slot) and opens the modal
+- [x] FRONTEND-009-AC-11 — `assignTarget` null renders `Modal` with `isOpen` false
+- [x] FRONTEND-009-AC-12 — picker's fetch + single-selection pattern unchanged inside the modal
+- [x] FRONTEND-009-AC-13 — picker's loading/error/empty states unchanged inside the modal
+- [x] FRONTEND-009-AC-14 — picker's Assign/Cancel buttons and disabled behaviour unchanged
+- [x] FRONTEND-009-AC-15 — Cancel sets `assignTarget` null, no `planApi.create` call
+- [x] FRONTEND-009-AC-16 — successful assign appends the occurrence and closes the modal
+- [x] FRONTEND-009-AC-17 — Escape closes with `assignTarget` null, no create call
+- [x] FRONTEND-009-AC-18 — backdrop click closes with `assignTarget` null, no create call
+- [x] FRONTEND-009-AC-19 — opening moves focus into the dialog, off the Add control
+- [x] FRONTEND-009-AC-20 — closing (any of the four paths) returns focus to the Add control
+- [x] FRONTEND-009-AC-21 — a second Add while open retargets, never a second dialog
+- [x] FRONTEND-009-AC-22 — dialog's accessible name is "Assign an activity or sub-task"
+- [x] FRONTEND-009-AC-23 — visually correct overlay in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-24 — each activity/sub-task row shows a `CategoryChip` for its own category
+- [x] FRONTEND-009-AC-25 — category filter hides non-matching activities (own + sub-task category)
+- [x] FRONTEND-009-AC-26 — a non-matching activity stays visible if a sub-task matches; only that sub-task's siblings are hidden
+- [x] FRONTEND-009-AC-27 — "No activities match this category." when the filter yields nothing
+- [x] FRONTEND-009-AC-28 — no native bullets; divider-separated, indented row-group layout
+- [x] FRONTEND-009-AC-29 — chips/filter/layout render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-30 — repeatable/one-off filter hides non-matching activities (whole-activity, no sub-task exception)
+- [x] FRONTEND-009-AC-31 — category and repeatable/one-off filters combine with AND logic
+- [x] FRONTEND-009-AC-32 — both filter rows lay out legibly in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-33 — `Modal`'s `.dialog` is height-bounded (benefits every call site)
+- [x] FRONTEND-009-AC-34 — picker content above Assign/Cancel scrolls independently
+- [x] FRONTEND-009-AC-35 — Assign/Cancel sit outside the scroll region, right-aligned, always visible
+- [x] FRONTEND-009-AC-36 — scroll/pinned-footer behaviour confirmed in Light and Dark (real-browser check)

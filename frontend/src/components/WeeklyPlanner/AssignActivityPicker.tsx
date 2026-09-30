@@ -2,11 +2,30 @@ import { useEffect, useState } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
-import type { Activity } from '../../types/activity'
+import type { Activity, ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { planApi } from '../../services/planApi'
 import type { SubTask } from '../../types/subTask'
+import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import styles from './AssignActivityPicker.module.css'
+
+type CategoryFilter = 'ALL' | ActivityCategory
+
+const CATEGORY_FILTER_OPTIONS: readonly { value: CategoryFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'ROUTINE', label: CATEGORY_LABELS.ROUTINE },
+  { value: 'NECESSARY', label: CATEGORY_LABELS.NECESSARY },
+  { value: 'PLEASURABLE', label: CATEGORY_LABELS.PLEASURABLE },
+]
+
+type RepeatableFilter = 'ALL' | 'REPEATABLE' | 'ONE_OFF'
+
+const REPEATABLE_FILTER_OPTIONS: readonly { value: RepeatableFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'REPEATABLE', label: 'Repeatable' },
+  { value: 'ONE_OFF', label: 'One-off' },
+]
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -52,6 +71,8 @@ export function AssignActivityPicker({
   const [selected, setSelected] = useState<Selection | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
+  const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
 
   useEffect(() => {
     let cancelled = false
@@ -106,9 +127,67 @@ export function AssignActivityPicker({
     }
   }
 
+  const visibleActivities = (activities ?? []).filter((activity) => {
+    if (repeatableFilter !== 'ALL') {
+      const matchesRepeatable =
+        repeatableFilter === 'REPEATABLE' ? activity.repeatable : !activity.repeatable
+      if (!matchesRepeatable) return false
+    }
+
+    if (categoryFilter === 'ALL') return true
+    if (activity.category === categoryFilter) return true
+    const subTasks = subTasksByActivity[activity.id] ?? []
+    return subTasks.some((subTask) => subTask.category === categoryFilter)
+  })
+
   return (
-    <section aria-label="Assign to plan">
-      <h3>Assign an activity or sub-task</h3>
+    <>
+      <div className={styles.scrollBody}>
+      <h3 id="assign-picker-title">Assign an activity or sub-task</h3>
+
+      {activities !== null && activities.length > 0 && (
+        <>
+          <fieldset className={styles.filterFieldset}>
+            <legend>Filter by category</legend>
+            <ul className={styles.filterGroup}>
+              {CATEGORY_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-category-filter"
+                      value={option.value}
+                      checked={categoryFilter === option.value}
+                      onChange={() => setCategoryFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+
+          <fieldset className={styles.filterFieldset}>
+            <legend>Filter by type</legend>
+            <ul className={styles.filterGroup}>
+              {REPEATABLE_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-repeatable-filter"
+                      value={option.value}
+                      checked={repeatableFilter === option.value}
+                      onChange={() => setRepeatableFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+        </>
+      )}
 
       {loadError && <p role="alert">{loadError}</p>}
       {activities === null && !loadError && <output>Loading activities…</output>}
@@ -117,24 +196,33 @@ export function AssignActivityPicker({
         <p>No activities yet. Add one to your activity bank first.</p>
       )}
 
-      {activities !== null && activities.length > 0 && (
+      {activities !== null && activities.length > 0 && visibleActivities.length === 0 && (
+        <p>No activities match these filters.</p>
+      )}
+
+      {visibleActivities.length > 0 && (
         <ul className={styles.panel}>
-          {activities.map((activity) => {
-            const subTasks = subTasksByActivity[activity.id] ?? []
+          {visibleActivities.map((activity) => {
+            const subTasks = (subTasksByActivity[activity.id] ?? []).filter(
+              (subTask) => categoryFilter === 'ALL' || subTask.category === categoryFilter,
+            )
             return (
-              <li key={activity.id}>
-                <button
-                  type="button"
-                  aria-pressed={selected?.activityId === activity.id}
-                  onClick={() => setSelected({ activityId: activity.id, subTaskId: null })}
-                >
-                  {activity.name}
-                </button>
+              <li key={activity.id} className={styles.activityGroup}>
+                <div className={styles.activityRow}>
+                  <button
+                    type="button"
+                    aria-pressed={selected?.activityId === activity.id}
+                    onClick={() => setSelected({ activityId: activity.id, subTaskId: null })}
+                  >
+                    {activity.name}
+                  </button>
+                  <CategoryChip category={activity.category} />
+                </div>
 
                 {subTasks.length > 0 && (
-                  <ul>
+                  <ul className={styles.subTaskList}>
                     {subTasks.map((subTask) => (
-                      <li key={subTask.id}>
+                      <li key={subTask.id} className={styles.subTaskRow}>
                         <button
                           type="button"
                           aria-pressed={selected?.subTaskId === subTask.id}
@@ -144,6 +232,7 @@ export function AssignActivityPicker({
                         >
                           {subTask.name}
                         </button>
+                        <CategoryChip category={subTask.category} />
                       </li>
                     ))}
                   </ul>
@@ -156,13 +245,16 @@ export function AssignActivityPicker({
 
       {submitError && <p role="alert">{submitError}</p>}
       {isSubmitting && <output>Assigning…</output>}
+      </div>
 
-      <button type="button" onClick={handleAssign} disabled={!selected || isSubmitting}>
-        Assign
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
-    </section>
+      <div className={styles.footer}>
+        <button type="button" onClick={handleAssign} disabled={!selected || isSubmitting}>
+          Assign
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </>
   )
 }

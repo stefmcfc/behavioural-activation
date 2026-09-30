@@ -225,6 +225,53 @@ describe('WeeklyPlanner', () => {
     })
   })
 
+  describe('FRONTEND-009-AC-09/AC-19/AC-22: grid Add opens the modal, named, and moves focus into it', () => {
+    it('opens a dialog labelled for assignment when a grid cell Add is activated', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /add.*monday.*morning/i }))
+
+      expect(
+        await screen.findByRole('dialog', { name: /assign an activity or sub-task/i }),
+      ).toHaveFocus()
+    })
+  })
+
+  describe('FRONTEND-009-AC-15/AC-20: Cancel closes the modal with no create call, focus returns to Add', () => {
+    it('closes on Cancel, calls no create, and returns focus to the Add control', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const addButton = await screen.findByRole('button', { name: /add.*monday.*morning/i })
+      await userEvent.click(addButton)
+      await screen.findByRole('dialog')
+
+      await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(planApi.create).not.toHaveBeenCalled()
+      expect(addButton).toHaveFocus()
+    })
+  })
+
+  describe('FRONTEND-009-AC-21: a second Add while open retargets, never a second dialog', () => {
+    it('retargets to the bucket list without stacking a second dialog', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /add.*monday.*morning/i }))
+      await screen.findByRole('dialog')
+
+      await userEvent.click(screen.getByRole('button', { name: /add to weekend bucket list/i }))
+
+      expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    })
+  })
+
   describe('FRONTEND-004-AC-23/AC-25: moving an occurrence to a new day/slot', () => {
     it('calls planApi.move with the selected day and slot and re-renders in the new cell', async () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([walk])

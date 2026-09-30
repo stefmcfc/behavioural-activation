@@ -219,7 +219,11 @@ unstyled section.
 - **FRONTEND-007-AC-26** [AUTO]: A new `AssignActivityPicker.module.css` shall apply the same flat
   panel treatment as AC-23/AC-24 to its activity/sub-task selection list, and shall define no
   component-level `button`/`input` selector of its own — its buttons and inputs rely entirely on the
-  global base styles from Requirement 3.
+  global base styles from Requirement 3. **Narrowed by `frontend_spec_009_add_picker_modal.md`'s
+  Requirement 9 amendment (2026-09-30)**: a visually-hidden `input[type="radio"]` behind a
+  pill-styled `<label>` (the same segmented-control idiom `Settings.module.css`'s `.themeList` uses)
+  is now permitted, since it carries no bespoke *visible* style — every other `input[type=...]` is
+  still forbidden.
 
 ### Requirement 7 — Login page restyle
 

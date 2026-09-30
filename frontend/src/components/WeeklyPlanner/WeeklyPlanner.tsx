@@ -4,6 +4,7 @@ import { ApiError } from '../../types/api'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { AssignActivityPicker, type AssignTarget } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
+import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
 
 function getErrorMessage(error: unknown): string {
@@ -112,6 +113,8 @@ export function WeeklyPlanner() {
     setOccurrences((previous) => (previous ? [...previous, occurrence] : [occurrence]))
     setAssignTarget(null)
   }
+
+  const handleCloseAssign = () => setAssignTarget(null)
 
   const handleMove = async (
     id: string,
@@ -285,14 +288,16 @@ export function WeeklyPlanner() {
         </>
       )}
 
-      {assignTarget && (
-        <AssignActivityPicker
-          weekStart={weekStart}
-          target={assignTarget}
-          onSuccess={handleAssignSuccess}
-          onCancel={() => setAssignTarget(null)}
-        />
-      )}
+      <Modal isOpen={assignTarget !== null} titleId="assign-picker-title" onClose={handleCloseAssign}>
+        {assignTarget && (
+          <AssignActivityPicker
+            weekStart={weekStart}
+            target={assignTarget}
+            onSuccess={handleAssignSuccess}
+            onCancel={handleCloseAssign}
+          />
+        )}
+      </Modal>
     </section>
   )
 }
