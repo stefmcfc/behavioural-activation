@@ -1,9 +1,9 @@
 # Add/Rename Sub-task Modal (Frontend)
 
-**Status**: Implemented — all 16 ACs verified (2026-09-30), including FRONTEND-014-AC-13 and the
-Round 2 amendment's FRONTEND-014-AC-16 (modal confirmed legible in a real browser, both Light and
-Dark, when triggered from a nested expanded activity row). Full real-browser pass also confirmed the
-add→list and rename→prefill→save flows end to end against real Postgres.
+**Status**: Implemented — all 17 ACs verified (2026-09-30), including FRONTEND-014-AC-13 and the
+Round 2 amendment's FRONTEND-014-AC-16/AC-17 (modal confirmed legible in a real browser, both Light
+and Dark, when triggered from a nested expanded activity row). Full real-browser pass also confirmed
+the add→list and rename→prefill→save flows end to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now, alongside `frontend_spec_013_add_activity_modal.md`.
@@ -141,6 +141,10 @@ rather than leaving `SubTaskForm` as the only form in the modal family without i
   `Modal`'s `max-height`, matching `frontend_spec_013`'s `ActivityForm` fix.
 - **FRONTEND-014-AC-16** [MANUAL]: The restyled `SubTaskForm` (quiet label, right-aligned pinned
   footer) renders correctly in both Light and Dark themes in a real browser.
+- **FRONTEND-014-AC-17** [AUTO]: `SubTaskForm`'s `.scrollBody` reserves the same horizontal padding
+  as `ActivityForm`'s (`frontend_spec_013_add_activity_modal.md`'s `FRONTEND-013-AC-24`), applied for
+  consistency even though `SubTaskForm` has no focusable pill today — so a future addition to this
+  form doesn't reintroduce the same outline-clipping bug found and fixed there.
 
 ## Component/type changes
 
@@ -185,7 +189,7 @@ structure as `ActivityForm.module.css`):
 
 ```css
 .form { display: flex; flex-direction: column; min-height: 0; }
-.scrollBody { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.scrollBody { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding: 0 6px; margin: 0 -6px; }
 .fieldLabel { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .actions { display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0; border-top: 1px solid var(--border); }
 ```
@@ -361,3 +365,4 @@ real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testin
 - [x] FRONTEND-014-AC-14 — Sub-task name label shares the quiet-label typography, stacked above its input
 - [x] FRONTEND-014-AC-15 — content scrolls independently of the pinned, right-aligned Save/Cancel footer
 - [x] FRONTEND-014-AC-16 — restyled form + pinned footer render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-014-AC-17 — `.scrollBody` reserves the same outline-clearance padding as `ActivityForm`'s, for consistency

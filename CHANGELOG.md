@@ -21,6 +21,9 @@ All notable changes to this project are documented in this file, in
   could be clipped outside the dialog's visible bounds once their content grew taller than the
   dialog's max height — both forms now use an independently-scrollable content area with a pinned
   footer, matching the Weekly Planner picker's existing layout.
+- Fixed a bug where clicking a category pill in the Add/Edit Activity modal showed a focus outline
+  clipped on its left edge — the scrollable content area now reserves enough padding to fully contain
+  the outline.
 
 ## [0.10.0] - 2026-09-30
 

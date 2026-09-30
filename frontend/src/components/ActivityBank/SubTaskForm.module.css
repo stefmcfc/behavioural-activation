@@ -8,6 +8,8 @@
   overflow-y: auto;
   min-height: 0;
   flex: 1 1 auto;
+  padding: 0 6px;
+  margin: 0 -6px;
 }
 
 .field {

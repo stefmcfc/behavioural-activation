@@ -1,10 +1,10 @@
 # Add/Edit Activity Modal with Category Guidance (Frontend)
 
-**Status**: Implemented — all 23 ACs verified (2026-09-30), including FRONTEND-013-AC-16 and the
-Round 2 amendment's FRONTEND-013-AC-23 (modal, `CategoryGuidance`, coloured category pills, and the
-repeatable info box all confirmed legible in a real browser, both Light and Dark). Full real-browser
-pass also confirmed the create→list, edit→prefill→save, and Cancel flows end to end against real
-Postgres.
+**Status**: Implemented — all 24 ACs verified (2026-09-30), including FRONTEND-013-AC-16 and the
+Round 2 amendment's FRONTEND-013-AC-23/AC-24 (modal, `CategoryGuidance`, coloured category pills
+(including their focus outline, unclipped), and the repeatable info box all confirmed legible in a
+real browser, both Light and Dark). Full real-browser pass also confirmed the create→list,
+edit→prefill→save, and Cancel flows end to end against real Postgres.
 **Priority**: P2 — from the "Activity Bank UX improvements" batch raised by the user right after
 `frontend_spec_006_repeatable_activities.md` shipped (`.claude/ideas/future_ideas.md`), confirmed
 2026-09-30 as worth specifying now.
@@ -202,6 +202,23 @@ pinned-footer split `AssignActivityPicker` already uses (`frontend_spec_009`).
   the pinned footer under scroll) renders correctly in both Light and Dark themes, and the Save/Cancel
   footer remains visible and operable after scrolling the form's content in a real browser.
 
+A follow-up real-browser check (same day, user-reported) found a further clipping bug in
+`CategoryPicker`'s pills: `.option:focus-within`'s `outline: 2px solid; outline-offset: 2px` (4px of
+total extension beyond the pill's border) was silently clipped on its left edge for the first pill in
+the row, because `.scrollBody`'s `overflow-y: auto` forces `overflow-x` to compute to `auto` too (per
+the CSS overflow spec, one non-`visible` axis forces the other away from `visible`), and `.group`
+(`CategoryPicker.module.css`) sits flush against `.scrollBody`'s own content edge with no horizontal
+padding to absorb the outline. Confirmed via `getBoundingClientRect()`: the outline's left edge sat
+exactly on the scroll clip boundary (zero clearance), clipped by subpixel rounding.
+
+- **FRONTEND-013-AC-24** [MANUAL]: `ActivityForm`'s `.scrollBody` (and `SubTaskForm`'s, for
+  consistency — `frontend_spec_014`) reserves enough horizontal padding to fully contain a focused
+  pill's outline (`outline-width` + `outline-offset`) without clipping, verified by a real-browser
+  check that the first category pill's focus outline renders fully on all four sides when clicked, in
+  both Light and Dark themes. `AssignActivityPicker`'s equivalent filter pills (`frontend_spec_009`)
+  were checked and found not to exhibit this bug — its filter pills sit inside a padded `.panel`
+  wrapper, giving their outline enough clearance already; no fix needed there.
+
 ## Component/type changes
 
 `utils/categoryGuidance.ts` (new):
@@ -347,7 +364,16 @@ typography, right-aligned `.actions` footer):
 
 ```css
 .form { display: flex; flex-direction: column; min-height: 0; }
-.scrollBody { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+.scrollBody {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  /* padding + matching negative margin: absorbs a focused pill's outline without
+     shifting content — overflow-y: auto forces overflow-x to auto too, so any
+     child flush against this edge would otherwise clip its own focus outline */
+  padding: 0 6px;
+  margin: 0 -6px;
+}
 .fieldLabel { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .actions { display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0; border-top: 1px solid var(--border); }
 ```
@@ -559,3 +585,4 @@ pass in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy no
 - [x] FRONTEND-013-AC-21 — a repeatable-vs-one-off explanatory note renders next to the checkbox
 - [x] FRONTEND-013-AC-22 — content scrolls independently of the pinned Save/Cancel footer
 - [x] FRONTEND-013-AC-23 — reordered/restyled form + pinned footer render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-013-AC-24 — a focused category pill's outline is never clipped by `.scrollBody`'s overflow (real-browser check)
