@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { Modal } from '../Modal/Modal'
 import styles from './OccurrenceItem.module.css'
 
 interface OccurrenceItemProps {
@@ -82,19 +83,6 @@ export function OccurrenceItem({
     }
   }
 
-  useEffect(() => {
-    if (!isDetailOpen) {
-      return
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCloseDetail()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isDetailOpen, onCloseDetail])
-
   return (
     <li className={styles.row}>
       {occurrence.subTaskId !== null && occurrence.parentActivityName !== null && (
@@ -125,127 +113,136 @@ export function OccurrenceItem({
         </button>
       )}
 
-      {isDetailOpen && (
-        <div className={styles.detailOverlay} onClick={onCloseDetail}>
-          <div
-            className={styles.detailCard}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${occurrence.name} actions`}
-            onClick={(event) => event.stopPropagation()}
-          >
-          <div className={styles.detailHeader}>
-            <span className={styles.detailName}>{occurrence.name}</span>
-            <CategoryChip category={occurrence.category} />
-          </div>
-          <p className={styles.detailLocation}>
-            {occurrence.dayOfWeek !== null && occurrence.slot !== null
-              ? `${DAY_LABELS[occurrence.dayOfWeek]} · ${SLOT_LABELS[occurrence.slot]}`
-              : 'Weekend bucket list'}
-          </p>
+      <Modal
+        isOpen={isDetailOpen}
+        ariaLabel={`${occurrence.name} actions`}
+        onClose={onCloseDetail}
+        className={styles.detailDialog}
+      >
+        {isDetailOpen && (
+          <>
+            <div className={styles.detailScrollBody}>
+              <div className={styles.detailHeader}>
+                <span className={styles.detailName}>{occurrence.name}</span>
+                <CategoryChip category={occurrence.category} />
+              </div>
+              <p className={styles.detailLocation}>
+                {occurrence.dayOfWeek !== null && occurrence.slot !== null
+                  ? `${DAY_LABELS[occurrence.dayOfWeek]} · ${SLOT_LABELS[occurrence.slot]}`
+                  : 'Weekend bucket list'}
+              </p>
 
-          {confirmingRemoveId === occurrence.id && (
-            <span className={styles.actions}>
-              <button
-                type="button"
-                onClick={() => onConfirmRemove(occurrence.id)}
-                disabled={isBusy}
-              >
-                Confirm remove
-              </button>
-              <button type="button" onClick={onCancelRemove} disabled={isBusy}>
-                Cancel
-              </button>
-            </span>
-          )}
-
-          {movingId === occurrence.id && (
-            <span className={styles.moveControls}>
-              <span className={styles.moveField}>
-                <label htmlFor={moveDaySelectId}>New day</label>
-                <select
-                  id={moveDaySelectId}
-                  value={moveDay}
-                  onChange={(event) => setMoveDay(event.target.value as PlanDayOfWeek)}
-                >
-                  {ALL_DAYS.map((day) => (
-                    <option key={day} value={day}>
-                      {DAY_LABELS[day]}
-                    </option>
-                  ))}
-                </select>
-              </span>
-
-              <span className={styles.moveField}>
-                <label htmlFor={moveSlotSelectId}>New slot</label>
-                <select
-                  id={moveSlotSelectId}
-                  value={moveSlot}
-                  onChange={(event) => setMoveSlot(event.target.value as PlanSlot)}
-                >
-                  {ALL_SLOTS.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {SLOT_LABELS[slot]}
-                    </option>
-                  ))}
-                </select>
-              </span>
-
-              <span className={styles.moveActions}>
-                {!isBucketItem && (
+              {confirmingRemoveId === occurrence.id && (
+                <span className={styles.actions}>
                   <button
                     type="button"
-                    className={styles.sendToBucketButton}
-                    onClick={() => onMoveToBucket(occurrence.id)}
+                    onClick={() => onConfirmRemove(occurrence.id)}
                     disabled={isBusy}
                   >
-                    Send to bucket
+                    Confirm remove
                   </button>
-                )}
-                <span className={styles.moveConfirmActions}>
-                  <button
-                    type="button"
-                    onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
-                    disabled={isBusy}
-                  >
-                    Confirm rearrange
-                  </button>
-                  <button type="button" onClick={onCancelMove} disabled={isBusy}>
+                  <button type="button" onClick={onCancelRemove} disabled={isBusy}>
                     Cancel
                   </button>
                 </span>
-              </span>
-            </span>
-          )}
-
-          {confirmingRemoveId !== occurrence.id && movingId !== occurrence.id && (
-            <span className={styles.actions}>
-              <button type="button" onClick={() => onStartMove(occurrence.id)} disabled={isBusy}>
-                Rearrange
-              </button>
-              <button type="button" onClick={() => onStartRemove(occurrence.id)} disabled={isBusy}>
-                Remove
-              </button>
-              {isBucketItem && (
-                <button
-                  type="button"
-                  onClick={() => onCarryForward(occurrence.id)}
-                  disabled={isBusy}
-                >
-                  Carry forward
-                </button>
               )}
-            </span>
-          )}
 
-          <div className={styles.footer}>
-            <button type="button" onClick={onCloseDetail}>
-              Close
-            </button>
-          </div>
-          </div>
-        </div>
-      )}
+              {movingId === occurrence.id && (
+                <span className={styles.moveControls}>
+                  <span className={styles.moveField}>
+                    <label htmlFor={moveDaySelectId}>New day</label>
+                    <select
+                      id={moveDaySelectId}
+                      value={moveDay}
+                      onChange={(event) => setMoveDay(event.target.value as PlanDayOfWeek)}
+                    >
+                      {ALL_DAYS.map((day) => (
+                        <option key={day} value={day}>
+                          {DAY_LABELS[day]}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+
+                  <span className={styles.moveField}>
+                    <label htmlFor={moveSlotSelectId}>New slot</label>
+                    <select
+                      id={moveSlotSelectId}
+                      value={moveSlot}
+                      onChange={(event) => setMoveSlot(event.target.value as PlanSlot)}
+                    >
+                      {ALL_SLOTS.map((slot) => (
+                        <option key={slot} value={slot}>
+                          {SLOT_LABELS[slot]}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+
+                  <span className={styles.moveActions}>
+                    {!isBucketItem && (
+                      <button
+                        type="button"
+                        className={styles.sendToBucketButton}
+                        onClick={() => onMoveToBucket(occurrence.id)}
+                        disabled={isBusy}
+                      >
+                        Send to bucket
+                      </button>
+                    )}
+                    <span className={styles.moveConfirmActions}>
+                      <button
+                        type="button"
+                        onClick={() => onConfirmMove(occurrence.id, moveDay, moveSlot)}
+                        disabled={isBusy}
+                      >
+                        Confirm rearrange
+                      </button>
+                      <button type="button" onClick={onCancelMove} disabled={isBusy}>
+                        Cancel
+                      </button>
+                    </span>
+                  </span>
+                </span>
+              )}
+
+              {confirmingRemoveId !== occurrence.id && movingId !== occurrence.id && (
+                <span className={styles.actions}>
+                  <button
+                    type="button"
+                    onClick={() => onStartMove(occurrence.id)}
+                    disabled={isBusy}
+                  >
+                    Rearrange
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onStartRemove(occurrence.id)}
+                    disabled={isBusy}
+                  >
+                    Remove
+                  </button>
+                  {isBucketItem && (
+                    <button
+                      type="button"
+                      onClick={() => onCarryForward(occurrence.id)}
+                      disabled={isBusy}
+                    >
+                      Carry forward
+                    </button>
+                  )}
+                </span>
+              )}
+            </div>
+
+            <div className={styles.footer}>
+              <button type="button" onClick={onCloseDetail}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </li>
   )
 }

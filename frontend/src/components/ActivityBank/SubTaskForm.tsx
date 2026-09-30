@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
@@ -33,7 +33,7 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 

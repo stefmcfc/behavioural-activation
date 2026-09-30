@@ -14,9 +14,9 @@ export function getThemePreference(): ThemePreference {
 
 function applyDataTheme(preference: ThemePreference): void {
   if (preference === 'system') {
-    document.documentElement.removeAttribute('data-theme')
+    delete document.documentElement.dataset.theme
   } else {
-    document.documentElement.setAttribute('data-theme', preference)
+    document.documentElement.dataset.theme = preference
   }
 }
 

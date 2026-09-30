@@ -7,7 +7,11 @@ import {
   setCategoryColor,
   subscribeToCategoryColorChanges,
 } from '../../utils/categoryColors'
-import { getThemePreference, setThemePreference, type ThemePreference } from '../../utils/theme'
+import {
+  getThemePreference,
+  setThemePreference as persistThemePreference,
+  type ThemePreference,
+} from '../../utils/theme'
 import styles from './Settings.module.css'
 
 const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
@@ -31,7 +35,7 @@ function getCategoryColorSnapshot(): Record<ActivityCategory, string> {
 }
 
 export function Settings() {
-  const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() =>
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     getThemePreference(),
   )
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => getSystemPrefersDark())
@@ -52,8 +56,8 @@ export function Settings() {
   )
 
   const handleThemeChange = (preference: ThemePreference) => {
+    persistThemePreference(preference)
     setThemePreference(preference)
-    setThemePreferenceState(preference)
   }
 
   const handleColorChange = (category: ActivityCategory, hex: string) => {
