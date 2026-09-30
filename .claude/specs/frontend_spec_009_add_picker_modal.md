@@ -1,12 +1,14 @@
 # "Add" Opens a Picker Modal (Frontend)
 
-**Status**: Implemented — all 32 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
+**Status**: Implemented — all 36 ACs verified (2026-09-30), including FRONTEND-009-AC-23 (modal
 backdrop/positioning confirmed in a real browser, both Light and Dark). Real-browser pass also
 confirmed the full click-Add→pick→Assign happy path and Escape-to-close with focus returning to the
-originating "Add" control. **Amended same day, two rounds** (still on `feature/add-picker-modal`,
+originating "Add" control. **Amended same day, three rounds** (still on `feature/add-picker-modal`,
 pre-merge): round one added category chips, a category filter, and a bullet-free row-group layout
 for the picker's activity/sub-task list — FRONTEND-009-AC-24–AC-29. Round two added a second,
-combinable repeatable/one-off filter — FRONTEND-009-AC-30–AC-32. Both in Requirement 9.
+combinable repeatable/one-off filter — FRONTEND-009-AC-30–AC-32. Round three bounded `Modal`'s
+height and gave the picker an independently-scrollable body with a pinned, right-aligned Assign/
+Cancel footer — FRONTEND-009-AC-33–AC-36. All in Requirement 9.
 **Priority**: P2 — chunk 2 of 4 from the Weekly Planner "too much noise"/navigation-friction UX
 batch raised after `frontend_spec_006_repeatable_activities.md` shipped. Chunk 1 (occurrence detail
 card) is `frontend_spec_008_occurrence_detail_card.md`, not yet implemented.
@@ -262,6 +264,28 @@ default bullet markers — which read poorly once a `CategoryChip` pill sits on 
 - **FRONTEND-009-AC-32** [MANUAL]: With both filter rows present (category, then type), the picker
   still lays out legibly in both Light and Dark themes — the second `<fieldset>` doesn't crowd or
   visually compete with the first. Verified by a real-browser check.
+
+**Round three (same day, after seeing round two live)**: the growing filter/list content could push
+Assign/Cancel below the fold, and — since `Modal`'s `.dialog` had no `max-height` — the browser's
+default `<dialog>` sizing let the *whole* dialog (filters, list, and Assign/Cancel together) scroll
+as one block, so the controls needed for the picker's actual point (confirming a selection) could
+scroll out of view entirely.
+
+- **FRONTEND-009-AC-33** [AUTO]: `Modal`'s `.dialog` shall be bounded to a maximum height rather than
+  growing to fit arbitrarily tall content — this is a `Modal`-level change (`Modal.module.css`), so
+  it benefits every call site, not just this picker.
+- **FRONTEND-009-AC-34** [AUTO]: Within `AssignActivityPicker`, everything above the Assign/Cancel
+  row (heading, filters, activity/sub-task list, load/submit errors) shall sit inside its own
+  independently-scrollable region, so that region — not the dialog as a whole — is what scrolls when
+  content overflows.
+- **FRONTEND-009-AC-35** [AUTO]: The Assign/Cancel row shall render outside that scrollable region,
+  right-aligned (matching `OccurrenceItem`'s existing detail-card footer convention — a hairline
+  divider above a `justify-content: flex-end` row), and shall remain visible regardless of the
+  scrollable region's scroll position.
+- **FRONTEND-009-AC-36** [MANUAL]: With enough activities/sub-tasks to overflow the dialog's bounded
+  height, the internal list scrolls while the Assign/Cancel footer stays pinned and right-aligned, in
+  both Light and Dark themes. Verified by a real-browser check (jsdom doesn't lay out scroll
+  overflow meaningfully — `frontend_conventions.md`'s Testing Strategy note).
 
 **Real-data verification (2026-09-30)**: the user added a real "Test category change" activity
 (initially Pleasurable, with two sub-tasks) specifically to confirm AC-26's premise, then its
@@ -621,3 +645,7 @@ via `WeeklyPlanner`) are the same `Modal`-level mechanism as AC-06/AC-08, exerci
 - [x] FRONTEND-009-AC-30 — repeatable/one-off filter hides non-matching activities (whole-activity, no sub-task exception)
 - [x] FRONTEND-009-AC-31 — category and repeatable/one-off filters combine with AND logic
 - [x] FRONTEND-009-AC-32 — both filter rows lay out legibly in Light and Dark (real-browser check)
+- [x] FRONTEND-009-AC-33 — `Modal`'s `.dialog` is height-bounded (benefits every call site)
+- [x] FRONTEND-009-AC-34 — picker content above Assign/Cancel scrolls independently
+- [x] FRONTEND-009-AC-35 — Assign/Cancel sit outside the scroll region, right-aligned, always visible
+- [x] FRONTEND-009-AC-36 — scroll/pinned-footer behaviour confirmed in Light and Dark (real-browser check)

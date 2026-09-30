@@ -24,6 +24,10 @@ All notable changes to this project are documented in this file, in
 - Added a second filter (All/Repeatable/One-off) to the same picker, combining with the category
   filter (both must match). Unlike the category filter, this one has no sub-task exception — it's
   an activity-only attribute, so a sub-task's visibility always follows its parent activity's.
+- Bounded the modal's height and gave the picker's Assign/Cancel controls their own pinned,
+  right-aligned footer, so they stay visible and reachable regardless of how long the (now
+  filterable) activity list gets — previously the whole dialog, controls included, scrolled as one
+  block against the browser's default `<dialog>` sizing.
 
 ## [0.8.0] - 2026-09-30
 

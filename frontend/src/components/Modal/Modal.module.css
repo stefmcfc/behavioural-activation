@@ -6,6 +6,10 @@
   box-shadow: var(--shadow);
   padding: 1.25rem;
   width: min(90vw, 32rem);
+  max-height: min(85vh, 40rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dialog::backdrop {

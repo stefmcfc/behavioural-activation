@@ -142,6 +142,7 @@ export function AssignActivityPicker({
 
   return (
     <>
+      <div className={styles.scrollBody}>
       <h3 id="assign-picker-title">Assign an activity or sub-task</h3>
 
       {activities !== null && activities.length > 0 && (
@@ -244,13 +245,16 @@ export function AssignActivityPicker({
 
       {submitError && <p role="alert">{submitError}</p>}
       {isSubmitting && <output>Assigning…</output>}
+      </div>
 
-      <button type="button" onClick={handleAssign} disabled={!selected || isSubmitting}>
-        Assign
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
+      <div className={styles.footer}>
+        <button type="button" onClick={handleAssign} disabled={!selected || isSubmitting}>
+          Assign
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </>
   )
 }
