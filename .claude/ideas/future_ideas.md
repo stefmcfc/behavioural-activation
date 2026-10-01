@@ -27,8 +27,9 @@ became, removed the "Activity Bank UX improvements" batch entirely now that ever
 either shipped or moved to `ROADMAP.md`/`SPEC_CANDIDATES.md`, fixed wording in the summary-strip
 entry that implied `frontend_spec_008` hadn't shipped yet, and removed the "Sub-task category
 drift" entry — now specced as `planner_spec_014_subtask_category_cascade.md`, see
-`ROADMAP.md`'s "Specced, coming soon"). Earlier review: 2026-08-27 (V1 high-level planning
-session).
+`ROADMAP.md`'s "Specced, coming soon". Later the same day: removed the "already-open sub-task panel
+doesn't refresh" entry too — now specced as `frontend_spec_023_subtask_panel_refresh_on_edit.md`).
+Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
 
