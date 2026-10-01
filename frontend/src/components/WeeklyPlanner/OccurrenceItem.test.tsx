@@ -339,3 +339,18 @@ describe('FRONTEND-021-AC-03: shows no repeatable icon on a grid cell, even when
     expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
   })
 })
+
+describe('FRONTEND-021-AC-04: shows no repeatable icon on a sub-task-sourced bucket item, even when repeatable is true', () => {
+  it('renders no RepeatableIcon for a sub-task occurrence regardless of its repeatable value', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...subTaskOccurrence, dayOfWeek: null, slot: null, repeatable: true },
+          isBucketItem: true,
+        })}
+      />,
+    )
+
+    expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+  })
+})

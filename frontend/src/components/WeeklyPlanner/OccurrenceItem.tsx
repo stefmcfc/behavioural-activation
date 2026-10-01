@@ -93,7 +93,7 @@ export function OccurrenceItem({
         {occurrence.name}
       </button>
       <CategoryChip category={occurrence.category} />
-      {isBucketItem && occurrence.repeatable && <RepeatableIcon />}
+      {isBucketItem && occurrence.subTaskId === null && occurrence.repeatable && <RepeatableIcon />}
       {occurrence.completed && <CompletionIcon />}
       {occurrence.completed ? (
         <button

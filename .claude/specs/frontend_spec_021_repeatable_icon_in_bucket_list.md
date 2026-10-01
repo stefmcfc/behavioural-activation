@@ -3,15 +3,19 @@
 **Status**: Implemented — `PlannedOccurrence.repeatable: boolean` added to
 `frontend/src/types/plan.ts`; `OccurrenceItem.tsx` renders the shared `RepeatableIcon`
 (`frontend/src/components/RepeatableIcon/RepeatableIcon.tsx`) between `CategoryChip` and the
-completion indicator, gated on `isBucketItem && occurrence.repeatable`. All 3 ACs covered by
-tests in `OccurrenceItem.test.tsx`, including the AC-03 regression guard for grid cells. The
-sibling backend change (`planner_spec_013_repeatable_on_occurrence.md`) had already landed
-(uncommitted) in the working tree by the time this was implemented, so the frontend type matches
-the real API shape. Full real-browser pass (light + dark) confirmed the icon renders on a
+completion indicator, gated on `isBucketItem && occurrence.subTaskId === null &&
+occurrence.repeatable`. All 4 ACs covered by tests in `OccurrenceItem.test.tsx`, including the
+AC-03 regression guard for grid cells and the AC-04 regression guard for sub-task-sourced bucket
+items. The sibling backend change (`planner_spec_013_repeatable_on_occurrence.md`) had already
+landed (uncommitted) in the working tree by the time this was implemented, so the frontend type
+matches the real API shape. Full real-browser pass (light + dark) confirmed the icon renders on a
 repeatable bucket item ("Go for a walk"), is absent on a one-off bucket item ("Apply for jobs"),
-and — critically — is absent from grid cells even for the same repeatable activity shown
-correctly without the icon in its grid occurrence, confirming AC-03's scoping decision holds in
-practice, not just in tests.
+and is absent from grid cells even for the same repeatable activity shown correctly without the
+icon in its grid occurrence. **Post-implementation correction (2026-10-01)**: `AC-04` and the
+`subTaskId === null` guard were added after the sibling `frontend_spec_022`'s identical sub-task
+question was raised and resolved — see that spec's Status note for the full reasoning (`repeatable`
+has no independent per-sub-task value, unlike `category`, so showing it on a sub-task-sourced
+occurrence is pure redundancy with its parent, not new information).
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_013_repeatable_on_occurrence.md` (adds `repeatable` to
 `PlannedOccurrenceResponse` — this spec cannot be implemented ahead of that one landing),
@@ -53,6 +57,15 @@ for a future spec, not implied by this one.
   {occurrence.completed && <CompletionIcon />}
   ...
 ```
+
+The icon is also gated on `occurrence.subTaskId === null` — i.e. activity-sourced occurrences only,
+never sub-task-sourced ones. `repeatable` has no independent per-sub-task value (a `SubTask` has no
+`repeatable` field at all; `planner_spec_013`'s `PLANNER-013-AC-02` already resolves a sub-task
+occurrence's `repeatable` from its parent activity purely so the field is never `null`/undefined —
+not to imply the sub-task has its own meaningful value). Showing the icon on a sub-task-sourced
+bucket item would just repeat its parent activity's property with no new information — the same
+reasoning `frontend_spec_022_repeatable_icon_in_assign_picker.md` applies to the picker's sub-task
+rows.
 
 The `RepeatableIcon` renders between `<CategoryChip />` and `{occurrence.completed && <CompletionIcon />}`,
 gated on both `isBucketItem` and `occurrence.repeatable` — matching
@@ -130,19 +143,53 @@ it('FRONTEND-021-AC-03: shows no repeatable icon on a grid cell, even when repea
 
 **Test Case (Green)**: the `isBucketItem &&` half of the guard from `FRONTEND-021-AC-01`.
 
+### FRONTEND-021-AC-04 [AUTO]: No icon on a sub-task-sourced bucket item, even when repeatable is true
+**Statement**: While an occurrence's `subTaskId` is not `null` (sub-task-sourced), the
+`OccurrenceItem` component shall render no `RepeatableIcon`, regardless of `isBucketItem` or the
+occurrence's `repeatable` value.
+
+**Rationale**: `repeatable` is always inherited from the parent activity for a sub-task-sourced
+occurrence — there is no independent sub-task value to display, so showing the icon there is pure
+repetition, not new information (see Overview). This is the regression guard for that scoping
+decision, added after the same question was raised and resolved for
+`frontend_spec_022_repeatable_icon_in_assign_picker.md`'s sub-task rows.
+
+**References**: Related: `FRONTEND-021-AC-01`, `FRONTEND-021-AC-03`. Same reasoning as
+`frontend_spec_022_repeatable_icon_in_assign_picker.md`'s `FRONTEND-022-AC-03`/`AC-04`.
+
+**Test Case (Red)**:
+```tsx
+it('FRONTEND-021-AC-04: shows no repeatable icon on a sub-task-sourced bucket item, even when repeatable is true', () => {
+  render(
+    <OccurrenceItem
+      {...baseProps}
+      occurrence={{ ...subTaskOccurrence, dayOfWeek: null, slot: null, repeatable: true }}
+      isBucketItem
+    />,
+  )
+  expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+})
+```
+
+**Test Case (Green)**: add `occurrence.subTaskId === null &&` to the guard from
+`FRONTEND-021-AC-01`, so the full condition reads
+`isBucketItem && occurrence.subTaskId === null && occurrence.repeatable`.
+
 ## Cross-references
 
 | Depends on / contracts against | Where |
 |---|---|
 | `repeatable` field this spec consumes | `planner_spec_013_repeatable_on_occurrence.md` (`PlannedOccurrenceResponse.repeatable`) |
 | `PlannedOccurrence` type | `frontend/src/types/plan.ts` |
-| `RepeatableIcon` component (reused, not reinvented) | `frontend/src/components/ActivityBank/ActivityBank.tsx` (per `frontend_spec_019`) |
+| `RepeatableIcon` component (reused, not reinvented) | `frontend/src/components/RepeatableIcon/RepeatableIcon.tsx` |
 | Shared render target (grid + bucket) | `frontend/src/components/WeeklyPlanner/OccurrenceItem.tsx` |
 | `isBucketItem` prop (existing, reused as the scoping gate) | `OccurrenceItem.tsx`, set by `PlannerGrid.tsx` (`false`) and `BucketList.tsx` (`true`) |
 | Decluttering precedent this spec deliberately doesn't undo for grid cells | `frontend_spec_008_occurrence_detail_card.md` |
+| Same activity-only, no-sub-task-repetition scoping decision | `frontend_spec_022_repeatable_icon_in_assign_picker.md` (`FRONTEND-022-AC-03`/`AC-04`) |
 
 ## Acceptance Criteria Summary
 
 - [x] FRONTEND-021-AC-01 [AUTO]: Icon renders on a repeatable bucket item
 - [x] FRONTEND-021-AC-02 [AUTO]: No icon for a one-off bucket item
 - [x] FRONTEND-021-AC-03 [AUTO]: No icon on grid cells, even for a repeatable occurrence (regression guard for the scoping decision)
+- [x] FRONTEND-021-AC-04 [AUTO]: No icon on a sub-task-sourced bucket item, even when repeatable is true

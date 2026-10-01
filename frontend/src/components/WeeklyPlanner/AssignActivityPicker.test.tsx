@@ -49,6 +49,14 @@ const sendInvitations: SubTask = {
   createdAt: '2026-09-01T00:00:00Z',
 }
 
+const stepOne: SubTask = {
+  id: 's2',
+  activityId: 'a3',
+  name: 'Step one',
+  category: 'NECESSARY',
+  createdAt: '2026-09-01T00:00:00Z',
+}
+
 function renderPicker() {
   render(
     <AssignActivityPicker
@@ -87,6 +95,58 @@ describe('AssignActivityPicker', () => {
 
       const subTaskButton = screen.getByRole('button', { name: 'Send invitations' })
       expect(within(subTaskButton.parentElement!).getByText('Pleasurable')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-022-AC-01: shows the repeatable icon for a repeatable activity row', () => {
+    it('renders RepeatableIcon next to the CategoryChip for a repeatable activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
+      expect(
+        within(activityButton.parentElement!).getByRole('img', { name: /repeatable/i }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-022-AC-02: shows no repeatable icon for a one-off activity row', () => {
+    it('renders no RepeatableIcon for a one-off activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const activityButton = await screen.findByRole('button', { name: 'Apply for jobs' })
+      expect(
+        within(activityButton.parentElement!).queryByRole('img', { name: /repeatable/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-022-AC-03: never shows the repeatable icon on a sub-task row, even when its parent activity is repeatable', () => {
+    it('renders no RepeatableIcon on a sub-task row whose parent activity is repeatable', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([party])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      renderPicker()
+
+      const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
+      expect(
+        within(subTaskButton.parentElement!).queryByRole('img', { name: /repeatable/i }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-022-AC-04: never shows the repeatable icon on a sub-task row when its parent activity is one-off', () => {
+    it('renders no RepeatableIcon for a sub-task whose parent activity is one-off', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([stepOne])
+      renderPicker()
+
+      const subTaskButton = await screen.findByRole('button', { name: 'Step one' })
+      expect(
+        within(subTaskButton.parentElement!).queryByRole('img', { name: /repeatable/i }),
+      ).not.toBeInTheDocument()
     })
   })
 

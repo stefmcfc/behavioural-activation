@@ -13,6 +13,9 @@ All notable changes to this project are documented in this file, in
 - Repeatable activities now show the repeat icon on their items in the weekend bucket list (weekly
   grid cells intentionally do not show it, to avoid adding back the clutter removed in an earlier
   decluttering pass).
+- The "Assign an activity or sub-task" picker (opened from "Add" in the Weekly Planner) now shows
+  the repeat icon next to repeatable activities (sub-tasks always inherit their parent's
+  repeatable/one-off status, so the icon doesn't repeat on each sub-task row).
 
 ## [0.12.0] - 2026-10-01
 
