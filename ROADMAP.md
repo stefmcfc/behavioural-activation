@@ -62,10 +62,9 @@ header restructure and button-hierarchy candidates).
 Pure-refactor or tooling specs with no user-facing feature name — don't force these into the
 `Feature | Backend | Frontend` shape above.
 
-*(none yet)*
-
 | Spec | What it does | Status |
 |---|---|---|
+| [`tooling_spec_001_unmapped_route_404.md`](.claude/specs/tooling_spec_001_unmapped_route_404.md) | Narrows `GlobalExceptionHandler`'s catch-all so an unmapped route (`NoResourceFoundException`, e.g. hitting the backend's bare `:8420/` or a stray `/favicon.ico`) returns `404 "Not found"` instead of falling through to the generic `500 "An unexpected error occurred"`. Found while diagnosing a "servers are up but the browser shows an unexpected error" report — the backend was healthy; the 500-shaped response for a routine unmapped path just read like a real bug. | Implemented — both ACs done, `GlobalExceptionHandlerSpec` covers the new 404 handler plus a regression guard on the 500 catch-all; full backend Spock suite green. |
 
 > **Open design question** (carried over from the process this file's structure was adapted from —
 > see `PROCESS_CHANGES.md`): this section is a judgment call, not a settled convention. It's a
