@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- You can now drag an already-planned activity tile directly onto a different day/slot cell in the
+  Weekly Planner grid to move it there — a faster, mouse-only alternative to the existing
+  "Rearrange" dropdown, which still works exactly as before. Limited to the currently visible grid
+  (Weekdays or Weekend, whichever tab is active); moving to a different week, to/from the weekend
+  bucket list, and touch/mobile drag are unchanged and still use the existing click-based actions.
+
 ## [0.18.0] - 2026-10-01
 
 ### Changed

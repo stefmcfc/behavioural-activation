@@ -33,6 +33,10 @@ Later the same day: split the "Drag-and-drop in the week planner" entry in two �
 already-planned-item-move half is now specced as `frontend_spec_025_grid_drag_to_move.md` (see
 `ROADMAP.md`); this file keeps only the remaining not-yet-specced half (sidebar/drawer assign-by-
 drag for unplanned activities).
+2026-10-02: added a third drag-and-drop idea, dragging between the grid and the weekend bucket
+list — carved out as explicitly out-of-scope by `frontend_spec_025_grid_drag_to_move.md`.
+Later the same day: added "Should a completed occurrence be movable?", raised while reviewing that
+same spec.
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -68,6 +72,48 @@ noted as a plausible pairing if this gets built.
 Needs a real design pass before writing ACs (panel placement/interaction, filter UI reuse vs.
 duplication, whether "favourites" is in scope for v1 of this or a separate later idea) — not just a
 markup reshuffle, similar to other open UI candidates in `.claude/SPEC_CANDIDATES.md`.
+
+## Drag-and-drop between the grid and the weekend bucket list
+
+**Status**: Not specced. Raised 2026-10-02, explicitly carved out as out-of-scope by
+`frontend_spec_025_grid_drag_to_move.md`'s Overview ("Out of scope, unchanged, still done via
+existing click-based actions: dragging onto/from the weekend bucket list"). That spec only covers
+dragging a grid-scheduled occurrence to a *different grid cell within the same visible grid* — it
+deliberately does not let you drag a grid occurrence onto the bucket (today's equivalent: the
+detail card's "Move to bucket" button), or drag a bucket item onto a grid cell to assign it a day/
+slot (today's equivalent: "Rearrange" from an open bucket item's card).
+
+Distinct from both other drag-and-drop ideas already logged: not the grid-internal move
+(`frontend_spec_025`, now specced) and not the sidebar/drawer assign-from-the-Activity-Bank idea
+(the entry above this one) — this is specifically about dragging between two *already-visible*
+sections of the same Weekly Planner page (the grid and the bucket list below it), each of which
+already has its own independent drag-and-drop implementation (`frontend_spec_025`'s grid move,
+`frontend_spec_010_bucket_reordering.md`'s bucket reorder) that would need to interoperate for this
+to work — currently they're built as fully separate, non-interacting component-local drag states
+(by design, see `frontend_spec_025`'s Overview on why that isolation is safe), so this would need
+a shared drag-source representation (most likely lifted into `WeeklyPlanner.tsx`, or a real
+`DataTransfer`-payload-based implementation instead of each component's own local `draggedId`
+state) rather than a small extension of either existing implementation. Worth revisiting once
+`frontend_spec_025` has shipped and its grid-only drag has been used for a while — confirm there's
+an actual felt need to cross the grid/bucket boundary by dragging, rather than building it ahead of
+that signal.
+
+## Should a completed occurrence be movable?
+
+**Status**: Not specced. Raised 2026-10-02 while reviewing `frontend_spec_025_grid_drag_to_move.md`
+— noticed that dragging a completed grid occurrence to a different day/slot is currently allowed,
+with no check against `occurrence.completed`. Confirmed this isn't a regression introduced by that
+spec: the existing click-based "Rearrange" button (`OccurrenceItem.tsx`) has never been gated on
+`completed` either — only on `isBusy` — so both the old and new ways of moving an occurrence already
+allow moving a completed one. This is a pre-existing product question, not a bug in either feature.
+
+Current lean (not acted on): allow it, don't restrict. Moving an occurrence's day/slot doesn't touch
+its `CompletionRecord` (keyed to the occurrence's id, not its day/slot), so there's no data-integrity
+risk, and there's a real use case — "I did this Tuesday but it was planned for Wednesday, let me fix
+the record after the fact." Restricting it would mean inventing a disabled state, explaining why,
+and deciding what drag feedback looks like for a disallowed drop, for a case that isn't actually
+harmful. Logged here rather than acted on — revisit if this ever actually feels wrong or confusing
+in real use, rather than building a restriction (or a feature toggle for one) ahead of that signal.
 
 ## Dedicated activity-history view/endpoint
 

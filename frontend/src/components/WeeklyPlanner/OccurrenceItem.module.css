@@ -11,6 +11,14 @@
   border-bottom: none;
 }
 
+.gridDraggable {
+  cursor: grab;
+}
+
+.gridDraggable:active {
+  cursor: grabbing;
+}
+
 .completeButton {
   margin-left: auto;
 }

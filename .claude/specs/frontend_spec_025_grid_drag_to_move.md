@@ -1,6 +1,6 @@
 # Drag a Grid Occurrence to a Different Slot (Weekly Planner)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02)
 **Priority**: P3 — interaction speed-up, no new capability (the move itself already exists via
 "Rearrange")
 **Depends on**: `planner_spec_004_week_planning.md`/`frontend_spec_004_week_planning.md` (the
@@ -13,6 +13,42 @@ within the current view" automatic)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V2-ish polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme;
 raised as half of a deferred V1-planning idea, see Overview
+
+## Summary
+
+Implemented exactly as scoped: `OccurrenceItem`'s root `<li>` is now `draggable` and fires the
+existing `onDragStart` prop when `isBucketItem={false}`, reusing the same prop `BucketList` already
+wires to its grip handle; bucket items are unchanged. `PlannerGrid` gained its own local `draggedId`
+state (mirroring `BucketList`'s pattern) plus `onDragOver`/`onDrop` on each day/slot cell `<div>`,
+looking up the dragged occurrence's current day/slot from its own `occurrences` prop before deciding
+whether to call the existing `onConfirmMove`. No changes to `WeeklyPlanner.tsx` or the backend were
+needed, confirming the spec's zero-new-plumbing assumption. All AUTO ACs (01, 04–09) are covered by
+Vitest/RTL tests and pass; `npm test` (338/338) and `npm run lint` (oxlint, 0 findings) are green.
+
+**Real findings**:
+- A new `onDragEnd?: () => void` prop was added to `OccurrenceItem` (not mentioned in the spec's
+  cross-reference table) so `PlannerGrid` can reset its local `draggedId` to `null` when a drag ends
+  without a valid drop (AC-07's "reset cleanly" clause) — wired only for grid items (`!isBucketItem`),
+  mirroring the existing `onDragStart` gating. The AC-07 test sketch as written only asserts
+  `onConfirmMove` wasn't called (already true with no reset at all, since a stale `draggedId` is
+  overwritten by the next `dragstart`), but the AC's prose statement explicitly requires the reset,
+  so it was implemented for correctness beyond the literal test sketch.
+- `OccurrenceItem.test.tsx`'s pre-existing `FRONTEND-010-AC-16` test asserted
+  `document.querySelector('[draggable="true"]')` is `null` for a grid item — this is now true-false
+  (the root `<li>` is draggable) by this spec's own AC-01, so the assertion was narrowed to target
+  the dedicated grip-handle element (`.dragHandle`) specifically, which is what that AC's prose
+  ("neither a drag handle nor Move up/Move down controls") was actually guarding. No other existing
+  test needed changes.
+- AC-02/AC-03 completed afterward with a real-browser pass (Claude in Chrome, against the local dev
+  stack, logged in as the seeded user): confirmed `cursor: grab` + `draggable="true"` on a grid tile
+  via `getComputedStyle`, confirmed a plain click on the tile still opens its detail card correctly
+  (AC-02), and went further than the two ACs strictly require — dispatched a real `dragstart`/
+  `dragover`/`drop`/`dragend` sequence (via `DragEvent`/`DataTransfer`, since synthetic mouse-drag
+  via browser automation doesn't trigger native HTML5 DnD) against the live app and confirmed the
+  occurrence actually moved via a real `PATCH /api/v1/plan/occurrences/{id}` call, the moved tile's
+  detail card still opened correctly afterward, and "Rearrange" still worked to move it back — full
+  end-to-end confirmation beyond what AC-02/AC-03's own wording required, not just the isolated
+  cursor/click checks.
 
 ## Overview
 
@@ -333,12 +369,12 @@ describe('FRONTEND-025-AC-09: existing move flows unaffected', () => {
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-025-AC-01 — grid tiles draggable via existing `onDragStart` prop; bucket tiles unaffected
-- [ ] FRONTEND-025-AC-02 — dragging doesn't break click-to-open-detail (real-browser check)
-- [ ] FRONTEND-025-AC-03 — grab cursor affordance, no new icon/button (real-browser check)
-- [ ] FRONTEND-025-AC-04 — dropping on a different cell calls the existing `onConfirmMove`
-- [ ] FRONTEND-025-AC-05 — dropping on the occurrence's own cell is a no-op
-- [ ] FRONTEND-025-AC-06 — dropping on an already-occupied cell succeeds normally
-- [ ] FRONTEND-025-AC-07 — a drag ending outside any cell changes nothing, resets cleanly
-- [ ] FRONTEND-025-AC-08 — a move in flight (`busyId` set) blocks a new drag-and-drop move
-- [ ] FRONTEND-025-AC-09 — Rearrange/Move to bucket/Carry forward unaffected
+- [x] FRONTEND-025-AC-01 — grid tiles draggable via existing `onDragStart` prop; bucket tiles unaffected
+- [x] FRONTEND-025-AC-02 — dragging doesn't break click-to-open-detail (confirmed in a real browser)
+- [x] FRONTEND-025-AC-03 — grab cursor affordance, no new icon/button (confirmed in a real browser)
+- [x] FRONTEND-025-AC-04 — dropping on a different cell calls the existing `onConfirmMove`
+- [x] FRONTEND-025-AC-05 — dropping on the occurrence's own cell is a no-op
+- [x] FRONTEND-025-AC-06 — dropping on an already-occupied cell succeeds normally
+- [x] FRONTEND-025-AC-07 — a drag ending outside any cell changes nothing, resets cleanly
+- [x] FRONTEND-025-AC-08 — a move in flight (`busyId` set) blocks a new drag-and-drop move
+- [x] FRONTEND-025-AC-09 — Rearrange/Move to bucket/Carry forward unaffected
