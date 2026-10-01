@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-10-01
+
 ### Fixed
 
 - A sub-task's category now updates to match its parent activity when the activity's category is
