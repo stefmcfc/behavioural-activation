@@ -122,7 +122,12 @@ export function ActivityBank() {
   const renderRowActions = (activity: Activity) => {
     const toggleSubTasks = () =>
       setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
-    const subTasksLabel = expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'
+    const subTasksLabel =
+      expandedActivityId === activity.id
+        ? 'Hide sub-tasks'
+        : activity.subTaskCount === 0
+          ? 'Add sub-tasks'
+          : `Show sub-tasks (${activity.subTaskCount})`
 
     if (activity.archived) {
       return (
@@ -255,15 +260,6 @@ export function ActivityBank() {
           {visibleActivities.map((activity) => (
             <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
-              {activity.subTaskCount > 0 && (
-                <span
-                  className={styles.subTaskCount}
-                  data-testid="sub-task-count-badge"
-                  aria-label={`${activity.subTaskCount} sub-tasks`}
-                >
-                  {activity.subTaskCount}
-                </span>
-              )}
               {activity.repeatable && <RepeatableIcon />}
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
 
@@ -275,7 +271,6 @@ export function ActivityBank() {
                 <div className={styles.details}>
                   <SubTaskList
                     activityId={activity.id}
-                    category={activity.category}
                     readOnly={activity.archived}
                   />
                 </div>

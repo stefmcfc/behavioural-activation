@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
-import type { ActivityCategory } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
@@ -12,12 +11,6 @@ type FormTarget = 'create' | SubTask | null
 
 function formTargetTitleId(formTarget: FormTarget): string {
   return `sub-task-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
-}
-
-const CATEGORY_LABELS: Record<ActivityCategory, string> = {
-  ROUTINE: 'Routine',
-  NECESSARY: 'Necessary',
-  PLEASURABLE: 'Pleasurable',
 }
 
 function getErrorMessage(error: unknown): string {
@@ -37,11 +30,10 @@ function getErrorMessage(error: unknown): string {
 
 interface SubTaskListProps {
   readonly activityId: string
-  readonly category: ActivityCategory
   readonly readOnly?: boolean
 }
 
-export function SubTaskList({ activityId, category, readOnly = false }: SubTaskListProps) {
+export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) {
   const [subTasks, setSubTasks] = useState<SubTask[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formTarget, setFormTarget] = useState<FormTarget>(null)
@@ -108,13 +100,14 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
 
   return (
     <div>
-      <h3>Sub-tasks — {CATEGORY_LABELS[category]}</h3>
-
-      {!readOnly && (
-        <button type="button" onClick={() => setFormTarget('create')}>
-          Add sub-task
-        </button>
-      )}
+      <div className={styles.header}>
+        {subTasks !== null && subTasks.length === 0 && <p>No sub-tasks yet.</p>}
+        {!readOnly && (
+          <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+            Add sub-task
+          </button>
+        )}
+      </div>
 
       {loadError && (
         <p role="alert">
@@ -127,8 +120,6 @@ export function SubTaskList({ activityId, category, readOnly = false }: SubTaskL
       {deleteError && <p role="alert">{deleteError}</p>}
 
       {subTasks === null && !loadError && <output>Loading sub-tasks…</output>}
-
-      {subTasks !== null && subTasks.length === 0 && <p>No sub-tasks yet.</p>}
 
       {subTasks !== null && subTasks.length > 0 && (
         <ul className={styles.list}>

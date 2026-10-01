@@ -310,7 +310,7 @@ describe('ActivityBank', () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       render(<ActivityBank />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /sub-tasks/i }))
       expect(subTaskApi.getAll).toHaveBeenCalledWith('1')
       expect(await screen.findByText(/no sub-tasks yet/i)).toBeInTheDocument()
 
@@ -368,7 +368,7 @@ describe('ActivityBank', () => {
       expect(await screen.findByRole('button', { name: /unarchive/i })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /show sub-tasks/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /sub-tasks/i })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: /unarchive/i }))
 
@@ -393,7 +393,7 @@ describe('ActivityBank', () => {
       render(<ActivityBank />)
 
       await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
-      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /sub-tasks/i }))
 
       expect(await screen.findByText('Update CV')).toBeInTheDocument()
       expect(screen.queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
@@ -596,33 +596,36 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-018-AC-01: shows a count badge for an activity with sub-tasks', () => {
-    it('renders the sub-task count next to the CategoryChip', async () => {
-      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 3 }])
-      render(<ActivityBank />)
-
-      const row = (await screen.findByText('Walk')).closest('li')!
-      expect(within(row).getByText('3')).toBeInTheDocument()
-    })
-  })
-
-  describe('FRONTEND-018-AC-02: shows no badge for an activity with no sub-tasks', () => {
-    it('renders no sub-task count badge', async () => {
+  describe('FRONTEND-018-AC-01: "Add sub-tasks" when an activity has no sub-tasks', () => {
+    it('labels the toggle "Add sub-tasks" when subTaskCount is 0', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 0 }])
       render(<ActivityBank />)
 
       const row = (await screen.findByText('Walk')).closest('li')!
-      expect(within(row).queryByTestId('sub-task-count-badge')).not.toBeInTheDocument()
+      expect(within(row).getByRole('button', { name: 'Add sub-tasks' })).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-018-AC-03: badge has an accessible label stating what the count means', () => {
-    it('labels the badge "N sub-tasks" for assistive technology', async () => {
+  describe('FRONTEND-018-AC-02: "Show sub-tasks (N)" when an activity has sub-tasks', () => {
+    it('labels the toggle with the sub-task count when subTaskCount is greater than 0', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 3 }])
       render(<ActivityBank />)
 
       const row = (await screen.findByText('Walk')).closest('li')!
-      expect(within(row).getByLabelText('3 sub-tasks')).toBeInTheDocument()
+      expect(within(row).getByRole('button', { name: 'Show sub-tasks (3)' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-018-AC-03: expanded state always reads "Hide sub-tasks", regardless of count', () => {
+    it('reads "Hide sub-tasks" once expanded, even for a zero-count activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 0 }])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      await userEvent.click(within(row).getByRole('button', { name: 'Add sub-tasks' }))
+
+      expect(within(row).getByRole('button', { name: 'Hide sub-tasks' })).toBeInTheDocument()
     })
   })
 })

@@ -144,17 +144,3 @@
   color: var(--text);
 }
 
-.subTaskCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text);
-}
