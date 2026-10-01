@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-01
+
 ### Added
 
 - Activity Bank rows now show a small repeat icon next to the category chip for activities marked
