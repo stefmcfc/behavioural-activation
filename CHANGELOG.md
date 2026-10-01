@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Unmapped backend routes (e.g. hitting the bare API origin or a stray `/favicon.ico`) now return
+  `404 "Not found"` instead of the generic `500 "An unexpected error occurred"` catch-all.
+
 ## [0.10.2] - 2026-09-30
 
 - The Weekly Planner's occurrence detail card is now built on the same native `<dialog>`-based

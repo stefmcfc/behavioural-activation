@@ -10,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Renders every handled error (auth or otherwise) as one consistent JSON shape:
@@ -59,6 +60,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleMalformedRequest(HttpMessageNotReadableException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(ApiError.of("Malformed request body"));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ApiError.of("Not found"));
     }
 
     @ExceptionHandler(Exception.class)

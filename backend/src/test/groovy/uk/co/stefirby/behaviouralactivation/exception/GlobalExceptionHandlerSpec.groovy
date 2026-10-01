@@ -1,12 +1,14 @@
 package uk.co.stefirby.behaviouralactivation.exception
 
 import org.springframework.http.HttpInputMessage
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.validation.BeanPropertyBindingResult
 import org.springframework.core.MethodParameter
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import spock.lang.Specification
 
 class GlobalExceptionHandlerSpec extends Specification {
@@ -56,5 +58,31 @@ class GlobalExceptionHandlerSpec extends Specification {
 
         and: "the body has a message and no stack trace field"
             response.body.message() != null
+    }
+
+    def "TOOLING-001-AC-01: renders a NoResourceFoundException as 404, not the 500 catch-all"() {
+        given: "a NoResourceFoundException, as Spring throws for an unmapped path like '/' or '/favicon.ico'"
+            def ex = new NoResourceFoundException(HttpMethod.GET, "/", "/")
+
+        when: "the exception is handled"
+            def response = handler.handleNoResourceFoundException(ex)
+
+        then: "the status is 404, not 500"
+            response.statusCode == HttpStatus.NOT_FOUND
+
+        and: "the body uses the standard ApiError shape"
+            response.body.message() == "Not found"
+            response.body.details() == null
+    }
+
+    def "TOOLING-001-AC-02: an unrelated exception still renders as the 500 catch-all"() {
+        when: "a generic, unhandled exception type is handled"
+            def response = handler.handleUnexpectedException(new RuntimeException("boom"))
+
+        then: "the status is still 500"
+            response.statusCode == HttpStatus.INTERNAL_SERVER_ERROR
+
+        and: "the body is still the generic message"
+            response.body.message() == "An unexpected error occurred"
     }
 }
