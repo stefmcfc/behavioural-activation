@@ -1,7 +1,8 @@
 # Weekend Bucket List Manual Reordering (Frontend)
 
-**Status**: Implemented (2026-10-01) — 15 of 16 ACs verified; `FRONTEND-010-AC-08` (real-mouse
-drag-and-drop) could not be automatically verified — see Summary.
+**Status**: Implemented (2026-10-01) — all 16 ACs green. `FRONTEND-010-AC-08` (real-mouse
+drag-and-drop) couldn't be automated (tooling limitation — see Summary) but was manually confirmed
+by the user (2026-10-01).
 **Priority**: P2 — chunk 3a of the Weekly Planner UX batch raised after
 `frontend_spec_006_repeatable_activities.md` shipped. Chunks 1–2 (occurrence detail card, "Add"
 picker modal — `frontend_spec_008_occurrence_detail_card.md`, `frontend_spec_009_add_picker_modal.md`)
@@ -50,16 +51,15 @@ Implemented per the spec's own sketches, with one real bug found and fixed in th
   Move up/down disabled correctly at the list boundaries; clicking Move down swapped "Apply for
   jobs"/"Go for a walk" and the new order **persisted across a full page reload**, confirming the
   real `PUT /api/v1/plan/bucket/order` round-trip (not just client-side state).
-- **`FRONTEND-010-AC-08` (a real mouse drag gesture) could not be verified.** The available
+- **`FRONTEND-010-AC-08` (a real mouse drag gesture) could not be verified by Claude.** The available
   Chrome-automation tool's drag primitive synthesizes a plain mouse-selection drag, not a native
   HTML5 `draggable`/`dragstart` gesture — attempting it over the grip handle produced a text-selection
   highlight, not a reorder, confirming the gesture never reached the `onDragStart` handler. This
   matches a real, known limitation of CDP-level mouse-event synthesis against native HTML5 DnD, not a
   bug in the implementation — the underlying drop-handler logic this gesture would exercise is
   already covered by `FRONTEND-010-AC-07`'s automated test (dispatching real `dragstart`/`drop` DOM
-  events directly, which passes). A genuine physical-mouse check still needs either a human doing it
-  by hand, or the real-browser e2e tool (Playwright) the spec's own `AC-08` rationale already named
-  as the eventual fix for this exact gap.
+  events directly, which passes). **The user manually confirmed the real drag gesture themselves
+  (2026-10-01)**, closing out the one gap this tooling limitation left open.
 
 ## Overview
 
@@ -611,7 +611,7 @@ Strategy note.
 - [x] FRONTEND-010-AC-05 — Move down disabled/no-op on the last item
 - [x] FRONTEND-010-AC-06 — Move up/down computes the full swapped order and calls `onReorder` once
 - [x] FRONTEND-010-AC-07 — dropping on another row computes the full relocated order via `onReorder`
-- [ ] FRONTEND-010-AC-08 — real-browser mouse drag-and-drop check (manual)
+- [x] FRONTEND-010-AC-08 — real-browser mouse drag-and-drop check (manual)
 - [x] FRONTEND-010-AC-09 — `planApi.reorderBucket(...)` calls `PUT /plan/bucket/order`
 - [x] FRONTEND-010-AC-10 — `WeeklyPlanner` awaits the response before updating displayed order (no optimistic update)
 - [x] FRONTEND-010-AC-11 — all reorder controls disabled while a reorder request is in flight
