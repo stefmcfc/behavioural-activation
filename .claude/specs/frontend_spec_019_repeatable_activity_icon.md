@@ -1,6 +1,9 @@
 # Repeatable-activity Icon on Activity Bank Rows (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 4 ACs green (4 new tests added to `ActivityBank.test.tsx`, full suite
+251 passed / 0 failed). `CompletionIcon`'s actual shape and the `(Archived)` label's existing
+behavior were both checked against this spec's assumptions before implementing and found accurate —
+no discrepancy found (contrast with `frontend_spec_017`, where a similar check caught a wrong AC).
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_006_repeatable_activities.md` (`Activity.repeatable`,
 `ActivityForm`'s checkbox — this spec only surfaces an existing field, it adds no new data),
@@ -162,7 +165,7 @@ both after `<CategoryChip />`.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-019-AC-01 [AUTO]: Icon renders next to `CategoryChip` when `repeatable` is `true`
-- [ ] FRONTEND-019-AC-02 [AUTO]: No icon renders when `repeatable` is `false`
-- [ ] FRONTEND-019-AC-03 [AUTO]: Icon carries `role="img"` and an accessible name ("Repeatable")
-- [ ] FRONTEND-019-AC-04 [AUTO]: Icon renders between `CategoryChip` and the `(Archived)` label when both apply
+- [x] FRONTEND-019-AC-01 [AUTO]: Icon renders next to `CategoryChip` when `repeatable` is `true`
+- [x] FRONTEND-019-AC-02 [AUTO]: No icon renders when `repeatable` is `false`
+- [x] FRONTEND-019-AC-03 [AUTO]: Icon carries `role="img"` and an accessible name ("Repeatable")
+- [x] FRONTEND-019-AC-04 [AUTO]: Icon renders between `CategoryChip` and the `(Archived)` label when both apply

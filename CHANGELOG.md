@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-01
+
+### Added
+
+- Activity Bank rows now show a small repeat icon next to the category chip for activities marked
+  "Repeatable", so you can tell at a glance which activities recur week after week versus which are
+  one-off — one-off activities show no icon.
+
 ## [0.11.0] - 2026-10-01
 
 ### Added
