@@ -72,21 +72,65 @@ unavoidable alongside automated contract tests.
 
 Each `.claude/specs/*.md` file has:
 
-1. **Header**: title, `Status` (Not started / In progress / Implemented, with a pointer to
-   implementing files once true), `Priority`, `Depends on`, backend/frontend area, and which
-   roadmap version it belongs to (V1–V5, see `product.md`).
-2. **Overview**: one paragraph — what this delivers and why.
-3. **Requirements**: grouped "Requirement N" sections, each with a one-line user story and its
+1. **Header**: title, `Status`, `Priority`, `Depends on`, backend/frontend area, and which roadmap
+   version it belongs to (V1–V5, see `product.md`). **`Status` stays to one line** — `Not started` /
+   `In progress` / `Implemented (date)`, optionally with a pointer to implementing files. It is not
+   the place for test counts, real findings, amendment history, or verification notes — see
+   `Summary` below for where that goes. A `Status` line that's grown past one line is a sign content
+   belongs in `Summary` instead, not a sign `Status` itself needs more room.
+2. **Summary** (present once a spec reaches `Implemented`; omitted while `Not started`/`In
+   progress`): the home for everything that used to get bolted onto `Status` — test counts, real
+   findings, bugs found and fixed, same-day amendment rounds, real-browser verification notes.
+   Positioned directly after the header, before `Overview`, so a reader sees "what actually shipped"
+   before "what was originally planned." **Use subheadings and bullet lists, not a dense paragraph**
+   — e.g. a short lead sentence, then a `**Real findings**` or `**Amendments**` sub-list if there are
+   any, rather than running everything together in prose. If nothing noteworthy happened during
+   implementation, a one-or-two-sentence `Summary` is fine — this section's job is to hold detail
+   *when there is any*, not to manufacture structure where there's nothing to say.
+3. **Overview**: one paragraph — what this delivers and why, written before implementation. Left
+   untouched once a spec ships — it's the historical record of original intent, not updated to
+   reflect what actually happened (that's `Summary`'s job).
+4. **Requirements**: grouped "Requirement N" sections, each with a one-line user story and its
    EARS-format acceptance criteria (ID + `[AUTO]`/`[MANUAL]` marker + statement).
-4. **Cross-references**: a table linking to the specific endpoints, types, or specs this one
+5. **Cross-references**: a table linking to the specific endpoints, types, or specs this one
    depends on or contracts against.
-5. **TDD test case sketches** (red, before implementation) in the target framework — Spock
+6. **TDD test case sketches** (red, before implementation) in the target framework — Spock
    `given/when/then` for backend, Vitest + RTL for frontend — one per AC, named after its reference
    ID.
-6. **Acceptance Criteria Summary**: a flat checklist mirroring every AC above, unchecked (`- [ ]`)
+7. **Acceptance Criteria Summary**: a flat checklist mirroring every AC above, unchecked (`- [ ]`)
    until implemented.
 
-### Template
+### Header + Summary template (once Implemented)
+
+```markdown
+# Create an Activity (Backend)
+
+**Status**: Implemented (2026-09-28)
+**Priority**: P1 — core V1 flow
+**Depends on**: `planner_spec_001_auth.md` (session auth every endpoint inherits)
+**Area**: Backend
+**Roadmap version**: V1
+
+## Summary
+
+All 19 ACs implemented and tested (28 Spock tests, 0 regressions). Owner resolved from the
+authenticated principal, never the request body.
+
+**Real findings**:
+- An invalid `category` value returned `500` instead of `400` — `GlobalExceptionHandler` now
+  handles `HttpMessageNotReadableException`.
+
+## Overview
+
+...
+```
+
+Note what stays out of `Summary`: don't restate every AC's outcome one-by-one (the Acceptance
+Criteria Summary checklist at the bottom of the file already does that) — `Summary` is for things
+worth knowing that aren't already obvious from a checked-off AC list: counts, surprises, decisions
+made along the way.
+
+### AC template
 
 ```markdown
 ### PLANNER-005-AC-01 [AUTO]: Create an Activity
