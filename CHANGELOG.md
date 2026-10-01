@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-01
+
 ### Changed
 
 - The Login, Add/Edit Activity, and Add/Rename Sub-task forms now flag an empty required field
