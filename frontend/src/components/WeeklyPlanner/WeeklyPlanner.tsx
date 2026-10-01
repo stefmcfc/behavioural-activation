@@ -54,7 +54,7 @@ function formatWeekCommencing(weekStart: string): string {
   }).format(parseWeekStart(weekStart))
 }
 
-function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
+function ChevronIcon({ direction }: { readonly direction: 'left' | 'right' }) {
   const points = direction === 'left' ? '10,2 4,8 10,14' : '6,2 12,8 6,14'
   return (
     <svg className={styles.chevronIcon} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
@@ -315,7 +315,7 @@ export function WeeklyPlanner() {
                   name="grid-tab"
                   checked={gridTab === 'WEEKDAYS'}
                   onChange={() => setGridTab('WEEKDAYS')}
-                />
+                />{' '}
                 Weekdays
               </label>
               <label className={styles.tabOption}>
@@ -324,7 +324,7 @@ export function WeeklyPlanner() {
                   name="grid-tab"
                   checked={gridTab === 'WEEKEND'}
                   onChange={() => setGridTab('WEEKEND')}
-                />
+                />{' '}
                 Weekend
               </label>
             </div>
