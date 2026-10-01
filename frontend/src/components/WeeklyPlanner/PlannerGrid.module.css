@@ -25,6 +25,7 @@
   align-items: baseline;
   gap: 0.4rem;
   font-family: var(--mono);
+  font-weight: bolder;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.72rem;
