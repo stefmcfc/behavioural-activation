@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-01
+
 ### Fixed
 
 - Moving a planned occurrence to Saturday or Sunday (via its existing "Rearrange" control) now has
