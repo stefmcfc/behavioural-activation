@@ -255,6 +255,15 @@ export function ActivityBank() {
           {visibleActivities.map((activity) => (
             <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
+              {activity.subTaskCount > 0 && (
+                <span
+                  className={styles.subTaskCount}
+                  data-testid="sub-task-count-badge"
+                  aria-label={`${activity.subTaskCount} sub-tasks`}
+                >
+                  {activity.subTaskCount}
+                </span>
+              )}
               {activity.repeatable && <RepeatableIcon />}
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
 

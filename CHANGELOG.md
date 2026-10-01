@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- Activity Bank rows now show a sub-task count badge next to the category chip when an activity
+  has one or more sub-tasks, so its size is visible without expanding "Show sub-tasks".
+
 ## [0.13.0] - 2026-10-01
 
 ### Added

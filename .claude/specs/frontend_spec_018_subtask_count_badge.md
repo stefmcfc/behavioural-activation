@@ -1,6 +1,23 @@
 # Sub-task Count Badge on Activity Bank Rows (Frontend)
 
-**Status**: Not started
+**Status**: Implemented. All 3 ACs covered by new Vitest/RTL tests
+(`frontend/src/components/ActivityBank/ActivityBank.test.tsx`); full frontend suite green (266
+tests, 29 files), `npm run lint` clean, `tsc -b --noEmit` clean. The paired backend spec
+(`planner_spec_012_subtask_count.md`) landed in parallel on the same branch and was confirmed live
+before this was marked done — full real-browser pass (light + dark) against the running dev
+servers confirmed the badge renders with the correct count for seeded activities with real
+sub-tasks ("Test Routine": 3, "Test Necessary": 2, "Organise a leaving party": 2) and is correctly
+absent for one with none ("Go for a walk": 0), positioned between `CategoryChip` and
+`RepeatableIcon`.
+
+**Note on this spec's own Overview markup vs. the real row markup**: by the time this was
+implemented, `ActivityBank.tsx`'s row markup had moved on from what's shown in this spec's Overview
+section (several other specs — repeatable icon, archived label — had landed on it first in the
+interim). The badge was placed between `<CategoryChip>` and the `activity.repeatable &&
+<RepeatableIcon />` conditional in the actual current markup, matching this spec's stated intent
+("sibling of `CategoryChip`") rather than the stale snippet verbatim. The spec's Overview snippet
+itself was left as-is (historical context, not worth rewriting after the fact) — this note plus the
+real diff is the source of truth for what shipped.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_012_subtask_count.md` (adds `subTaskCount` to `ActivityResponse` — this
 spec cannot be implemented ahead of that one landing), `frontend_spec_002_activity_bank.md`
@@ -113,6 +130,6 @@ it('FRONTEND-018-AC-03: badge has an accessible label stating what the count mea
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-018-AC-01 [AUTO]: Badge renders next to the `CategoryChip` when `subTaskCount > 0`
-- [ ] FRONTEND-018-AC-02 [AUTO]: No badge renders when `subTaskCount` is zero
-- [ ] FRONTEND-018-AC-03 [AUTO]: Badge carries an accessible label stating what the count means
+- [x] FRONTEND-018-AC-01 [AUTO]: Badge renders next to the `CategoryChip` when `subTaskCount > 0`
+- [x] FRONTEND-018-AC-02 [AUTO]: No badge renders when `subTaskCount` is zero
+- [x] FRONTEND-018-AC-03 [AUTO]: Badge carries an accessible label stating what the count means

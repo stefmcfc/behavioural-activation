@@ -19,6 +19,7 @@ const walk: Activity = {
   repeatable: true,
   archived: false,
   createdAt: '2026-09-28T00:00:00Z',
+  subTaskCount: 0,
 }
 
 const jobs: Activity = {
@@ -29,6 +30,7 @@ const jobs: Activity = {
   repeatable: false,
   archived: true,
   createdAt: '2026-09-28T00:00:00Z',
+  subTaskCount: 0,
 }
 
 describe('ActivityBank', () => {
@@ -129,6 +131,7 @@ describe('ActivityBank', () => {
         repeatable: true,
         archived: false,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       })
       render(<ActivityBank />)
 
@@ -463,6 +466,7 @@ describe('ActivityBank', () => {
         repeatable: false,
         archived: false,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       }
       vi.mocked(activityApi.getAll).mockResolvedValue([walk, paint])
       render(<ActivityBank />)
@@ -485,6 +489,7 @@ describe('ActivityBank', () => {
         repeatable: false,
         archived: true,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       }
       const paint: Activity = {
         id: '3',
@@ -494,6 +499,7 @@ describe('ActivityBank', () => {
         repeatable: false,
         archived: true,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       }
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
@@ -544,6 +550,7 @@ describe('ActivityBank', () => {
         repeatable: false,
         archived: false,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       }
       vi.mocked(activityApi.getAll).mockResolvedValue([renewPassport])
       render(<ActivityBank />)
@@ -573,6 +580,7 @@ describe('ActivityBank', () => {
         repeatable: true,
         archived: true,
         createdAt: '2026-09-28T00:00:00Z',
+        subTaskCount: 0,
       }
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
@@ -585,6 +593,36 @@ describe('ActivityBank', () => {
       const icon = within(row).getByRole('img', { name: /repeatable/i })
       const archivedLabel = within(row).getByText('(Archived)')
       expect(icon.compareDocumentPosition(archivedLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+  })
+
+  describe('FRONTEND-018-AC-01: shows a count badge for an activity with sub-tasks', () => {
+    it('renders the sub-task count next to the CategoryChip', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 3 }])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).getByText('3')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-018-AC-02: shows no badge for an activity with no sub-tasks', () => {
+    it('renders no sub-task count badge', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 0 }])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).queryByTestId('sub-task-count-badge')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-018-AC-03: badge has an accessible label stating what the count means', () => {
+    it('labels the badge "N sub-tasks" for assistive technology', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, subTaskCount: 3 }])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).getByLabelText('3 sub-tasks')).toBeInTheDocument()
     })
   })
 })

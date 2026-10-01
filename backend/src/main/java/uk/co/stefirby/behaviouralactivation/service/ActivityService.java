@@ -9,6 +9,7 @@ import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
 import uk.co.stefirby.behaviouralactivation.model.Activity;
 import uk.co.stefirby.behaviouralactivation.model.User;
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository;
+import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository;
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository;
 
 /**
@@ -24,10 +25,13 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final SubTaskRepository subTaskRepository;
 
-    public ActivityService(ActivityRepository activityRepository, UserRepository userRepository) {
+    public ActivityService(ActivityRepository activityRepository, UserRepository userRepository,
+            SubTaskRepository subTaskRepository) {
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
+        this.subTaskRepository = subTaskRepository;
     }
 
     @Transactional
@@ -40,11 +44,23 @@ public class ActivityService {
     }
 
     @Transactional(readOnly = true)
-    public List<Activity> listForOwner(String ownerUsername, boolean includeArchived) {
+    public List<ActivityWithSubTaskCount> listForOwner(String ownerUsername, boolean includeArchived) {
         User owner = resolveOwner(ownerUsername);
-        return includeArchived
+        List<Activity> activities = includeArchived
             ? activityRepository.findByOwnerOrderByNameAsc(owner)
             : activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner);
+        return activities.stream()
+            .map(activity -> new ActivityWithSubTaskCount(activity,
+                subTaskRepository.countByActivityIdAndOwner(activity.getId(), owner)))
+            .toList();
+    }
+
+    // PLANNER-012-AC-01/AC-02 -- lets ActivityController carry an up-to-date subTaskCount on the
+    // single-activity update/archive responses too, without assuming 0.
+    @Transactional(readOnly = true)
+    public long countSubTasks(String ownerUsername, UUID activityId) {
+        User owner = resolveOwner(ownerUsername);
+        return subTaskRepository.countByActivityIdAndOwner(activityId, owner);
     }
 
     @Transactional

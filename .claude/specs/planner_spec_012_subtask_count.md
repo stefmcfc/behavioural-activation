@@ -1,6 +1,18 @@
 # Sub-task Count on Activities (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — both ACs checked, full backend suite green (208 tests, 0
+failures). Composition approach chosen: `ActivityService.listForOwner` now returns
+`List<ActivityWithSubTaskCount>` (a new small record in the `service` package pairing `Activity` +
+`long subTaskCount`, composed by calling the new `SubTaskRepository.countByActivityIdAndOwner` once
+per activity) — the "reshape `listForOwner`'s return type" option the spec left open, since it has no
+other caller. `create`/`update`/`archive` keep their existing `Activity`/`Optional<Activity>` return
+shapes unchanged (avoiding a wider ripple through their existing controller test mocks); the
+controller instead calls a new single-activity `ActivityService.countSubTasks(ownerUsername,
+activityId)` for `update`/`archive`, and hardcodes `0` for `create` (a brand-new activity can't have
+sub-tasks yet, so no extra query). `unarchive` returns `204 No Content` with no response body, so it
+carries no `subTaskCount` at all. Added one repository-level integration test
+(`SubTaskRepositorySpec`, against real Postgres) alongside the service/controller unit tests, to
+verify owner-scoping end-to-end rather than only by mock.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_002_activity_bank.md` (`Activity`, `ActivityRepository`,
 `ActivityService`, `ActivityResponse`, `ActivityController`), `planner_spec_003_sub_tasks.md`
@@ -116,5 +128,5 @@ method name.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-012-AC-01 [AUTO]: `ActivityResponse` carries a `subTaskCount` field, correct per activity
-- [ ] PLANNER-012-AC-02 [AUTO]: The count query is owner-scoped (never counts another user's sub-tasks)
+- [x] PLANNER-012-AC-01 [AUTO]: `ActivityResponse` carries a `subTaskCount` field, correct per activity
+- [x] PLANNER-012-AC-02 [AUTO]: The count query is owner-scoped (never counts another user's sub-tasks)

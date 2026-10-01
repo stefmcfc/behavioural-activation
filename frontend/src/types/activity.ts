@@ -8,6 +8,7 @@ export interface Activity {
   repeatable: boolean
   archived: boolean
   createdAt: string
+  subTaskCount: number
 }
 
 export interface ActivityInput {

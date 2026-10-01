@@ -15,6 +15,7 @@ import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
 import uk.co.stefirby.behaviouralactivation.model.User
 import uk.co.stefirby.behaviouralactivation.security.SecurityConfig
 import uk.co.stefirby.behaviouralactivation.service.ActivityService
+import uk.co.stefirby.behaviouralactivation.service.ActivityWithSubTaskCount
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -147,7 +148,8 @@ class ActivityControllerSpec extends Specification {
 
     def "PLANNER-002-AC-08/AC-09: list returns only my activities in the documented envelope shape"() {
         given: "the service returns the current user's activities"
-            activityService.listForOwner("steve", false) >> [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
+            activityService.listForOwner("steve", false) >>
+                [new ActivityWithSubTaskCount(new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner), 0)]
 
         when: "GET /api/v1/activities is requested"
             def result = mockMvc.perform(get("/api/v1/activities")
@@ -157,6 +159,80 @@ class ActivityControllerSpec extends Specification {
             result.andExpect(status().isOk())
             result.andExpect(jsonPath('$.count').value(1))
             result.andExpect(jsonPath('$.data[0].name').value("Bake"))
+    }
+
+    def "PLANNER-012-AC-01: list carries each activity's own subTaskCount"() {
+        given: "the service pairs two activities with different sub-task counts"
+            def withSubTasks = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            def withoutSubTasks = new Activity("Read", ActivityCategory.PLEASURABLE, null, owner)
+            activityService.listForOwner("steve", false) >> [
+                new ActivityWithSubTaskCount(withSubTasks, 2),
+                new ActivityWithSubTaskCount(withoutSubTasks, 0)
+            ]
+
+        when: "GET /api/v1/activities is requested"
+            def result = mockMvc.perform(get("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "each activity's response carries its own count"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].subTaskCount').value(2))
+            result.andExpect(jsonPath('$.data[1].subTaskCount').value(0))
+    }
+
+    def "PLANNER-012-AC-01: create response carries subTaskCount: 0 -- a new activity can't have sub-tasks yet"() {
+        given: "a valid create request"
+            def body = objectMapper.writeValueAsString([name: "Walk", category: "ROUTINE"])
+
+        and: "the service creates the activity"
+            activityService.create("steve", _ as ActivityRequest) >>
+                new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+
+        when: "POST /api/v1/activities is requested"
+            def result = mockMvc.perform(post("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response carries subTaskCount: 0, with no call to count sub-tasks"
+            result.andExpect(status().isCreated())
+            result.andExpect(jsonPath('$.subTaskCount').value(0))
+            0 * activityService.countSubTasks(_, _)
+    }
+
+    def "PLANNER-012-AC-01: update response carries the activity's real current subTaskCount"() {
+        given: "a valid update request the service applies successfully"
+            def id = UUID.randomUUID()
+            def body = objectMapper.writeValueAsString([name: "Jog", category: "PLEASURABLE", description: "with music"])
+            activityService.update("steve", id, _ as ActivityRequest) >>
+                Optional.of(new Activity("Jog", ActivityCategory.PLEASURABLE, "with music", owner))
+            activityService.countSubTasks("steve", id) >> 3
+
+        when: "PUT /api/v1/activities/{id} is requested"
+            def result = mockMvc.perform(put("/api/v1/activities/${id}")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response carries the real current count, not an assumed 0"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.subTaskCount').value(3))
+    }
+
+    def "PLANNER-012-AC-01: archive response carries the activity's real current subTaskCount"() {
+        given: "the service archives the activity"
+            def id = UUID.randomUUID()
+            activityService.archive("steve", id) >>
+                Optional.of(new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner).tap { archive() })
+            activityService.countSubTasks("steve", id) >> 1
+
+        when: "POST /api/v1/activities/{id}/archive is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/archive")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response carries the real current count, not an assumed 0"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.subTaskCount').value(1))
     }
 
     def "PLANNER-002-AC-11: an empty activity bank returns 200 with an empty data array and zero count"() {
@@ -186,7 +262,7 @@ class ActivityControllerSpec extends Specification {
     def "PLANNER-006-AC-11: GET /api/v1/activities?includeArchived=true asks the service for the full (mixed) list"() {
         given: "the service returns a mixed set"
             activityService.listForOwner("steve", true) >>
-                [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
+                [new ActivityWithSubTaskCount(new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner), 0)]
 
         when: "GET /api/v1/activities?includeArchived=true is requested"
             def result = mockMvc.perform(get("/api/v1/activities?includeArchived=true")

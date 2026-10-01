@@ -66,4 +66,25 @@ class SubTaskRepositorySpec extends Specification {
             subTaskRepository.delete(subTask)
             activityRepository.delete(activity)
     }
+
+    def "PLANNER-012-AC-02: countByActivityIdAndOwner never counts another user's sub-tasks against this activity"() {
+        given: "a second owner, unrelated to the one from setup()"
+            def otherOwner = userRepository.save(new User("subtask-count-test-${UUID.randomUUID()}", "hashed-password"))
+
+        and: "that owner's activity has two sub-tasks"
+            def activity = activityRepository.save(
+                new Activity("Organise a birthday party", ActivityCategory.PLEASURABLE, null, otherOwner))
+            subTaskRepository.save(new SubTask(activity, "Create a guest list", ActivityCategory.PLEASURABLE, otherOwner))
+            subTaskRepository.save(new SubTask(activity, "Book a venue", ActivityCategory.PLEASURABLE, otherOwner))
+
+        expect: "the count is correct for the owning user"
+            subTaskRepository.countByActivityIdAndOwner(activity.id, otherOwner) == 2
+
+        and: "a different user querying the same activity id sees zero, not the other owner's count"
+            subTaskRepository.countByActivityIdAndOwner(activity.id, owner) == 0
+
+        cleanup:
+            activityRepository.delete(activity)
+            userRepository.delete(otherOwner)
+    }
 }

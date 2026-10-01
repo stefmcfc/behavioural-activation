@@ -6,13 +6,15 @@ import uk.co.stefirby.behaviouralactivation.model.Activity
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
 import uk.co.stefirby.behaviouralactivation.model.User
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository
+import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository
 
 class ActivityServiceSpec extends Specification {
 
     ActivityRepository activityRepository = Mock()
     UserRepository userRepository = Mock()
-    ActivityService service = new ActivityService(activityRepository, userRepository)
+    SubTaskRepository subTaskRepository = Mock()
+    ActivityService service = new ActivityService(activityRepository, userRepository, subTaskRepository)
 
     User owner = new User("steve", "hashed-password")
 
@@ -62,12 +64,13 @@ class ActivityServiceSpec extends Specification {
         and: "the repository returns activities for that owner"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
             activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> activities
+            subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
 
         when: "activities are listed for that username, excluding archived (default)"
             def result = service.listForOwner("steve", false)
 
-        then: "the repository's result is returned unchanged"
-            result == activities
+        then: "the repository's result is returned unchanged, paired with its sub-task count"
+            result*.activity() == activities
     }
 
     def "PLANNER-002-AC-11: listForOwner returns an empty list when the owner has no activities"() {
@@ -89,13 +92,62 @@ class ActivityServiceSpec extends Specification {
         and: "the repository returns activities for the full (mixed) list"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
             activityRepository.findByOwnerOrderByNameAsc(owner) >> activities
+            subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
 
         when: "activities are listed with includeArchived=true"
             def result = service.listForOwner("steve", true)
 
         then: "the archived-inclusive query is used, and the excluding one is never called"
-            result == activities
+            result*.activity() == activities
             0 * activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(_)
+    }
+
+    def "PLANNER-012-AC-01: listForOwner pairs each activity with its own owner-scoped sub-task count"() {
+        given: "the authenticated username resolves to a User"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+
+        and: "the owner has two activities, one with sub-tasks and one without"
+            // Neither is persisted, so both share a null id -- stub by call order (the service maps
+            // the repository's list in order) rather than by id, which can't distinguish them here.
+            def withSubTasks = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            def withoutSubTasks = new Activity("Read", ActivityCategory.PLEASURABLE, null, owner)
+            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> [withSubTasks, withoutSubTasks]
+            subTaskRepository.countByActivityIdAndOwner(_, owner) >>> [2, 0]
+
+        when: "activities are listed"
+            def result = service.listForOwner("steve", false)
+
+        then: "each activity's own count is carried through, not shared or swapped"
+            result.find { it.activity() == withSubTasks }.subTaskCount() == 2
+            result.find { it.activity() == withoutSubTasks }.subTaskCount() == 0
+    }
+
+    def "PLANNER-012-AC-02: listForOwner's sub-task counts are scoped to the resolved owner, not a client-suppliable value"() {
+        given: "the authenticated username resolves to a User"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+
+        and: "the owner has one activity"
+            def activity = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> [activity]
+
+        when: "activities are listed"
+            service.listForOwner("steve", false)
+
+        then: "the count query is issued against the resolved owner, never any other user"
+            1 * subTaskRepository.countByActivityIdAndOwner(activity.id, owner) >> 0
+    }
+
+    def "PLANNER-012-AC-01: countSubTasks returns the owner-scoped count for a single activity"() {
+        given: "the authenticated username resolves to a User"
+            def activityId = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            subTaskRepository.countByActivityIdAndOwner(activityId, owner) >> 3
+
+        when: "the sub-task count is requested for that activity"
+            def count = service.countSubTasks("steve", activityId)
+
+        then:
+            count == 3
     }
 
     def "PLANNER-002-AC-07/AC-12: update changes name, category, and description on the owner's activity"() {
