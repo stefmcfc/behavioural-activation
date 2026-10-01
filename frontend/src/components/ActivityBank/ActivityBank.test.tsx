@@ -523,4 +523,68 @@ describe('ActivityBank', () => {
       expect(screen.queryByText(/no activities yet/i)).not.toBeInTheDocument()
     })
   })
+
+  describe('FRONTEND-019-AC-01: shows a repeatable icon for a repeatable activity', () => {
+    it('renders a RepeatableIcon for an activity with repeatable: true', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-019-AC-02: shows no repeatable icon for a one-off activity', () => {
+    it('renders no RepeatableIcon for an activity with repeatable: false', async () => {
+      const renewPassport: Activity = {
+        id: '5',
+        name: 'Renew passport',
+        category: 'NECESSARY',
+        description: null,
+        repeatable: false,
+        archived: false,
+        createdAt: '2026-09-28T00:00:00Z',
+      }
+      vi.mocked(activityApi.getAll).mockResolvedValue([renewPassport])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Renew passport')).closest('li')!
+      expect(within(row).queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-019-AC-03: icon has an accessible name', () => {
+    it('labels the icon "Repeatable" for assistive technology', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).getByLabelText('Repeatable')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-019-AC-04: renders RepeatableIcon before the (Archived) label when both apply', () => {
+    it('places the repeatable icon earlier in the DOM than the archived label', async () => {
+      const oldRoutine: Activity = {
+        id: '6',
+        name: 'Old routine',
+        category: 'ROUTINE',
+        description: null,
+        repeatable: true,
+        archived: true,
+        createdAt: '2026-09-28T00:00:00Z',
+      }
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      await screen.findByText('Walk')
+
+      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, oldRoutine])
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+
+      const row = (await screen.findByText('Old routine')).closest('li')!
+      const icon = within(row).getByRole('img', { name: /repeatable/i })
+      const archivedLabel = within(row).getByText('(Archived)')
+      expect(icon.compareDocumentPosition(archivedLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+  })
 })
