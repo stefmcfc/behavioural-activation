@@ -12,12 +12,9 @@
   --accent-ink: light-dark(#ffffff, #16220f);
   --accent-bg: light-dark(rgba(95, 122, 94, 0.12), rgba(147, 178, 142, 0.15));
   --accent-border: light-dark(rgba(95, 122, 94, 0.45), rgba(147, 178, 142, 0.5));
-  --shadow-1: light-dark(rgba(43, 42, 40, 0.07) 0 1px 2px, rgba(0, 0, 0, 0.35) 0 1px 2px);
-  --shadow-2: light-dark(
-    rgba(43, 42, 40, 0.22) 0 4px 10px -6px,
-    rgba(0, 0, 0, 0.5) 0 4px 10px -6px
-  );
-  --shadow: var(--shadow-1), var(--shadow-2);
+  --shadow-color-1: light-dark(rgba(43, 42, 40, 0.07), rgba(0, 0, 0, 0.35));
+  --shadow-color-2: light-dark(rgba(43, 42, 40, 0.22), rgba(0, 0, 0, 0.5));
+  --shadow: var(--shadow-color-1) 0 1px 2px, var(--shadow-color-2) 0 4px 10px -6px;
   --overlay: light-dark(rgba(30, 28, 25, 0.5), rgba(0, 0, 0, 0.6));
   --error: light-dark(#b3261e, #ffb4ab);
 

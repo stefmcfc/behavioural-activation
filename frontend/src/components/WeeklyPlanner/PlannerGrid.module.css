@@ -14,6 +14,8 @@
 
 .grid {
   display: grid;
+  /* noinspection CssUnresolvedCustomProperty -- --day-count is set dynamically via inline style in
+     PlannerGrid.tsx (style={{ '--day-count': days.length }}), not declared in any CSS file. */
   grid-template-columns: repeat(var(--day-count), minmax(8rem, 1fr));
   row-gap: 1.5rem;
   column-gap: 0.5rem;

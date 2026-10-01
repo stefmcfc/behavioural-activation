@@ -16,6 +16,11 @@ All notable changes to this project are documented in this file, in
 - Internal: `theme.css`'s light/dark colour tokens are now defined once each via the CSS
   `light-dark()` function instead of three duplicated blocks — no visible change.
 
+### Fixed
+
+- Fixed the weekend bucket list's Move up/down buttons silently losing their compact, icon-tight
+  sizing to an unrelated CSS property reset, so they rendered taller than intended.
+
 ## [0.17.0] - 2026-10-01
 
 ### Added
