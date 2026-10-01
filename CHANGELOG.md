@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-01
+
 ### Added
 
 - The weekend bucket list can now be manually reordered: drag an item (via a grip handle) to a new
