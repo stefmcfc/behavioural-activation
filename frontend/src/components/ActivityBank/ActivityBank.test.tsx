@@ -33,6 +33,17 @@ const jobs: Activity = {
   subTaskCount: 0,
 }
 
+const read: Activity = {
+  id: '3',
+  name: 'Read a book',
+  category: 'PLEASURABLE',
+  description: null,
+  repeatable: true,
+  archived: false,
+  createdAt: '2026-09-28T00:00:00Z',
+  subTaskCount: 0,
+}
+
 describe('ActivityBank', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
@@ -626,6 +637,66 @@ describe('ActivityBank', () => {
       await userEvent.click(within(row).getByRole('button', { name: 'Add sub-tasks' }))
 
       expect(within(row).getByRole('button', { name: 'Hide sub-tasks' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-023-AC-01: refetches sub-tasks when the currently-expanded activity is successfully edited', () => {
+    it('calls subTaskApi.getAll again after saving an edit to the expanded activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(activityApi.update).mockResolvedValue({ ...walk, category: 'NECESSARY' })
+      render(<ActivityBank />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /sub-tasks/i }))
+      await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledTimes(1))
+
+      await userEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+      const dialog = within(await screen.findByRole('dialog'))
+      await userEvent.click(dialog.getByRole('radio', { name: /^necessary$/i }))
+      await userEvent.click(dialog.getByRole('button', { name: /save changes/i }))
+
+      await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledTimes(2))
+    })
+  })
+
+  describe('FRONTEND-023-AC-02: does not refetch the open panel when a different activity is edited', () => {
+    it('leaves subTaskApi.getAll called only once when a non-expanded activity is edited', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, read])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(activityApi.update).mockResolvedValue({ ...read, name: 'Read more books' })
+      render(<ActivityBank />)
+
+      const walkRow = (await screen.findByText('Walk')).closest('li')!
+      await userEvent.click(within(walkRow).getByRole('button', { name: /sub-tasks/i }))
+      await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledTimes(1))
+
+      const readRow = (await screen.findByText('Read a book')).closest('li')!
+      await userEvent.click(within(readRow).getByRole('button', { name: /^edit$/i }))
+      await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+      await waitFor(() => expect(screen.getByText('Read more books')).toBeInTheDocument())
+      expect(subTaskApi.getAll).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('FRONTEND-023-AC-03: does not refetch the open panel when a new activity is created', () => {
+    it('leaves subTaskApi.getAll called only once when a new activity is created', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(activityApi.create).mockResolvedValue({ ...read })
+      render(<ActivityBank />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /sub-tasks/i }))
+      await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledTimes(1))
+
+      await userEvent.click(screen.getByRole('button', { name: /add activity/i }))
+      const dialog = within(screen.getByRole('dialog'))
+      await userEvent.type(dialog.getByRole('textbox', { name: /^name$/i }), 'Read a book')
+      await userEvent.click(dialog.getByRole('radio', { name: /^pleasurable$/i }))
+      await userEvent.click(dialog.getByRole('button', { name: /save activity/i }))
+
+      await waitFor(() => expect(screen.getByText('Read a book')).toBeInTheDocument())
+      expect(subTaskApi.getAll).toHaveBeenCalledTimes(1)
     })
   })
 })

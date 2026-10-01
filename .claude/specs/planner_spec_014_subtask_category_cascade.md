@@ -1,6 +1,31 @@
 # Cascade an Activity's Category Change to Its Sub-tasks (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 5 ACs green. `ActivityService.update()` now cascades a
+changed category to every existing `SubTask` via a new `SubTask.recategorize(ActivityCategory)`
+mutator, mirroring `rename()`'s pattern. Real finding during implementation: the AC-02 test sketch's
+literal `reloaded.updatedAt == originalUpdatedAt` comparison (captured from the in-memory,
+post-`save()` instance) spuriously failed against real Postgres independent of the cascade logic —
+Postgres's `timestamp` column truncates to microsecond precision, while this JVM's `Instant.now()`
+carries finer (sub-microsecond) resolution, so the two values never matched byte-for-byte even with
+no code bug present. Fixed by capturing the baseline from a fresh reload (`subTaskRepository
+.findById(...).get().updatedAt`, already at Postgres's own precision) instead of the in-memory
+value — not a cascade/production-code issue, a test-fixture-precision one. Tests: new
+`ActivityServiceCategoryCascadeIntegrationSpec` (real-Postgres, covers AC-01/AC-02/AC-03/AC-04/
+AC-05), plus two unit-level guard tests added to `ActivityServiceSpec` (mocked, confirm the
+interaction/non-interaction with `SubTaskRepository` directly) and a `SubTask.recategorize()` unit
+test in `SubTaskSpec`. The superseded `PLANNER-003-AC-20` Spock test (actually located in
+`model/SubTaskSpec.groovy`, not `repository/SubTaskRepositorySpec.groovy` as this spec's own
+References section assumed) was replaced with a one-line comment pointing to this spec's AC-01/AC-02
+coverage — not left alongside a contradictory assertion. Full suite: 215 tests, 0 failures
+(`gradlew.bat test` against real Postgres via Docker Compose). Real-browser verification against
+the live dev server and real pre-existing "Test category change" data confirmed the fix end-to-end
+— one real, non-blocking observation along the way: an *already-open* sub-task panel in
+`ActivityBank` doesn't refresh after editing its parent activity (it fetched once, on mount, and the
+edit doesn't trigger a refetch), so it transiently showed the stale category until the panel was
+collapsed and re-expanded, at which point the correct cascaded category appeared. This is a
+pre-existing frontend data-staleness quirk unrelated to the cascade's own correctness (confirmed via
+the real-Postgres integration tests and the fresh re-fetch) — logged separately in
+`.claude/ideas/future_ideas.md` rather than addressed here, since it's out of this spec's scope.
 **Priority**: P2 — a real, user-confirmed bug (reproduced live with real data), not just a
 theoretical inconsistency
 **Depends on**: `planner_spec_002_activity_bank.md` (`Activity`, `ActivityService.update`),
@@ -263,8 +288,8 @@ behavior.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-014-AC-01 [AUTO]: Changing an activity's category cascades to its existing sub-tasks
-- [ ] PLANNER-014-AC-02 [AUTO]: No cascade when the category is unchanged
-- [ ] PLANNER-014-AC-03 [AUTO]: Cascade is owner-scoped
-- [ ] PLANNER-014-AC-04 [AUTO]: Existing `PlannedOccurrence` rows keep their original category
-- [ ] PLANNER-014-AC-05 [AUTO]: A newly-created occurrence picks up the cascaded category
+- [x] PLANNER-014-AC-01 [AUTO]: Changing an activity's category cascades to its existing sub-tasks
+- [x] PLANNER-014-AC-02 [AUTO]: No cascade when the category is unchanged
+- [x] PLANNER-014-AC-03 [AUTO]: Cascade is owner-scoped
+- [x] PLANNER-014-AC-04 [AUTO]: Existing `PlannedOccurrence` rows keep their original category
+- [x] PLANNER-014-AC-05 [AUTO]: A newly-created occurrence picks up the cascaded category

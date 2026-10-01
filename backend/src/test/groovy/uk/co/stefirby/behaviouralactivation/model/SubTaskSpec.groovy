@@ -42,14 +42,26 @@ class SubTaskSpec extends Specification {
             !subTask.updatedAt.isBefore(originalUpdatedAt)
     }
 
-    def "PLANNER-003-AC-20: a SubTask's stored category does not follow a later change to its parent Activity's category"() {
-        given: "a sub-task created while the parent activity was PLEASURABLE"
-            def subTask = new SubTask(activity, "Create a guest list", activity.category, owner)
+    // PLANNER-003-AC-20 ("changing the parent's category later does not change an existing
+    // sub-task's category") formerly lived here, asserting the opposite of the shipped behaviour.
+    // It was SUPERSEDED 2026-10-01 by planner_spec_014_subtask_category_cascade.md's
+    // PLANNER-014-AC-01 (ActivityService.update() now cascades a category change to every existing
+    // sub-task) -- see that spec's Requirement 1 for the reversal rationale. Coverage for the real
+    // (opposite) behaviour now lives in ActivityServiceCategoryCascadeIntegrationSpec's
+    // "PLANNER-014-AC-01" and "PLANNER-014-AC-02" tests.
 
-        when: "the parent activity's category is later changed to NECESSARY"
-            activity.update(activity.name, ActivityCategory.NECESSARY, activity.description)
+    def "PLANNER-014-AC-01/recategorize: recategorize changes the category and bumps updatedAt"() {
+        given: "an existing sub-task"
+            def subTask = new SubTask(activity, "Create a guest list", ActivityCategory.PLEASURABLE, owner)
+            def originalUpdatedAt = subTask.updatedAt
 
-        then: "the sub-task's already-stored category is unchanged"
-            subTask.category == ActivityCategory.PLEASURABLE
+        when: "the sub-task is recategorized"
+            subTask.recategorize(ActivityCategory.NECESSARY)
+
+        then: "the new category is stored"
+            subTask.category == ActivityCategory.NECESSARY
+
+        and: "updatedAt is not before the original value"
+            !subTask.updatedAt.isBefore(originalUpdatedAt)
     }
 }
