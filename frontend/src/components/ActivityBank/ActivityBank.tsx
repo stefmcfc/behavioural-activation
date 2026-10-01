@@ -6,6 +6,7 @@ import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
+import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './ActivityBank.module.css'
 
 type FormTarget = 'create' | Activity | null
@@ -38,6 +39,7 @@ export function ActivityBank() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [unarchivingId, setUnarchivingId] = useState<string | null>(null)
   const [unarchiveError, setUnarchiveError] = useState<string | null>(null)
 
@@ -174,19 +176,52 @@ export function ActivityBank() {
     )
   }
 
+  const visibleActivities = (activities ?? []).filter(
+    (activity) => categoryFilter === 'ALL' || activity.category === categoryFilter,
+  )
+
   return (
     <section>
       <h2>Activity Bank</h2>
 
       <div className={styles.toolbar}>
-        <label className={styles.archivedToggle}>
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(event) => setShowArchived(event.target.checked)}
-          />{' '}
-          Show archived
-        </label>
+        {activities !== null && activities.length > 0 && (
+          <>
+            <fieldset className={styles.filterFieldset}>
+              <legend>Filter by category</legend>
+              <ul className={styles.filterGroup} role="presentation">
+                {CATEGORY_FILTER_OPTIONS.map((option) => (
+                  <li key={option.value}>
+                    <label>
+                      <input
+                        type="radio"
+                        name="activity-bank-category-filter"
+                        value={option.value}
+                        checked={categoryFilter === option.value}
+                        onChange={() => setCategoryFilter(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+
+            <div className={styles.toolbarDivider} aria-hidden="true" />
+          </>
+        )}
+
+        <fieldset className={styles.filterFieldset}>
+          <legend>Filter by status</legend>
+          <label className={styles.archivedToggle}>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(event) => setShowArchived(event.target.checked)}
+            />{' '}
+            Show archived
+          </label>
+        </fieldset>
 
         <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
           Add activity
@@ -210,9 +245,13 @@ export function ActivityBank() {
         <p>No activities yet. Add one below to get started.</p>
       )}
 
-      {activities !== null && activities.length > 0 && (
+      {activities !== null && activities.length > 0 && visibleActivities.length === 0 && (
+        <p>No activities in this category.</p>
+      )}
+
+      {visibleActivities.length > 0 && (
         <ul className={styles.list}>
-          {activities.map((activity) => (
+          {visibleActivities.map((activity) => (
             <li key={activity.id} className={styles.row}>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}

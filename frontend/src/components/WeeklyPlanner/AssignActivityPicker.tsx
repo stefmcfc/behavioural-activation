@@ -2,22 +2,13 @@ import { useEffect, useState } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
-import type { Activity, ActivityCategory } from '../../types/activity'
+import type { Activity } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { planApi } from '../../services/planApi'
 import type { SubTask } from '../../types/subTask'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
-import { CATEGORY_LABELS } from '../../utils/categoryLabels'
+import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './AssignActivityPicker.module.css'
-
-type CategoryFilter = 'ALL' | ActivityCategory
-
-const CATEGORY_FILTER_OPTIONS: readonly { value: CategoryFilter; label: string }[] = [
-  { value: 'ALL', label: 'All' },
-  { value: 'ROUTINE', label: CATEGORY_LABELS.ROUTINE },
-  { value: 'NECESSARY', label: CATEGORY_LABELS.NECESSARY },
-  { value: 'PLEASURABLE', label: CATEGORY_LABELS.PLEASURABLE },
-]
 
 type RepeatableFilter = 'ALL' | 'REPEATABLE' | 'ONE_OFF'
 
