@@ -20,6 +20,10 @@ import uk.co.stefirby.behaviouralactivation.model.PlanSlot;
 // `repeatable` is likewise resolved live, from the underlying Activity -- a SubTask has no
 // independent repeatable value of its own, so a sub-task-sourced occurrence resolves it from its
 // parent Activity, same indirection as `parentActivityName` (PLANNER-013-AC-01/AC-02).
+//
+// `bucketPosition` exposes PlannedOccurrence.bucketPosition as-is -- meaningful only for a
+// weekend-bucket item (dayOfWeek/slot both null); always null for a grid-scheduled occurrence
+// (planner_spec_010_bucket_reordering.md, PLANNER-010-AC-02).
 public record PlannedOccurrenceResponse(
     UUID id,
     UUID activityId,
@@ -33,6 +37,7 @@ public record PlannedOccurrenceResponse(
     boolean completed,
     Instant completedAt,
     Instant createdAt,
-    boolean repeatable
+    boolean repeatable,
+    Integer bucketPosition
 ) {
 }

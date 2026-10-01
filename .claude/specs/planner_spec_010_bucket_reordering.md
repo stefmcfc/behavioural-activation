@@ -1,6 +1,6 @@
 # Weekend Bucket List Manual Reordering (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 16 ACs green.
 **Priority**: P2 — chunk 3a of the Weekly Planner UX batch raised after
 `frontend_spec_006_repeatable_activities.md` shipped. Chunks 1–2 (occurrence detail card, "Add"
 picker modal — `planner_spec_008_occurrence_detail_card.md`/`frontend_spec_008_occurrence_detail_card.md`,
@@ -16,6 +16,22 @@ pattern)
 **Area**: Backend
 **Roadmap version**: V1 (extends the weekend bucket list from `product.md`'s V1 row / US-007 "Create
 a weekend bucket list" — not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+Implemented largely as specified — the spec's own Implementation Notes section already contained
+working code for nearly every class, which held up well against the real codebase.
+
+- `applyMove(...)` needed an added `owner` parameter (the spec's sketch implied this but didn't show
+  the full signature change) so `nextBucketPosition(owner, ...)` could be computed before mutating.
+- `PlannedOccurrenceResponse` already had `parentActivityName`/`repeatable` fields from specs
+  008/013 (the overview text's claim that `parentActivityName` wasn't present yet was stale) —
+  `bucketPosition` was appended as a 14th field rather than inserted into the sketch's shorter list.
+- New `PlanServiceBucketReorderIntegrationSpec.groovy` (9 tests, real Postgres, mirroring
+  `PlanServiceAutoArchiveIntegrationSpec.groovy`'s throwaway-`User` pattern) plus 5 new
+  `@WebMvcTest` cases in `PlanControllerSpec.groovy`.
+- Full suite: 229 tests (up from 215), 0 regressions — independently re-run from a clean
+  `--rerun-tasks` build, not just trusting the implementing agent's own report.
 
 ## Overview
 
@@ -524,19 +540,19 @@ compilation and the assertions already made on returned field values above, matc
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-010-AC-01 — `PlannedOccurrence.bucketPosition` field + migration
-- [ ] PLANNER-010-AC-02 — `PlannedOccurrenceResponse.bucketPosition` field
-- [ ] PLANNER-010-AC-03 — `create()` appends a new bucket item at the end
-- [ ] PLANNER-010-AC-04 — `create()` leaves a grid item's `bucketPosition` null
-- [ ] PLANNER-010-AC-05 — `move()` demote-to-bucket appends at the end
-- [ ] PLANNER-010-AC-06 — `move()` promote-to-slot clears `bucketPosition`
-- [ ] PLANNER-010-AC-07 — `carryForward()` resets and re-appends `bucketPosition` in the new week
-- [ ] PLANNER-010-AC-08 — `PUT /api/v1/plan/bucket/order` endpoint exists
-- [ ] PLANNER-010-AC-09 — missing/non-Monday `weekStart` returns 400
-- [ ] PLANNER-010-AC-10 — empty/duplicate `occurrenceIds` returns 400
-- [ ] PLANNER-010-AC-11 — any id not found/not owned returns 404, no partial application
-- [ ] PLANNER-010-AC-12 — any id not currently a bucket item for the week returns 409, no partial application
-- [ ] PLANNER-010-AC-13 — submitted set not exactly the current bucket returns 409, no partial application
-- [ ] PLANNER-010-AC-14 — a valid request assigns 0..N-1 in submitted order, in one transaction
-- [ ] PLANNER-010-AC-15 — success returns 200 with the reordered bucket occurrences
-- [ ] PLANNER-010-AC-16 — existing `PlannedOccurrenceResponse` fields unchanged (regression guard)
+- [x] PLANNER-010-AC-01 — `PlannedOccurrence.bucketPosition` field + migration
+- [x] PLANNER-010-AC-02 — `PlannedOccurrenceResponse.bucketPosition` field
+- [x] PLANNER-010-AC-03 — `create()` appends a new bucket item at the end
+- [x] PLANNER-010-AC-04 — `create()` leaves a grid item's `bucketPosition` null
+- [x] PLANNER-010-AC-05 — `move()` demote-to-bucket appends at the end
+- [x] PLANNER-010-AC-06 — `move()` promote-to-slot clears `bucketPosition`
+- [x] PLANNER-010-AC-07 — `carryForward()` resets and re-appends `bucketPosition` in the new week
+- [x] PLANNER-010-AC-08 — `PUT /api/v1/plan/bucket/order` endpoint exists
+- [x] PLANNER-010-AC-09 — missing/non-Monday `weekStart` returns 400
+- [x] PLANNER-010-AC-10 — empty/duplicate `occurrenceIds` returns 400
+- [x] PLANNER-010-AC-11 — any id not found/not owned returns 404, no partial application
+- [x] PLANNER-010-AC-12 — any id not currently a bucket item for the week returns 409, no partial application
+- [x] PLANNER-010-AC-13 — submitted set not exactly the current bucket returns 409, no partial application
+- [x] PLANNER-010-AC-14 — a valid request assigns 0..N-1 in submitted order, in one transaction
+- [x] PLANNER-010-AC-15 — success returns 200 with the reordered bucket occurrences
+- [x] PLANNER-010-AC-16 — existing `PlannedOccurrenceResponse` fields unchanged (regression guard)

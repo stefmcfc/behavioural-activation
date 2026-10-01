@@ -3,8 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const post = vi.fn()
 const get = vi.fn()
 const patch = vi.fn()
+const put = vi.fn()
 const del = vi.fn()
-const create = vi.fn(() => ({ post, get, patch, delete: del }))
+const create = vi.fn(() => ({ post, get, patch, put, delete: del }))
 
 function isMockAxiosError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error
@@ -39,6 +40,7 @@ describe('planApi', () => {
     post.mockReset()
     get.mockReset()
     patch.mockReset()
+    put.mockReset()
     del.mockReset()
   })
 
@@ -125,6 +127,21 @@ describe('planApi', () => {
 
       expect(result).toEqual(carried)
       expect(post).toHaveBeenCalledWith('/plan/occurrences/1/carry-forward')
+    })
+  })
+
+  describe('FRONTEND-010-AC-09: reorderBucket() calls PUT /api/v1/plan/bucket/order', () => {
+    it('puts the weekStart and occurrenceIds and returns the reordered occurrences', async () => {
+      const reordered = [occurrence, { ...occurrence, id: '2' }]
+      put.mockResolvedValue({ data: { data: reordered, count: 2 } })
+
+      const result = await planApi.reorderBucket('2026-10-05', ['1', '2'])
+
+      expect(result).toEqual(reordered)
+      expect(put).toHaveBeenCalledWith('/plan/bucket/order', {
+        weekStart: '2026-10-05',
+        occurrenceIds: ['1', '2'],
+      })
     })
   })
 

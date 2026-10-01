@@ -14,10 +14,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceListResponse;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest;
@@ -109,6 +111,21 @@ public class PlanController {
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/bucket/order")
+    public ResponseEntity<PlannedOccurrenceListResponse> reorderBucket(
+            @Valid @RequestBody BucketReorderRequest request, Authentication authentication) {
+        return planService.reorderBucket(authentication.getName(), request)
+            .map(occurrences -> {
+                List<UUID> ids = occurrences.stream().map(PlannedOccurrence::getId).toList();
+                Map<UUID, CompletionRecord> completions = planService.findCompletions(authentication.getName(), ids);
+                List<PlannedOccurrenceResponse> data = occurrences.stream()
+                    .map(occurrence -> toResponse(occurrence, completions.get(occurrence.getId())))
+                    .toList();
+                return ResponseEntity.ok(new PlannedOccurrenceListResponse(data, data.size()));
+            })
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     private static PlannedOccurrenceResponse toResponse(PlannedOccurrence occurrence, CompletionRecord completion) {
         boolean isActivity = occurrence.getActivity() != null;
         UUID activityId = isActivity ? occurrence.getActivity().getId() : null;
@@ -122,6 +139,7 @@ public class PlanController {
         Instant completedAt = completion != null ? completion.getCompletedAt() : null;
         return new PlannedOccurrenceResponse(occurrence.getId(), activityId, subTaskId, name, parentActivityName,
             occurrence.getCategory(), occurrence.getWeekStart(), occurrence.getDayOfWeek(),
-            occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt(), repeatable);
+            occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt(), repeatable,
+            occurrence.getBucketPosition());
     }
 }

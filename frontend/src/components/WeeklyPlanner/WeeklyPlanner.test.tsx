@@ -23,6 +23,7 @@ const walk: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: 'MONDAY',
   slot: 'MORNING',
+  bucketPosition: null,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -39,10 +40,18 @@ const bucketItem: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: null,
   slot: null,
+  bucketPosition: 0,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: true,
+}
+
+const bucketItemTwo: PlannedOccurrence = {
+  ...bucketItem,
+  id: '5',
+  name: 'Garden',
+  bucketPosition: 1,
 }
 
 describe('WeeklyPlanner', () => {
@@ -54,6 +63,7 @@ describe('WeeklyPlanner', () => {
     vi.mocked(planApi.complete).mockReset()
     vi.mocked(planApi.undoCompletion).mockReset()
     vi.mocked(planApi.carryForward).mockReset()
+    vi.mocked(planApi.reorderBucket).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
   })
@@ -697,6 +707,73 @@ describe('WeeklyPlanner', () => {
       await userEvent.click(await screen.findByRole('radio', { name: /weekdays/i }))
 
       expect(screen.getByRole('region', { name: /weekend bucket list/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-010-AC-09/AC-10: reordering awaits planApi.reorderBucket before updating displayed order', () => {
+    it('calls planApi.reorderBucket and only updates the displayed order once it resolves', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([bucketItem, bucketItemTwo])
+      let resolveReorder: (value: PlannedOccurrence[]) => void = () => {}
+      vi.mocked(planApi.reorderBucket).mockReturnValue(
+        new Promise((resolve) => {
+          resolveReorder = resolve
+        }),
+      )
+      render(<WeeklyPlanner />)
+      await screen.findByText('Paint')
+
+      await userEvent.click(screen.getByRole('button', { name: /move garden up/i }))
+
+      expect(planApi.reorderBucket).toHaveBeenCalledWith(
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        ['5', '2'],
+      )
+      const items = screen.getAllByRole('listitem').map((li) => li.textContent)
+      expect(items.findIndex((text) => text?.includes('Paint'))).toBeLessThan(
+        items.findIndex((text) => text?.includes('Garden')),
+      )
+
+      resolveReorder([
+        { ...bucketItemTwo, bucketPosition: 0 },
+        { ...bucketItem, bucketPosition: 1 },
+      ])
+
+      await waitFor(() => {
+        const updated = screen.getAllByRole('listitem').map((li) => li.textContent)
+        expect(updated.findIndex((text) => text?.includes('Garden'))).toBeLessThan(
+          updated.findIndex((text) => text?.includes('Paint')),
+        )
+      })
+    })
+  })
+
+  describe('FRONTEND-010-AC-11: reorder controls are disabled on the rendered bucket list while in flight', () => {
+    it('disables Move up/down buttons while planApi.reorderBucket is pending', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([bucketItem, bucketItemTwo])
+      vi.mocked(planApi.reorderBucket).mockReturnValue(new Promise(() => {}))
+      render(<WeeklyPlanner />)
+      await screen.findByText('Paint')
+
+      await userEvent.click(screen.getByRole('button', { name: /move garden up/i }))
+
+      expect(screen.getByRole('button', { name: /move paint down/i })).toBeDisabled()
+    })
+  })
+
+  describe('FRONTEND-010-AC-12/AC-13: a rejected reorder sets actionError and leaves the order unchanged', () => {
+    it('shows role="alert" with the error message and keeps the previous order', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([bucketItem, bucketItemTwo])
+      vi.mocked(planApi.reorderBucket).mockRejectedValue(new ApiError(500, 'Server error'))
+      render(<WeeklyPlanner />)
+      await screen.findByText('Paint')
+
+      await userEvent.click(screen.getByRole('button', { name: /move garden up/i }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
+      const items = screen.getAllByRole('listitem').map((li) => li.textContent)
+      expect(items.findIndex((text) => text?.includes('Paint'))).toBeLessThan(
+        items.findIndex((text) => text?.includes('Garden')),
+      )
     })
   })
 })

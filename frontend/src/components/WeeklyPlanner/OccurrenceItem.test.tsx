@@ -15,6 +15,7 @@ const gridOccurrence: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: 'MONDAY',
   slot: 'MORNING',
+  bucketPosition: null,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -31,6 +32,7 @@ const subTaskOccurrence: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: 'TUESDAY',
   slot: 'AFTERNOON',
+  bucketPosition: null,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -47,6 +49,7 @@ const bucketOccurrence: PlannedOccurrence = {
   weekStart: '2026-10-05',
   dayOfWeek: null,
   slot: null,
+  bucketPosition: 0,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -352,5 +355,29 @@ describe('FRONTEND-021-AC-04: shows no repeatable icon on a sub-task-sourced buc
     )
 
     expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-010-AC-02/AC-03/AC-15: reorder controls render always at-rest for a bucket item', () => {
+  it('renders a draggable, aria-hidden grip handle and Move up/down buttons for a bucket item', () => {
+    render(
+      <OccurrenceItem {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true })} />,
+    )
+
+    const handle = document.querySelector('[draggable="true"]')
+    expect(handle).not.toBeNull()
+    expect(handle).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByRole('button', { name: /move paint up/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /move paint down/i })).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-010-AC-16: grid items never render a drag handle or Move up/down controls', () => {
+  it('renders no draggable grip handle or Move up/down buttons for a grid-scheduled occurrence', () => {
+    render(<OccurrenceItem {...baseProps({ isBucketItem: false })} />)
+
+    expect(document.querySelector('[draggable="true"]')).toBeNull()
+    expect(screen.queryByRole('button', { name: /move .* up/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /move .* down/i })).not.toBeInTheDocument()
   })
 })
