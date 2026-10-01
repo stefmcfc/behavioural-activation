@@ -2,12 +2,16 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
+import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
 import type { PlanDayOfWeek } from '../../types/plan'
 
 const noop = () => {}
 
 function baseGridProps(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
   return {
+    days: WEEKDAY_DAYS,
+    heading: 'Week grid',
+    emptyMessage: 'No activities planned for this week.',
     occurrences: [],
     busyId: null,
     detailOpenId: null,
@@ -57,5 +61,36 @@ describe('FRONTEND-008-AC-18/AC-19: today-column highlight only appears for the 
 
     rerender(<PlannerGrid {...baseGridProps({ todayColumn: null })} />)
     expect(screen.getByText('Tuesday')).not.toHaveClass(styles.today)
+  })
+})
+
+describe('FRONTEND-015-AC-02/AC-03: days/heading/emptyMessage are driven by props, not hardcoded', () => {
+  it('renders the Monday-Friday layout by default via the days prop', () => {
+    render(<PlannerGrid {...baseGridProps()} />)
+
+    expect(screen.getByRole('heading', { name: 'Week grid' })).toBeInTheDocument()
+    expect(screen.getByText('Monday')).toBeInTheDocument()
+    expect(screen.getByText('Friday')).toBeInTheDocument()
+    expect(screen.queryByText('Saturday')).not.toBeInTheDocument()
+    expect(screen.getByText('No activities planned for this week.')).toBeInTheDocument()
+  })
+
+  it('renders Saturday/Sunday in the same 3-slot layout when given WEEKEND_DAYS', () => {
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        days={WEEKEND_DAYS}
+        heading="Weekend grid"
+        emptyMessage="No activities planned for the weekend."
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Weekend grid' })).toBeInTheDocument()
+    expect(screen.getByText('Saturday')).toBeInTheDocument()
+    expect(screen.getByText('Sunday')).toBeInTheDocument()
+    expect(screen.queryByText('Monday')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Add to Saturday Morning')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add to Sunday Evening')).toBeInTheDocument()
+    expect(screen.getByText('No activities planned for the weekend.')).toBeInTheDocument()
   })
 })

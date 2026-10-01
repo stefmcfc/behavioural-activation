@@ -1,6 +1,6 @@
 # Weekday/Weekend Grid Tabs (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01)
 **Priority**: P2 — same tier as the sibling Weekly Planner UX specs (`frontend_spec_008`–`012`).
 Fixes a real, confirmed bug: `frontend_spec_008_occurrence_detail_card.md`'s Move sub-state offers
 all seven days (`ALL_DAYS` in `planLabels.ts`) as a move target, but `PlannerGrid` only ever renders
@@ -19,6 +19,41 @@ checks day/slot are both-null-or-both-set (`validateDaySlotPair`), never which s
 scope-boundary precedent as `frontend_spec_012_grid_orientation_toggle.md`.
 **Roadmap version**: V1 (extends the core planner's weekly-grid display from `product.md`'s V1 row /
 US-003 "View a weekly plan" — not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+All 11 ACs implemented and tested (10 new/rewritten Vitest + RTL tests across
+`WeeklyPlanner.test.tsx` and `PlannerGrid.test.tsx`; 281 tests pass repo-wide, 0 regressions).
+`npm run lint` and `tsc -b --noEmit` (via `npm run build`) are both clean.
+
+**Real findings**:
+- None — the spec's proposed code snippets matched the real current shape of `PlannerGrid.tsx`/
+  `WeeklyPlanner.tsx` closely enough to implement close to verbatim; no deviation from the plan.
+
+**Amendments**:
+- `WeeklyPlanner.test.tsx`'s pre-existing `FRONTEND-008-AC-18/AC-20/AC-21` describe block's first
+  test ("computes a null today-column on a weekend, even during the current week") was rewritten,
+  not deleted, to assert the new correct behaviour — the Weekend tab's Saturday column *is*
+  highlighted during the real current week. A comment in the test file marks the supersession,
+  per this project's established practice (`planner_spec_014`'s handling of `planner_spec_003`'s
+  contradicted AC-20).
+
+**Real-browser verification** (AC-11): verified against the real dev servers (`:4321`/`:8420`) with
+a scripted Chromium pass (Playwright, run ad hoc — not added as a project dependency) covering both
+Light and Dark theme, since jsdom can't render CSS:
+- The Weekdays/Weekend tab control renders as a segmented pill pair above the grid, with a filled
+  accent/selected state and legible contrast in both themes.
+- Switching tabs swaps the grid between the Monday–Friday and Saturday/Sunday layouts; the bucket
+  list stays visible and unchanged beneath either tab.
+- Moving a real occurrence ("Go for a walk") to Saturday via its existing Rearrange control made it
+  appear on the Weekend tab's Saturday/Morning cell without auto-switching away from the active
+  Weekdays tab, confirming the bug this spec exists to fix is actually resolved end-to-end against
+  the real backend, not just in jsdom.
+- Today's column (Thursday, the real date at verification time) highlighted correctly on the
+  Weekdays tab; the Weekend tab showed no highlight, correctly, since today wasn't a Saturday/Sunday
+  at verification time.
+- The moved test occurrence was moved back to its original Monday/Morning slot afterward, restoring
+  the dev database to how it was found.
 
 ## Overview
 
@@ -359,14 +394,14 @@ Dark, per `frontend_conventions.md`'s Testing Strategy note.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-015-AC-01 — a Weekdays/Weekend tab control renders above the grid
-- [ ] FRONTEND-015-AC-02 — Weekdays tab renders the same Monday–Friday layout as today
-- [ ] FRONTEND-015-AC-03 — Weekend tab renders Saturday/Sunday in the same layout mechanics
-- [ ] FRONTEND-015-AC-04 — moving an occurrence off-tab never auto-switches the active tab
-- [ ] FRONTEND-015-AC-05 — default tab matches today's real calendar day on mount
-- [ ] FRONTEND-015-AC-06 — Previous/Next week never changes the active tab
-- [ ] FRONTEND-015-AC-07 — active tab does not persist across a remount
-- [ ] FRONTEND-015-AC-08 — today-highlight applies on the Weekend tab when today is Sat/Sun
-- [ ] FRONTEND-015-AC-09 — no today-highlight on either tab for a non-current week
-- [ ] FRONTEND-015-AC-10 — the bucket list stays visible regardless of active tab
-- [ ] FRONTEND-015-AC-11 — tab control + both grids + today-highlight render correctly in Light and Dark (real-browser check)
+- [x] FRONTEND-015-AC-01 — a Weekdays/Weekend tab control renders above the grid
+- [x] FRONTEND-015-AC-02 — Weekdays tab renders the same Monday–Friday layout as today
+- [x] FRONTEND-015-AC-03 — Weekend tab renders Saturday/Sunday in the same layout mechanics
+- [x] FRONTEND-015-AC-04 — moving an occurrence off-tab never auto-switches the active tab
+- [x] FRONTEND-015-AC-05 — default tab matches today's real calendar day on mount
+- [x] FRONTEND-015-AC-06 — Previous/Next week never changes the active tab
+- [x] FRONTEND-015-AC-07 — active tab does not persist across a remount
+- [x] FRONTEND-015-AC-08 — today-highlight applies on the Weekend tab when today is Sat/Sun
+- [x] FRONTEND-015-AC-09 — no today-highlight on either tab for a non-current week
+- [x] FRONTEND-015-AC-10 — the bucket list stays visible regardless of active tab
+- [x] FRONTEND-015-AC-11 — tab control + both grids + today-highlight render correctly in Light and Dark (real-browser check)

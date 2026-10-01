@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Moving a planned occurrence to Saturday or Sunday (via its existing "Rearrange" control) now has
+  somewhere to actually show up: the Weekly Planner's grid is split into Weekdays/Weekend tabs, so
+  weekend occurrences are no longer silently invisible after being moved there. Defaults to whichever
+  tab actually contains today; today's column now highlights correctly on the Weekend tab too.
+
 ## [0.14.1] - 2026-10-01
 
 ### Fixed

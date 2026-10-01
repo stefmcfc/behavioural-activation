@@ -6,6 +6,8 @@ import { AssignActivityPicker, type AssignTarget } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
+import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
+import styles from './WeeklyPlanner.module.css'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -45,17 +47,24 @@ function shiftWeek(weekStart: string, days: number): string {
   return formatDate(date)
 }
 
-function getTodayPlanDayOfWeek(): PlanDayOfWeek | null {
-  const byJsDay: Record<number, PlanDayOfWeek | null> = {
-    0: null, // Sunday -- outside the Mon-Fri grid
+function getTodayPlanDayOfWeek(): PlanDayOfWeek {
+  const byJsDay: Record<number, PlanDayOfWeek> = {
+    0: 'SUNDAY',
     1: 'MONDAY',
     2: 'TUESDAY',
     3: 'WEDNESDAY',
     4: 'THURSDAY',
     5: 'FRIDAY',
-    6: null, // Saturday -- outside the Mon-Fri grid
+    6: 'SATURDAY',
   }
   return byJsDay[new Date().getDay()]
+}
+
+type GridTab = 'WEEKDAYS' | 'WEEKEND'
+
+function getDefaultGridTab(): GridTab {
+  const day = new Date().getDay()
+  return day === 0 || day === 6 ? 'WEEKEND' : 'WEEKDAYS'
 }
 
 export function WeeklyPlanner() {
@@ -69,6 +78,7 @@ export function WeeklyPlanner() {
   const [movingId, setMovingId] = useState<string | null>(null)
   const [detailOpenId, setDetailOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [gridTab, setGridTab] = useState<GridTab>(() => getDefaultGridTab())
 
   useEffect(() => {
     let cancelled = false
@@ -245,7 +255,38 @@ export function WeeklyPlanner() {
 
       {occurrences !== null && (
         <>
+          <fieldset className={styles.tabFieldset}>
+            <legend>View</legend>
+            <div className={styles.tabGroup}>
+              <label className={styles.tabOption}>
+                <input
+                  type="radio"
+                  name="grid-tab"
+                  checked={gridTab === 'WEEKDAYS'}
+                  onChange={() => setGridTab('WEEKDAYS')}
+                />
+                Weekdays
+              </label>
+              <label className={styles.tabOption}>
+                <input
+                  type="radio"
+                  name="grid-tab"
+                  checked={gridTab === 'WEEKEND'}
+                  onChange={() => setGridTab('WEEKEND')}
+                />
+                Weekend
+              </label>
+            </div>
+          </fieldset>
+
           <PlannerGrid
+            days={gridTab === 'WEEKDAYS' ? WEEKDAY_DAYS : WEEKEND_DAYS}
+            heading={gridTab === 'WEEKDAYS' ? 'Week grid' : 'Weekend grid'}
+            emptyMessage={
+              gridTab === 'WEEKDAYS'
+                ? 'No activities planned for this week.'
+                : 'No activities planned for the weekend.'
+            }
             occurrences={occurrences}
             busyId={busyId}
             detailOpenId={detailOpenId}

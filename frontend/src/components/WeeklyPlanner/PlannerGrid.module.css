@@ -10,7 +10,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(8rem, 1fr));
+  grid-template-columns: repeat(var(--day-count), minmax(8rem, 1fr));
   gap: 0.5rem;
   align-items: start;
 }

@@ -1,17 +1,13 @@
+import type { CSSProperties } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import styles from './PlannerGrid.module.css'
 
-const WEEKDAYS: readonly PlanDayOfWeek[] = [
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-]
-
 interface PlannerGridProps {
+  readonly days: readonly PlanDayOfWeek[]
+  readonly heading: string
+  readonly emptyMessage: string
   readonly occurrences: readonly PlannedOccurrence[]
   readonly busyId: string | null
   readonly detailOpenId: string | null
@@ -41,6 +37,9 @@ function dayLabelClassName(isToday: boolean): string {
 }
 
 export function PlannerGrid({
+  days,
+  heading,
+  emptyMessage,
   occurrences,
   busyId,
   detailOpenId,
@@ -65,20 +64,20 @@ export function PlannerGrid({
   )
 
   return (
-    <section aria-label="Weekly grid">
-      <h3>Week grid</h3>
+    <section aria-label={heading}>
+      <h3>{heading}</h3>
 
-      {scheduled.length === 0 && <p>No activities planned for this week.</p>}
+      {scheduled.length === 0 && <p>{emptyMessage}</p>}
 
       <div className={styles.scroll}>
-        <div className={styles.grid}>
-          {WEEKDAYS.map((day) => (
+        <div className={styles.grid} style={{ '--day-count': days.length } as CSSProperties}>
+          {days.map((day) => (
             <div key={day} className={dayLabelClassName(day === todayColumn)}>
               {DAY_LABELS[day]}
             </div>
           ))}
           {ALL_SLOTS.map((slot) =>
-            WEEKDAYS.map((day) => {
+            days.map((day) => {
               const cellOccurrences = scheduled.filter(
                 (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
               )
