@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-02
+
 ### Added
 
 - You can now drag an already-planned activity tile directly onto a different day/slot cell in the
