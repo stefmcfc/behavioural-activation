@@ -64,7 +64,7 @@ export function PlannerGrid({
   )
 
   return (
-    <section aria-label={heading}>
+    <section aria-label={heading} className={styles.section}>
       <h3>{heading}</h3>
 
       {scheduled.length === 0 && <p>{emptyMessage}</p>}

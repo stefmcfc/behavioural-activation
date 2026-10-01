@@ -13,6 +13,15 @@ All notable changes to this project are documented in this file, in
   weekend occurrences are no longer silently invisible after being moved there. Defaults to whichever
   tab actually contains today; today's column now highlights correctly on the Weekend tab too.
 
+### Changed
+
+- Weekly Planner header/spacing polish: the week label now reads "Week Commencing" with a date
+  formatted to match the browser's own locale (e.g. `dd/mm/yyyy` in the UK, `mm/dd/yyyy` in the US)
+  instead of a hardcoded `yyyy-mm-dd`; Previous/Next week controls are now icon-only chevrons (with
+  accessible "Previous week"/"Next week" labels) and the row is centered; larger spacing between the
+  nav row and the grid, between the Morning/Afternoon/Evening rows, and between the grid and the
+  weekend bucket list.
+
 ## [0.14.1] - 2026-10-01
 
 ### Fixed

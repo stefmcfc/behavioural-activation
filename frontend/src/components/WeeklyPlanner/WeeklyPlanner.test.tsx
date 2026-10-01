@@ -130,7 +130,58 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       render(<WeeklyPlanner />)
 
-      expect(await screen.findByText(/week of \d{4}-\d{2}-\d{2}/i)).toBeInTheDocument()
+      expect(await screen.findByText(/week commencing/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-024: "Week Commencing" header and icon-only week navigation', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('FRONTEND-024-AC-01: shows "Week Commencing" followed by a formatted date', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByText(/week commencing/i)).toBeInTheDocument()
+      expect(screen.queryByText(/week of \d{4}-\d{2}-\d{2}/i)).not.toBeInTheDocument()
+    })
+
+    it('FRONTEND-024-AC-02: formats the exact calendar date with no timezone off-by-one', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00')) // a Monday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const expected = new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(2026, 9, 5))
+
+      expect(
+        await screen.findByText(new RegExp(expected.replace(/\//g, '\\/'))),
+      ).toBeInTheDocument()
+    })
+
+    it('FRONTEND-024-AC-03: Previous/Next week buttons have no visible text but keep their accessible name', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const previous = await screen.findByRole('button', { name: /previous week/i })
+      const next = screen.getByRole('button', { name: /next week/i })
+      expect(previous).toHaveAccessibleName('Previous week')
+      expect(previous.textContent?.trim()).toBe('')
+      expect(next).toHaveAccessibleName('Next week')
+      expect(next.textContent?.trim()).toBe('')
+    })
+
+    it('FRONTEND-024-AC-04: chevron icons are hidden from assistive tech', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const previous = await screen.findByRole('button', { name: /previous week/i })
+      const icon = previous.querySelector('svg')
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
     })
   })
 

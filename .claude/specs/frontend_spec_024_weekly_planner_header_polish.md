@@ -1,12 +1,33 @@
 # Weekly Planner Header and Spacing Polish (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 5 ACs green.
 **Priority**: P3 — cosmetic polish on an already-shipped screen, nothing else blocked on it
 **Depends on**: `frontend_spec_004_week_planning.md` (the week-navigation row and `PlannerGrid` this
 spec restyles), `frontend_spec_015_weekday_weekend_grid_tabs.md` (`PlannerGrid`'s current `days`
 prop shape, just merged)
 **Area**: Frontend
 **Roadmap version**: N/A — UX polish, not tied to a V1–V5 theme
+
+## Summary
+
+Implemented directly on `feature/weekday-weekend-grid-tabs` (bundled with `frontend_spec_015`,
+since both touch the same Weekly Planner area) rather than a separate branch.
+
+- `WeeklyPlanner.tsx` gained `formatWeekCommencing` (reuses `shiftWeek`'s safe local-date parsing,
+  then `Intl.DateTimeFormat(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })`) and
+  a local `ChevronIcon` component (`aria-hidden="true"`, deliberately not following
+  `CompletionIcon`'s `role="img"`/`aria-label` pattern — see `FRONTEND-024-AC-04`'s rationale).
+- CSS gap values chosen: `2rem` margin between the nav row and the grid, `row-gap: 1.5rem` inside
+  `PlannerGrid` (column-gap unchanged at `0.5rem`), `2rem` margin between the grid and whatever
+  renders next (`BucketList`).
+- `FRONTEND-004-AC-16`'s existing test was updated to match the new "Week Commencing" wording — the
+  requirement itself is unchanged, not superseded.
+- Full suite: 285 Vitest tests, 0 regressions (up from 271); `oxlint`/`tsc -b --noEmit` clean.
+- Real-browser verified (Light + Dark) at `localhost:4321/planner`: "Week Commencing 09/28/2026"
+  renders in the browser's own locale format, nav row centered with working chevron buttons (clicking
+  Next advanced to "Week Commencing 10/05/2026" correctly), and all three spacing increases
+  (nav-to-grid, Morning/Afternoon/Evening row gap, grid-to-bucket-list) are clearly visible in both
+  themes with no layout regressions.
 
 ## Overview
 
@@ -229,8 +250,8 @@ week") stays satisfied; only its wording/format changed, not its intent, so it i
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-024-AC-01 [AUTO]: Displays "Week Commencing" with a formatted date
-- [ ] FRONTEND-024-AC-02 [AUTO]: The formatted date matches the actual Monday, with no timezone drift
-- [ ] FRONTEND-024-AC-03 [AUTO]: Previous/Next controls become icon-only, with an accessible name
-- [ ] FRONTEND-024-AC-04 [AUTO]: The chevron icons are decorative, not independently announced
-- [ ] FRONTEND-024-AC-05 [MANUAL]: Spacing and centering render correctly in both themes
+- [x] FRONTEND-024-AC-01 [AUTO]: Displays "Week Commencing" with a formatted date
+- [x] FRONTEND-024-AC-02 [AUTO]: The formatted date matches the actual Monday, with no timezone drift
+- [x] FRONTEND-024-AC-03 [AUTO]: Previous/Next controls become icon-only, with an accessible name
+- [x] FRONTEND-024-AC-04 [AUTO]: The chevron icons are decorative, not independently announced
+- [x] FRONTEND-024-AC-05 [MANUAL]: Spacing and centering render correctly in both themes
