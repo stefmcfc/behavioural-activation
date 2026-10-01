@@ -1,6 +1,6 @@
 # Automatic Carry-Forward for Incomplete Bucket Items (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 5 ACs green.
 **Priority**: P2 — small, paired with the backend automation spec; makes an otherwise-silent
 relocation visible rather than confusing.
 **Depends on**: `planner_spec_011_bucket_carry_forward_automation.md` (paired backend spec —
@@ -11,6 +11,47 @@ custom-properties convention this spec's new label style follows)
 **Area**: Frontend
 **Roadmap version**: V1 (extends the core planner's weekend bucket list from `product.md`'s V1 row
 — not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+Implemented per the spec's own sketch, with one placement adjustment and one real contrast bug
+found and fixed during real-browser verification.
+
+- The spec's `OccurrenceItem.tsx` sketch anchored the new label next to a text-based " — Completed"
+  marker that no longer exists — `frontend_spec_008_occurrence_detail_card.md`'s restructuring
+  replaced it with an icon-only `CompletionIcon`. Anchored the label relative to the real current
+  layout instead: after the repeatable icon, before `CompletionIcon`. The drag handle/Move up-down
+  controls (`frontend_spec_010_bucket_reordering.md`) and the detail-card modal (`frontend_spec_008`)
+  both landed on this component since this spec was drafted; neither needed any change — the label is
+  additive to the always-visible at-rest row, independent of both.
+- Label wording: "Moved from last week"; CSS: `.carriedForwardLabel` — a small rounded pill using
+  `--accent-bg`/`--accent-border`, reusing this file's existing non-alarm accent treatment rather
+  than inventing a new colour.
+- **Real-browser check (AC-05) found a genuine contrast bug in the first pass**: the label's CSS
+  paired `color: var(--accent-ink)` with `background: var(--accent-bg)`. `--accent-ink` (`#ffffff` in
+  Light theme) is designed to pair with the *solid* `--accent` fill (e.g. the selected-tab pill) —
+  `--accent-bg` is a translucent ~12%-opacity wash meant to be used *without* setting `color` at all
+  (see `.nameButton:hover`/`PlannerGrid`'s `.today`, both of which omit `color` for exactly this
+  reason), so pairing it with white ink produced near-white-on-near-white text in Light theme.
+  Confirmed by zooming into the rendered pill before and after; fixed by changing `color` to
+  `var(--text)` (the normal body-text colour, which the theme already guarantees contrasts against
+  the page background in both themes) — verified legible in both Light and Dark after the fix.
+  **Also fixed the identical pairing** on `OccurrenceItem.module.css`'s pre-existing
+  `.moveButton:hover`/`:focus-visible` rule (from `frontend_spec_010_bucket_reordering.md`, already
+  shipped) — same `--accent-ink`-on-`--accent-bg` bug, same fix (drop the `color` override entirely,
+  letting the button's own base `color: var(--text)` show through), one-line, no behavior change
+  beyond the corrected contrast. Out of this spec's own AC scope, but trivial and directly adjacent
+  to the bug just found, so fixed alongside rather than left for a separate pass.
+- Real-browser verification required reproducing the actual migration end-to-end (creating a stale
+  bucket item via the live API, then returning to the current week in the already-mounted app) —
+  naively reloading the page lost the one-shot `recentlyCarriedForward` signal, since React
+  StrictMode's dev-only double-effect-invocation (or simply re-triggering the migration on an
+  intermediate week before reaching the current one) both race the flag away before it's ever
+  rendered. Neither is a real bug — the flag is only ever `true` on the exact response that performed
+  the migration, by design (`PLANNER-011-AC-14`) — but it did take care to actually reproduce.
+- Full suite: 301 Vitest tests (up from 299), 0 regressions; `oxlint`/`tsc -b --noEmit` clean —
+  independently re-run, not just trusting the implementing agent's own report (and re-run once more
+  after the contrast-bug fix).
 
 ## Overview
 
@@ -186,8 +227,8 @@ per `frontend_conventions.md`'s Testing Strategy note.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-011-AC-01 — `PlannedOccurrence.recentlyCarriedForward: boolean` type field added
-- [ ] FRONTEND-011-AC-02 — the "Moved from last week" label renders when `recentlyCarriedForward` is `true`
-- [ ] FRONTEND-011-AC-03 — no label renders when `recentlyCarriedForward` is `false`
-- [ ] FRONTEND-011-AC-04 — the label never uses fault/lateness wording
-- [ ] FRONTEND-011-AC-05 — the label is visually distinguishable but non-alarming in both themes (real-browser check)
+- [x] FRONTEND-011-AC-01 — `PlannedOccurrence.recentlyCarriedForward: boolean` type field added
+- [x] FRONTEND-011-AC-02 — the "Moved from last week" label renders when `recentlyCarriedForward` is `true`
+- [x] FRONTEND-011-AC-03 — no label renders when `recentlyCarriedForward` is `false`
+- [x] FRONTEND-011-AC-04 — the label never uses fault/lateness wording
+- [x] FRONTEND-011-AC-05 — the label is visually distinguishable but non-alarming in both themes (real-browser check)

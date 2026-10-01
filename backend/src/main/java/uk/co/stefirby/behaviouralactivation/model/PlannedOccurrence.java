@@ -97,6 +97,17 @@ public class PlannedOccurrence {
         this.updatedAt = Instant.now();
     }
 
+    // Automatic-migration path (planner_spec_011_bucket_carry_forward_automation.md) -- distinct from
+    // carryForward() above, which stays the manual +7-day single-step mechanism, unchanged. This jumps
+    // directly to an arbitrary target week (the real current week, however many weeks away) in one
+    // step, and resets bucketPosition (planner_spec_010_bucket_reordering.md) to null so the item is
+    // treated as freshly appended to its new week's bucket order (PLANNER-011-AC-06/AC-07).
+    public void autoCarryForwardTo(LocalDate newWeekStart) {
+        this.weekStart = newWeekStart;
+        this.bucketPosition = null;
+        this.updatedAt = Instant.now();
+    }
+
     public void assignBucketPosition(int bucketPosition) {
         this.bucketPosition = bucketPosition;
         this.updatedAt = Instant.now();

@@ -24,6 +24,12 @@ import uk.co.stefirby.behaviouralactivation.model.PlanSlot;
 // `bucketPosition` exposes PlannedOccurrence.bucketPosition as-is -- meaningful only for a
 // weekend-bucket item (dayOfWeek/slot both null); always null for a grid-scheduled occurrence
 // (planner_spec_010_bucket_reordering.md, PLANNER-010-AC-02).
+//
+// `recentlyCarriedForward` is never persisted -- computed fresh per response. It is true only on
+// GET /api/v1/plan's response, and only for the occurrences that same request's
+// PlanService.migrateStaleBucketItems(...) call just relocated to the real current week; every other
+// response path (create/move/complete/uncomplete/the existing manual carryForward) always sets it
+// false (planner_spec_011_bucket_carry_forward_automation.md, PLANNER-011-AC-13/AC-14/AC-15).
 public record PlannedOccurrenceResponse(
     UUID id,
     UUID activityId,
@@ -38,6 +44,7 @@ public record PlannedOccurrenceResponse(
     Instant completedAt,
     Instant createdAt,
     boolean repeatable,
-    Integer bucketPosition
+    Integer bucketPosition,
+    boolean recentlyCarriedForward
 ) {
 }

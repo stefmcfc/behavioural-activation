@@ -56,10 +56,22 @@ class PlanControllerSpec extends Specification {
     SubTask subTask = new SubTask(activity, "Chapter one", ActivityCategory.ROUTINE, owner)
     LocalDate monday = LocalDate.of(2026, 10, 5)
 
+    // Test-only helper: PlannedOccurrence.id is a plain @GeneratedValue field with no setter (only
+    // populated on persist), but PLANNER-011-AC-14's mocked-service test needs two distinct, non-null
+    // occurrence ids to exercise the migratedIds.contains(...) comparison meaningfully. Mirrors
+    // PlanServiceSpec.groovy's own withId(...) precedent for the same reflection-based need.
+    private static <T> T withId(T entity, UUID id) {
+        def field = entity.class.getDeclaredField("id")
+        field.accessible = true
+        field.set(entity, id)
+        return entity
+    }
+
     def "PLANNER-004-AC-01/AC-02: GET /api/v1/plan returns the week's occurrences in the {data, count} envelope"() {
-        given: "the service returns one scheduled occurrence for the week"
+        given: "the service returns one scheduled occurrence for the week, with nothing migrated"
             def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> [occurrence]
             planService.findCompletions("steve", _) >> [:]
 
@@ -80,6 +92,7 @@ class PlanControllerSpec extends Specification {
         given: "the service returns one whole-activity occurrence for the week"
             def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> [occurrence]
             planService.findCompletions("steve", _) >> [:]
 
@@ -99,6 +112,7 @@ class PlanControllerSpec extends Specification {
         given: "the service returns one sub-task occurrence for the week"
             def occurrence = new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> [occurrence]
             planService.findCompletions("steve", _) >> [:]
 
@@ -117,6 +131,7 @@ class PlanControllerSpec extends Specification {
             def repeatableActivity = new Activity("Walk", ActivityCategory.ROUTINE, null, true, owner)
             def occurrence = new PlannedOccurrence(repeatableActivity, null, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> [occurrence]
             planService.findCompletions("steve", _) >> [:]
 
@@ -135,6 +150,7 @@ class PlanControllerSpec extends Specification {
             def oneOffSubTask = new SubTask(oneOffActivity, "Step one", ActivityCategory.ROUTINE, owner)
             def occurrence = new PlannedOccurrence(null, oneOffSubTask, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> [occurrence]
             planService.findCompletions("steve", _) >> [:]
 
@@ -149,6 +165,7 @@ class PlanControllerSpec extends Specification {
 
     def "PLANNER-004-AC-05: GET /api/v1/plan returns 200 with an empty envelope, not 404, for an empty week"() {
         given: "the service returns no occurrences"
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", monday) >> []
 
         when: "GET /api/v1/plan is requested"
@@ -163,6 +180,7 @@ class PlanControllerSpec extends Specification {
 
     def "PLANNER-004-AC-03/AC-04: GET /api/v1/plan returns 400 for a missing or non-Monday weekStart"() {
         given: "the service rejects the weekStart as invalid"
+            planService.migrateStaleBucketItems("steve") >> ([] as Set)
             planService.getWeek("steve", _) >> { throw new InvalidPlanRequestException("weekStart is required and must be a Monday") }
 
         when: "GET /api/v1/plan is requested"
@@ -562,6 +580,72 @@ class PlanControllerSpec extends Specification {
 
         then: "the response is 409"
             result.andExpect(status().isConflict())
+    }
+
+    def "PLANNER-011-AC-14: GET /api/v1/plan sets recentlyCarriedForward true only for that request's migrated occurrences"() {
+        given: "the service returns two occurrences for the week, and reports only one of them as just migrated"
+            def migrated = withId(
+                new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE, monday, null, null, owner),
+                UUID.randomUUID())
+            def untouched = withId(
+                new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday,
+                    DayOfWeek.MONDAY, PlanSlot.MORNING, owner),
+                UUID.randomUUID())
+            planService.migrateStaleBucketItems("steve") >> ([migrated.id] as Set)
+            planService.getWeek("steve", monday) >> [migrated, untouched]
+            planService.findCompletions("steve", _) >> [:]
+
+        when: "GET /api/v1/plan is requested"
+            def result = mockMvc.perform(get("/api/v1/plan?weekStart=2026-10-05")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "only the migrated occurrence is flagged recentlyCarriedForward: true"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[?(@.id==\'' + migrated.id + '\')].recentlyCarriedForward').value([true]))
+            result.andExpect(jsonPath('$.data[?(@.id==\'' + untouched.id + '\')].recentlyCarriedForward').value([false]))
+    }
+
+    def "PLANNER-011-AC-09: GET /api/v1/plan calls migrateStaleBucketItems unconditionally, even for a missing weekStart"() {
+        given: "the service rejects the missing weekStart, as it always has"
+            planService.getWeek("steve", _) >> { throw new InvalidPlanRequestException("weekStart is required and must be a Monday") }
+
+        when: "GET /api/v1/plan is requested with no weekStart"
+            mockMvc.perform(get("/api/v1/plan")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "migrateStaleBucketItems is still called, since it depends only on the owner"
+            1 * planService.migrateStaleBucketItems("steve") >> ([] as Set)
+    }
+
+    def "PLANNER-011-AC-15: every non-GET response path always sets recentlyCarriedForward false"() {
+        given: "a plain owned occurrence the service hands back, unrelated to any migration"
+            def id = UUID.randomUUID()
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday, null, null, owner)
+            planService.create("steve", _ as PlannedOccurrenceRequest) >> Optional.of(occurrence)
+            planService.move("steve", id, _ as PlannedOccurrenceMoveRequest) >> Optional.of(occurrence)
+            planService.findCompletion("steve", id) >> Optional.empty()
+            planService.complete("steve", id) >> Optional.of(new CompletionRecord(occurrence, owner, Instant.now()))
+            planService.carryForward("steve", id) >> Optional.of(occurrence)
+
+        when: "each non-GET endpoint is requested"
+            def createResult = mockMvc.perform(post("/api/v1/plan/occurrences")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString([activityId: activity.id, weekStart: "2026-10-05"])))
+            def moveResult = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString([dayOfWeek: null, slot: null])))
+            def completeResult = mockMvc.perform(post("/api/v1/plan/occurrences/${id}/completion")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+            def carryForwardResult = mockMvc.perform(post("/api/v1/plan/occurrences/${id}/carry-forward")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "recentlyCarriedForward is false on every one of these responses"
+            createResult.andExpect(jsonPath('$.recentlyCarriedForward').value(false))
+            moveResult.andExpect(jsonPath('$.recentlyCarriedForward').value(false))
+            completeResult.andExpect(jsonPath('$.recentlyCarriedForward').value(false))
+            carryForwardResult.andExpect(jsonPath('$.recentlyCarriedForward').value(false))
     }
 
     def "PLANNER-004-AC-37: an unauthenticated request to /api/v1/plan returns 401 (inherited SecurityFilterChain rule)"() {

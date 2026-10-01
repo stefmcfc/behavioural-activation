@@ -2,9 +2,11 @@ package uk.co.stefirby.behaviouralactivation.service
 
 import spock.lang.Specification
 
+import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
@@ -31,7 +33,7 @@ class PlanServiceSpec extends Specification {
     SubTaskRepository subTaskRepository = Mock()
     UserRepository userRepository = Mock()
     PlanService service = new PlanService(plannedOccurrenceRepository, completionRecordRepository,
-        activityRepository, subTaskRepository, userRepository)
+        activityRepository, subTaskRepository, userRepository, Clock.systemDefaultZone())
 
     User owner = new User("steve", "hashed-password")
     LocalDate monday = LocalDate.of(2026, 10, 5)
@@ -560,6 +562,51 @@ class PlanServiceSpec extends Specification {
             activity.archived
             0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
             0 * activityRepository.save(_)
+    }
+
+    def "PLANNER-011-AC-01/AC-02: migrateStaleBucketItems computes the real current week from the injected Clock, not ambient now()"() {
+        given: "a Clock fixed to a known Wednesday, and a PlanService constructed with it"
+            def fixedClock = Clock.fixed(Instant.parse("2026-10-14T09:00:00Z"), ZoneOffset.UTC) // Wed 2026-10-14
+            def serviceWithFixedClock = new PlanService(plannedOccurrenceRepository, completionRecordRepository,
+                activityRepository, subTaskRepository, userRepository, fixedClock)
+            def activity = new Activity("Go for a bike ride", ActivityCategory.PLEASURABLE, null, owner)
+            def stale = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE,
+                LocalDate.of(2026, 9, 21), null, null, owner)
+            plannedOccurrenceRepository.findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(
+                owner, LocalDate.of(2026, 10, 12)) >> [stale]
+            completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(owner, _) >> []
+
+        when: "migrateStaleBucketItems is called"
+            def migratedIds = serviceWithFixedClock.migrateStaleBucketItems("steve")
+
+        then: "the item is moved to Monday of the fixed Clock's week (2026-10-12), not one 7-day hop"
+            stale.weekStart == LocalDate.of(2026, 10, 12)
+            migratedIds == ([stale.id] as Set)
+    }
+
+    def "PLANNER-011-AC-04: a stale bucket item with an existing CompletionRecord is excluded from migration"() {
+        given: "a stale bucket item already found to be complete"
+            def activity = new Activity("Go for a bike ride", ActivityCategory.PLEASURABLE, null, owner)
+            def stale = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE,
+                LocalDate.of(2026, 9, 21), null, null, owner)
+            plannedOccurrenceRepository.findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(owner, _) >> [stale]
+            completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(owner, _) >>
+                [new CompletionRecord(stale, owner, Instant.now())]
+
+        when: "migrateStaleBucketItems is called"
+            def migratedIds = service.migrateStaleBucketItems("steve")
+
+        then: "the item is excluded from the migrated set, and its weekStart is left unchanged"
+            migratedIds.isEmpty()
+            stale.weekStart == LocalDate.of(2026, 9, 21)
+    }
+
+    def "PLANNER-011-AC-05: migrateStaleBucketItems scopes its query to the resolved, authenticated owner"() {
+        when: "migrateStaleBucketItems is called"
+            service.migrateStaleBucketItems("steve")
+
+        then: "the stale-item query is scoped to the resolved owner"
+            1 * plannedOccurrenceRepository.findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(owner, _) >> []
     }
 
     def "PLANNER-006-AC-17: completing a repeatable activity's occurrence never archives it, with or without sub-tasks"() {
