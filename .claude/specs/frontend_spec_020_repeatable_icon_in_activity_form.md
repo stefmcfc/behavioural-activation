@@ -4,10 +4,9 @@
 (`frontend/src/components/RepeatableIcon/RepeatableIcon.tsx`, mirroring `CategoryChip`'s
 directory structure) and reused here; `ActivityForm.tsx` renders it live inside the "Repeatable"
 label, gated on the `repeatable` local state. All 4 ACs covered by tests in
-`ActivityForm.test.tsx` (`npm test`, `npm run lint`, `tsc -b --noEmit` all clean). Real-browser
-verification not performed by the implementing agent (no browser automation tooling available in
-that session) — recommend a manual check in the Add/Edit activity modal (light + dark theme)
-before considering this fully done per the project's Definition of Done.
+`ActivityForm.test.tsx` (`npm test`, `npm run lint`, `tsc -b --noEmit` all clean). Full real-browser
+pass (light + dark) confirmed the icon appears/disappears live as "Repeatable" is toggled in the
+Edit activity modal, with correct contrast in both themes.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_019_repeatable_activity_icon.md` (origin of `RepeatableIcon`, which
 this spec reuses as-is — no new icon), `frontend_spec_013_add_activity_modal.md` (`ActivityForm`'s

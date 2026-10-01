@@ -7,9 +7,11 @@ completion indicator, gated on `isBucketItem && occurrence.repeatable`. All 3 AC
 tests in `OccurrenceItem.test.tsx`, including the AC-03 regression guard for grid cells. The
 sibling backend change (`planner_spec_013_repeatable_on_occurrence.md`) had already landed
 (uncommitted) in the working tree by the time this was implemented, so the frontend type matches
-the real API shape. Real-browser verification not performed by the implementing agent (no browser
-automation tooling available in that session) — recommend a manual check of the weekend bucket
-list (light + dark theme) before considering this fully done per the project's Definition of Done.
+the real API shape. Full real-browser pass (light + dark) confirmed the icon renders on a
+repeatable bucket item ("Go for a walk"), is absent on a one-off bucket item ("Apply for jobs"),
+and — critically — is absent from grid cells even for the same repeatable activity shown
+correctly without the icon in its grid occurrence, confirming AC-03's scoping decision holds in
+practice, not just in tests.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_013_repeatable_on_occurrence.md` (adds `repeatable` to
 `PlannedOccurrenceResponse` — this spec cannot be implemented ahead of that one landing),
