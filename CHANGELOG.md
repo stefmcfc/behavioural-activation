@@ -6,6 +6,28 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-01
+
+### Fixed
+
+- Moving a planned occurrence to Saturday or Sunday (via its existing "Rearrange" control) now has
+  somewhere to actually show up: the Weekly Planner's grid is split into Weekdays/Weekend tabs, so
+  weekend occurrences are no longer silently invisible after being moved there. Defaults to whichever
+  tab actually contains today; today's column now highlights correctly on the Weekend tab too.
+
+### Changed
+
+- Weekly Planner header/spacing polish: the week label now reads "Week Commencing" with a date
+  formatted to match the browser's own locale (e.g. `dd/mm/yyyy` in the UK, `mm/dd/yyyy` in the US)
+  instead of a hardcoded `yyyy-mm-dd`; Previous/Next week controls are now icon-only chevrons (with
+  accessible "Previous week"/"Next week" labels) and the row is centered; larger spacing between the
+  nav row and the grid, between the Morning/Afternoon/Evening rows, and between the grid and the
+  weekend bucket list.
+- The weekend bucket list's "Add" button is now right-aligned on the same row as its "Weekend
+  bucket list" heading, matching the Activity Bank's sub-task panel layout.
+- Each Week grid day column header now shows the date number next to the day name (e.g. "28
+  Monday"), so the calendar date is visible without cross-referencing the "Week Commencing" date.
+
 ## [0.14.1] - 2026-10-01
 
 ### Fixed

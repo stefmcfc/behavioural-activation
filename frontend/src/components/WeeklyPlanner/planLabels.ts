@@ -20,6 +20,21 @@ export const DAY_LABELS: Record<PlanDayOfWeek, string> = {
   SUNDAY: 'Sunday',
 }
 
+export const WEEKDAY_DAYS: readonly PlanDayOfWeek[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+]
+
+export const WEEKEND_DAYS: readonly PlanDayOfWeek[] = ['SATURDAY', 'SUNDAY']
+
+export function parseWeekStart(weekStart: string): Date {
+  const [year, month, day] = weekStart.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export const ALL_SLOTS: readonly PlanSlot[] = ['MORNING', 'AFTERNOON', 'EVENING']
 
 export const SLOT_LABELS: Record<PlanSlot, string> = {

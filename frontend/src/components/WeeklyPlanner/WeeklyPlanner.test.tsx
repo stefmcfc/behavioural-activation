@@ -130,7 +130,58 @@ describe('WeeklyPlanner', () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       render(<WeeklyPlanner />)
 
-      expect(await screen.findByText(/week of \d{4}-\d{2}-\d{2}/i)).toBeInTheDocument()
+      expect(await screen.findByText(/week commencing/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-024: "Week Commencing" header and icon-only week navigation', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('FRONTEND-024-AC-01: shows "Week Commencing" followed by a formatted date', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByText(/week commencing/i)).toBeInTheDocument()
+      expect(screen.queryByText(/week of \d{4}-\d{2}-\d{2}/i)).not.toBeInTheDocument()
+    })
+
+    it('FRONTEND-024-AC-02: formats the exact calendar date with no timezone off-by-one', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00')) // a Monday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const expected = new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date(2026, 9, 5))
+
+      expect(
+        await screen.findByText(new RegExp(expected.replace(/\//g, '\\/'))),
+      ).toBeInTheDocument()
+    })
+
+    it('FRONTEND-024-AC-03: Previous/Next week buttons have no visible text but keep their accessible name', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const previous = await screen.findByRole('button', { name: /previous week/i })
+      const next = screen.getByRole('button', { name: /next week/i })
+      expect(previous).toHaveAccessibleName('Previous week')
+      expect(previous.textContent?.trim()).toBe('')
+      expect(next).toHaveAccessibleName('Next week')
+      expect(next.textContent?.trim()).toBe('')
+    })
+
+    it('FRONTEND-024-AC-04: chevron icons are hidden from assistive tech', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const previous = await screen.findByRole('button', { name: /previous week/i })
+      const icon = previous.querySelector('svg')
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
     })
   })
 
@@ -512,14 +563,20 @@ describe('WeeklyPlanner', () => {
       vi.useRealTimers()
     })
 
-    it('computes a null today-column on a weekend, even during the current week', async () => {
+    // Superseded by frontend_spec_015_weekday_weekend_grid_tabs.md: the original assertion here
+    // ("today-column is null on a weekend, even during the current week") described the exact bug
+    // that spec fixes. getTodayPlanDayOfWeek now returns 'SATURDAY'/'SUNDAY' instead of null, and
+    // the Weekend tab (which is the default tab on a Saturday/Sunday mount, per AC-05) now highlights
+    // that column. Rewritten rather than deleted, per this project's established practice for an
+    // amended AC (see planner_spec_014's handling of planner_spec_003's contradicted AC-20).
+    it('FRONTEND-015-AC-08: highlights the today column on the Weekend tab during the current week', async () => {
       vi.setSystemTime(new Date('2026-10-10T09:00:00')) // a Saturday
       vi.mocked(planApi.getWeek).mockResolvedValue([])
 
       render(<WeeklyPlanner />)
 
-      await screen.findByText(/no activities planned/i)
-      expect(document.querySelector(`.${plannerGridStyles.today}`)).toBeNull()
+      await screen.findByText(/no activities planned for the weekend/i)
+      expect(document.querySelector(`.${plannerGridStyles.today}`)).not.toBeNull()
     })
 
     it('passes a null todayColumn for a week that is not the current one', async () => {
@@ -529,6 +586,117 @@ describe('WeeklyPlanner', () => {
       await userEvent.click(await screen.findByRole('button', { name: /previous week/i }))
 
       expect(document.querySelector(`.${plannerGridStyles.today}`)).toBeNull()
+    })
+  })
+
+  describe('FRONTEND-015-AC-01/AC-02/AC-03: Weekdays/Weekend tab switches the grid', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows the Weekdays grid by default and the Weekend grid after switching', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await screen.findByRole('radio', { name: /weekdays/i })
+      expect(screen.getByText('Monday')).toBeInTheDocument()
+      expect(screen.queryByText('Saturday')).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('radio', { name: /weekend/i }))
+
+      expect(screen.getByText('Saturday')).toBeInTheDocument()
+      expect(screen.getByText('Sunday')).toBeInTheDocument()
+      expect(screen.queryByText('Monday')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-015-AC-04: moving an occurrence off-tab never auto-switches the active tab', () => {
+    it('stays on the Weekdays tab after moving an occurrence to Saturday', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([walk])
+      vi.mocked(planApi.move).mockResolvedValue({ ...walk, dayOfWeek: 'SATURDAY', slot: 'MORNING' })
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('radio', { name: /weekdays/i }))
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
+      await userEvent.click(await screen.findByRole('button', { name: /^rearrange$/i }))
+      await userEvent.selectOptions(screen.getByLabelText(/new day/i), 'SATURDAY')
+      await userEvent.click(screen.getByRole('button', { name: /confirm rearrange/i }))
+
+      await waitFor(() => expect(planApi.move).toHaveBeenCalled())
+      expect(screen.getByRole('radio', { name: /weekdays/i })).toBeChecked()
+      expect(screen.queryByText('Go for a walk')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-015-AC-05: default tab matches today', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('defaults to Weekend when today is a Saturday', async () => {
+      vi.setSystemTime(new Date('2026-10-03T09:00:00')) // a Saturday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByRole('radio', { name: /weekend/i })).toBeChecked()
+    })
+
+    it('defaults to Weekdays when today is a weekday', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByRole('radio', { name: /weekdays/i })).toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-015-AC-06/AC-07: switching weeks does not change the active tab, and a remount re-evaluates the default', () => {
+    it('keeps the Weekend tab selected after clicking Next week', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('radio', { name: /weekend/i }))
+      await userEvent.click(screen.getByRole('button', { name: /next week/i }))
+
+      expect(screen.getByRole('radio', { name: /weekend/i })).toBeChecked()
+    })
+
+    it('re-evaluates the default tab on a fresh mount instead of persisting the previous selection', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      const { unmount } = render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('radio', { name: /weekend/i }))
+      expect(screen.getByRole('radio', { name: /weekend/i })).toBeChecked()
+      unmount()
+
+      render(<WeeklyPlanner />)
+
+      expect(await screen.findByRole('radio', { name: /weekdays/i })).toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-015-AC-09: no today-highlight on either tab for a week that is not the current one', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('highlights nothing on the Weekend tab for a week that is not the current one', async () => {
+      vi.setSystemTime(new Date('2026-10-10T09:00:00')) // a Saturday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+      await screen.findByText(/no activities planned for the weekend/i)
+
+      await userEvent.click(screen.getByRole('button', { name: /previous week/i }))
+
+      expect(document.querySelector(`.${plannerGridStyles.today}`)).toBeNull()
+    })
+  })
+
+  describe('FRONTEND-015-AC-10: the bucket list is visible on both tabs', () => {
+    it('keeps the bucket list panel mounted after switching to Weekdays', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('radio', { name: /weekdays/i }))
+
+      expect(screen.getByRole('region', { name: /weekend bucket list/i })).toBeInTheDocument()
     })
   })
 })

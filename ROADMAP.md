@@ -51,6 +51,8 @@ spec-tidying effort this came out of).
 | Sub-task count on the "Show sub-tasks" CTA | [`planner_spec_012_subtask_count.md`](.claude/specs/planner_spec_012_subtask_count.md) | [`frontend_spec_018_subtask_count_badge.md`](.claude/specs/frontend_spec_018_subtask_count_badge.md) | ✅ Implemented (2026-10-01). Count shown in the toggle label itself, not a separate badge. |
 | Cascade an activity's category change to its sub-tasks (bug fix) | [`planner_spec_014_subtask_category_cascade.md`](.claude/specs/planner_spec_014_subtask_category_cascade.md) | — (backend-only) | ✅ Implemented (2026-10-01), v0.14.1. |
 | Refresh an open sub-task panel after editing its activity (bug fix) | — (frontend-only) | [`frontend_spec_023_subtask_panel_refresh_on_edit.md`](.claude/specs/frontend_spec_023_subtask_panel_refresh_on_edit.md) | ✅ Implemented (2026-10-01), v0.14.1. |
+| Weekday/Weekend grid tabs (bug fix) | — (frontend-only) | [`frontend_spec_015_weekday_weekend_grid_tabs.md`](.claude/specs/frontend_spec_015_weekday_weekend_grid_tabs.md) | ✅ Implemented (2026-10-01), v0.15.0. Fixes weekend occurrences being invisible in the grid; `PlannerGrid` generalized to a `days` prop. |
+| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | ✅ Implemented (2026-10-01), v0.15.0. Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing, day-of-month numbers on column headers. |
 
 ## Specced, coming soon
 
@@ -62,9 +64,7 @@ header restructure and button-hierarchy candidates).
 | Weekend bucket drag-and-drop reordering (Weekly Planner UX batch, 3a of 4) | [`planner_spec_010_bucket_reordering.md`](.claude/specs/planner_spec_010_bucket_reordering.md) | [`frontend_spec_010_bucket_reordering.md`](.claude/specs/frontend_spec_010_bucket_reordering.md) | Not started. New `bucketPosition` field; drag-and-drop with a keyboard-accessible fallback. |
 | Automatic carry-forward for incomplete bucket items (Weekly Planner UX batch, 3b of 4) | [`planner_spec_011_bucket_carry_forward_automation.md`](.claude/specs/planner_spec_011_bucket_carry_forward_automation.md) | [`frontend_spec_011_bucket_carry_forward_automation.md`](.claude/specs/frontend_spec_011_bucket_carry_forward_automation.md) | Not started. Introduces this backend's first injectable `Clock` bean. |
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
-| Weekday/Weekend grid tabs | — (frontend-only) | [`frontend_spec_015_weekday_weekend_grid_tabs.md`](.claude/specs/frontend_spec_015_weekday_weekend_grid_tabs.md) | Not started. Fixes weekend occurrences being invisible in the current grid. Must land before `frontend_spec_016_today_view.md`. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
-| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | Not started. Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing. |
 
 ## Internal / maintenance specs
 

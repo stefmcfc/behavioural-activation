@@ -10,3 +10,10 @@
   border-radius: 6px;
   padding: 0.85rem 1rem;
 }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
