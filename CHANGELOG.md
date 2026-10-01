@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- A sub-task's category now updates to match its parent activity when the activity's category is
+  changed, instead of staying stuck at whatever it was when the sub-task was created (previously
+  visible as a mismatched category chip in the weekly planner's picker and occurrence items).
+
 ## [0.14.0] - 2026-10-01
 
 ### Added

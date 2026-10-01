@@ -32,6 +32,24 @@ session).
 
 ---
 
+## An already-open sub-task panel doesn't refresh after editing its parent activity
+
+**Status**: Not specced. Surfaced 2026-10-01 while real-browser-verifying
+`planner_spec_014_subtask_category_cascade.md`. `SubTaskList` fetches its data once, on mount
+(`activityId` doesn't change across a parent edit) — if its panel is already expanded when the user
+edits the parent activity (e.g. via the Edit modal), the panel keeps showing whatever it already
+fetched, not the parent edit's effects. Confirmed this is cosmetic/transient, not a data bug: the
+real stored data is correct immediately (verified via the cascade's own real-Postgres integration
+test and by collapsing/re-expanding the panel in a real browser, which fetches fresh and shows the
+correct cascaded category) — collapsing and re-expanding, or a page reload, always shows the truth.
+Pre-existing behavior, not introduced by `planner_spec_014` — would equally apply to, e.g., a
+sub-task's own category after some future "edit independently" feature, or any other parent-activity
+edit while its sub-task panel happens to be open. Low priority: narrow window (user must have the
+panel open *and* edit the same activity without closing it first) and self-corrects on next
+expand/reload. If ever addressed, the fix is almost certainly making `ActivityBank`'s activity-edit
+success handler also refetch (or invalidate) any currently-expanded `SubTaskList`'s data, not a
+`SubTaskList`-internal change.
+
 ## Finer-grained/custom time slots for planned activities
 
 **Status**: Not specced. V1's `PlannedOccurrence.slot` is a fixed `MORNING`/`AFTERNOON`/`EVENING`

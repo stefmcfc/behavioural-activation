@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
 import uk.co.stefirby.behaviouralactivation.model.Activity;
+import uk.co.stefirby.behaviouralactivation.model.ActivityCategory;
 import uk.co.stefirby.behaviouralactivation.model.User;
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository;
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository;
@@ -69,9 +70,22 @@ public class ActivityService {
         boolean repeatable = request.repeatable() == null || request.repeatable();
         return activityRepository.findByIdAndOwner(id, owner)
             .map(activity -> {
+                ActivityCategory previousCategory = activity.getCategory();
                 activity.update(request.name(), request.category(), request.description(), repeatable);
+                if (previousCategory != request.category()) {
+                    cascadeCategoryToSubTasks(activity, request.category(), owner);
+                }
                 return activity;
             });
+    }
+
+    // PLANNER-014-AC-01 -- supersedes PLANNER-003-AC-20's "category is a creation-time snapshot,
+    // never updated again" behavior: every existing sub-task now follows its parent activity's
+    // current category. Deliberately does not touch PlannedOccurrence rows (PLANNER-014-AC-04) --
+    // those keep whatever category was true when they were actually planned.
+    private void cascadeCategoryToSubTasks(Activity activity, ActivityCategory newCategory, User owner) {
+        subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.getId(), owner)
+            .forEach(subTask -> subTask.recategorize(newCategory));
     }
 
     @Transactional

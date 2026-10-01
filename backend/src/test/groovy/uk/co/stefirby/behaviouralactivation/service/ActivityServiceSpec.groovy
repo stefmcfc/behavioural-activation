@@ -4,6 +4,7 @@ import spock.lang.Specification
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest
 import uk.co.stefirby.behaviouralactivation.model.Activity
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
+import uk.co.stefirby.behaviouralactivation.model.SubTask
 import uk.co.stefirby.behaviouralactivation.model.User
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository
@@ -157,6 +158,9 @@ class ActivityServiceSpec extends Specification {
             def existing = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
             activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
 
+        and: "the category is changing, so the PLANNER-014-AC-01 cascade looks up this owner's sub-tasks (none here)"
+            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(existing.id, owner) >> []
+
         when: "the activity is updated"
             def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, "with music", null))
 
@@ -165,6 +169,38 @@ class ActivityServiceSpec extends Specification {
             result.get().name == "Jog"
             result.get().category == ActivityCategory.PLEASURABLE
             result.get().description == "with music"
+    }
+
+    def "PLANNER-014-AC-01: update recategorizes every existing sub-task when the activity's category changes"() {
+        given: "the authenticated username resolves to a User, who owns the target activity and two sub-tasks"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Organise a birthday party", ActivityCategory.PLEASURABLE, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            def guestList = new SubTask(existing, "Create a guest list", ActivityCategory.PLEASURABLE, owner)
+            def venue = new SubTask(existing, "Book a venue", ActivityCategory.PLEASURABLE, owner)
+            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(existing.id, owner) >> [guestList, venue]
+
+        when: "the activity's category is changed to NECESSARY"
+            service.update("steve", id, new ActivityRequest(existing.name, ActivityCategory.NECESSARY, existing.description, null))
+
+        then: "both sub-tasks are recategorized to match"
+            guestList.category == ActivityCategory.NECESSARY
+            venue.category == ActivityCategory.NECESSARY
+    }
+
+    def "PLANNER-014-AC-02: update never queries for sub-tasks to cascade when the category is unchanged"() {
+        given: "the authenticated username resolves to a User, who owns the target activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "the activity is updated with the same category, only the name changed"
+            service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.ROUTINE, null, null))
+
+        then: "the PLANNER-014-AC-01 cascade lookup never runs -- no unnecessary sub-task query/write"
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
     }
 
     def "PLANNER-002-AC-15/AC-18: update returns empty when the id doesn't exist or belongs to a different owner"() {

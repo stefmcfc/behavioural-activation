@@ -10,8 +10,10 @@ import java.util.UUID;
  * exactly one {@link Activity} and has no self-referential nesting of its own. Carries its own
  * {@link User} owner directly (not just reachable via {@code activity.getOwner()}), per the
  * multi-user owner seam in {@code .claude/steering/structure.md} (PLANNER-003-AC-18). {@code
- * category} is copied from the parent {@code Activity} once, at creation time, and never updated
- * again — a snapshot, not a live reference (PLANNER-003-AC-02/AC-20).
+ * category} is copied from the parent {@code Activity} at creation time (PLANNER-003-AC-02), and —
+ * as of {@code planner_spec_014_subtask_category_cascade.md}, superseding the original
+ * PLANNER-003-AC-20 snapshot-forever behavior — is cascaded to the parent's current value whenever
+ * {@code ActivityService.update()} changes it (PLANNER-014-AC-01), via {@link #recategorize}.
  */
 @Entity
 @Table(name = "sub_tasks")
@@ -57,6 +59,13 @@ public class SubTask {
 
     public void rename(String name) {
         this.name = name;
+        this.updatedAt = Instant.now();
+    }
+
+    // PLANNER-014-AC-01 -- called from ActivityService.update() when the parent Activity's category
+    // changes, cascading that new value to every existing sub-task. Same pattern as rename().
+    public void recategorize(ActivityCategory category) {
+        this.category = category;
         this.updatedAt = Instant.now();
     }
 
