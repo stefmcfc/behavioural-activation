@@ -70,10 +70,12 @@ export function BucketList({
 
   return (
     <section aria-label="Weekend bucket list" className={styles.panel}>
-      <h3>Weekend bucket list</h3>
-      <button type="button" onClick={onAdd} aria-label="Add to weekend bucket list">
-        Add
-      </button>
+      <div className={styles.header}>
+        <h3>Weekend bucket list</h3>
+        <button type="button" onClick={onAdd} aria-label="Add to weekend bucket list">
+          Add
+        </button>
+      </div>
 
       {zeroCategories.map((category) => (
         <p key={category}>

@@ -21,6 +21,8 @@ All notable changes to this project are documented in this file, in
   accessible "Previous week"/"Next week" labels) and the row is centered; larger spacing between the
   nav row and the grid, between the Morning/Afternoon/Evening rows, and between the grid and the
   weekend bucket list.
+- The weekend bucket list's "Add" button is now right-aligned on the same row as its "Weekend
+  bucket list" heading, matching the Activity Bank's sub-task panel layout.
 
 ## [0.14.1] - 2026-10-01
 

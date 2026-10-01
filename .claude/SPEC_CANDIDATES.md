@@ -34,6 +34,22 @@ soon". The weekly grid orientation toggle candidate is now also written up
 
 ## Candidates
 
+## Filter the Weekly Planner by completed status and by category
+
+**Status**: Confirmed, not yet specced. Raised 2026-10-01. The Weekly Planner's grid and weekend
+bucket list currently show every planned occurrence for the week with no filtering — the Activity
+Bank already has this exact pattern for its own list (`frontend_spec_017_activity_bank_category_filter.md`'s
+category filter, plus its existing "Show archived" status toggle), so this would extend the same
+idea to the planner view rather than inventing a new filtering UI from scratch. Likely wants two
+independent filters: by `ActivityCategory` (Routine/Necessary/Pleasurable) and by completed/not-yet-
+completed. Needs a real design pass before writing ACs: where the filter controls live (the grid and
+bucket list are two separate components/sections — one shared control above both, or one per
+section?), whether filtering hides non-matching occurrences entirely or just visually de-emphasises
+them (the latter might matter more here than in the Activity Bank, since an empty grid cell reads
+differently from an empty list), and whether the Weekdays/Weekend tab control
+(`frontend_spec_015_weekday_weekend_grid_tabs.md`) and any future filter control need to compose
+cleanly together in the same header area.
+
 ## Sub-task completion progress indicator (e.g. "2/3 done")
 
 **Status**: Confirmed worth a candidate, not yet specced — blocked on a product decision. Split off
