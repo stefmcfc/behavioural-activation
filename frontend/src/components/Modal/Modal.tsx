@@ -50,6 +50,7 @@ export function Modal({ isOpen, titleId, ariaLabel, onClose, children, className
       tabIndex={-1}
       aria-labelledby={titleId}
       aria-label={ariaLabel}
+      closedby="any"
       className={className ? `${styles.dialog} ${className}` : styles.dialog}
       onClose={handleNativeClose}
       onClick={(event) => {

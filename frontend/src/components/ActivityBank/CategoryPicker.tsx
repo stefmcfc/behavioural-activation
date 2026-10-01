@@ -41,11 +41,25 @@ interface CategoryPickerProps {
   readonly value: ActivityCategory | null
   readonly onChange: (category: ActivityCategory) => void
   readonly name?: string
+  /** Set once a submit attempt was made with no category chosen; cleared as soon as one is picked. */
+  readonly invalid?: boolean
+  /** Id of the error message element to associate via aria-describedby when `invalid` is true. */
+  readonly errorId?: string
 }
 
-export function CategoryPicker({ value, onChange, name = 'category' }: CategoryPickerProps) {
+export function CategoryPicker({
+  value,
+  onChange,
+  name = 'category',
+  invalid = false,
+  errorId,
+}: CategoryPickerProps) {
   return (
-    <fieldset className={styles.fieldset}>
+    <fieldset
+      className={styles.fieldset}
+      aria-invalid={invalid ? 'true' : undefined}
+      aria-describedby={invalid ? errorId : undefined}
+    >
       <legend>Category</legend>
       <div className={styles.group}>
         {ALL_CATEGORIES.map((category) => (

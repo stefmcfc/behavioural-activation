@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SubTaskForm } from './SubTaskForm'
@@ -102,6 +102,46 @@ describe('SubTaskForm', () => {
 
       expect(screen.getByText(/name is required/i)).toBeInTheDocument()
       expect(subTaskApi.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('TOOLING-003-AC-04: SubTaskForm name field error timing', () => {
+    it('shows no error until the name field is blurred empty or submit is attempted', () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
+      expect(screen.queryByText('Name is required.')).not.toBeInTheDocument()
+    })
+
+    it('shows the error and sets aria-invalid after blurring an empty name field', () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
+      const name = screen.getByLabelText(/sub-task name/i)
+      fireEvent.focus(name)
+      fireEvent.blur(name)
+      expect(screen.getByText('Name is required.')).toBeInTheDocument()
+      expect(name).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('clears the error once a non-empty name is entered', async () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
+      const name = screen.getByLabelText(/sub-task name/i)
+      fireEvent.blur(name)
+      await userEvent.type(name, 'Create a guest list')
+      expect(screen.queryByText('Name is required.')).not.toBeInTheDocument()
+      expect(name).not.toHaveAttribute('aria-invalid')
+    })
+
+    it('shows the error on a bare submit attempt and marks the field required', () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
+      expect(screen.getByText('Name is required.')).toBeInTheDocument()
+      expect(screen.getByLabelText(/sub-task name/i)).toBeRequired()
+    })
+  })
+
+  describe('TOOLING-003-AC-05: submit stays enabled regardless of validity', () => {
+    it('SubTaskForm submit button is never disabled by invalid required fields', () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /save sub-task/i }))
+      expect(screen.getByRole('button', { name: /save sub-task/i })).toBeEnabled()
     })
   })
 

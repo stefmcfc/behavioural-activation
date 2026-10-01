@@ -74,7 +74,7 @@ Pure-refactor or tooling specs with no user-facing feature name — don't force 
 | Spec | What it does | Status |
 |---|---|---|
 | [`tooling_spec_001_unmapped_route_404.md`](.claude/specs/tooling_spec_001_unmapped_route_404.md) | Unmapped routes return 404 instead of the generic 500 catch-all. | ✅ Implemented. |
-| [`tooling_spec_003_modern_web_guidance_fixes.md`](.claude/specs/tooling_spec_003_modern_web_guidance_fixes.md) | Native required-field validation timing (Login/Activity/Sub-task forms), `Modal` dialog `closedby="any"` light-dismiss, `index.html` color-scheme meta tag — from the `modern-web-guidance` review. | Not started. |
+| [`tooling_spec_003_modern_web_guidance_fixes.md`](.claude/specs/tooling_spec_003_modern_web_guidance_fixes.md) | Native required-field validation timing (Login/Activity/Sub-task forms), `Modal` dialog `closedby="any"` light-dismiss, `index.html` color-scheme meta tag — from the `modern-web-guidance` review. | ✅ Implemented. |
 
 > **Open design question** (carried over from the process this file's structure was adapted from —
 > see `PROCESS_CHANGES.md`): this section is a judgment call, not a settled convention. It's a

@@ -34,24 +34,24 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const [category, setCategory] = useState<ActivityCategory | null>(activity?.category ?? null)
   const [description, setDescription] = useState(activity?.description ?? '')
   const [repeatable, setRepeatable] = useState(activity?.repeatable ?? true)
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [nameTouchedEmpty, setNameTouchedEmpty] = useState(false)
+  const [categorySubmitAttempted, setCategorySubmitAttempted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const nameInvalid = nameTouchedEmpty && !name.trim()
+  const categoryInvalid = categorySubmitAttempted && !category
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 
-    if (!name.trim()) {
-      setValidationError('Name is required.')
-      return
-    }
-    if (!category) {
-      setValidationError('Please select a category.')
+    if (!name.trim() || !category) {
+      setNameTouchedEmpty(!name.trim())
+      setCategorySubmitAttempted(!category)
       return
     }
 
-    setValidationError(null)
     setIsSubmitting(true)
     try {
       const input = {
@@ -81,6 +81,8 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   }
 
   const nameId = `activity-name-${mode}`
+  const nameErrorId = `${nameId}-error`
+  const categoryErrorId = `activity-category-${mode}-error`
   const descriptionId = `activity-description-${mode}`
   const repeatableId = `activity-repeatable-${mode}`
   const headingId = `activity-form-title-${mode}`
@@ -90,7 +92,21 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
       <div className={styles.scrollBody}>
         <h3 id={headingId}>{mode === 'edit' ? 'Edit activity' : 'Add activity'}</h3>
 
-        <CategoryPicker value={category} onChange={setCategory} name={`category-${mode}`} />
+        <CategoryPicker
+          value={category}
+          onChange={(selected) => {
+            setCategory(selected)
+            setCategorySubmitAttempted(false)
+          }}
+          name={`category-${mode}`}
+          invalid={categoryInvalid}
+          errorId={categoryErrorId}
+        />
+        {categoryInvalid && (
+          <p id={categoryErrorId} className={styles.fieldError}>
+            Please select a category.
+          </p>
+        )}
         <CategoryGuidance />
 
         <div className={styles.field}>
@@ -101,9 +117,23 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
             id={nameId}
             name="name"
             type="text"
+            required
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            aria-invalid={nameInvalid ? 'true' : undefined}
+            aria-describedby={nameInvalid ? nameErrorId : undefined}
+            onChange={(event) => {
+              setName(event.target.value)
+              if (event.target.value.trim()) {
+                setNameTouchedEmpty(false)
+              }
+            }}
+            onBlur={() => setNameTouchedEmpty(!name.trim())}
           />
+          {nameInvalid && (
+            <p id={nameErrorId} className={styles.fieldError}>
+              Name is required.
+            </p>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -137,7 +167,6 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
           </p>
         </div>
 
-        {validationError && <p>{validationError}</p>}
         {submitError && <p role="alert">{submitError}</p>}
         {isSubmitting && <output>Saving…</output>}
       </div>

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { LoginPage } from './LoginPage'
@@ -77,8 +77,63 @@ describe('LoginPage', () => {
     it('shows an inline error and does not call authApi.login', async () => {
       render(<LoginPage onLoginSuccess={vi.fn()} />)
       await userEvent.click(screen.getByRole('button', { name: /log in/i }))
-      expect(screen.getByText(/required/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/required/i).length).toBeGreaterThan(0)
       expect(authApi.login).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('TOOLING-003-AC-01: LoginPage required-field error timing', () => {
+    it('shows no error on initial render', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      expect(screen.queryByText(/required/i)).not.toBeInTheDocument()
+    })
+
+    it('shows the error and sets aria-invalid after blurring an empty username field', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      const username = screen.getByLabelText('Username')
+      fireEvent.focus(username)
+      fireEvent.blur(username)
+      expect(screen.getByText(/username.*required/i)).toBeInTheDocument()
+      expect(username).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('shows the error and sets aria-invalid after blurring an empty password field', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      const password = screen.getByLabelText('Password')
+      fireEvent.focus(password)
+      fireEvent.blur(password)
+      expect(screen.getByText(/password.*required/i)).toBeInTheDocument()
+      expect(password).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('clears the error once a value is entered', async () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      const username = screen.getByLabelText('Username')
+      fireEvent.blur(username)
+      await userEvent.type(username, 'steve')
+      expect(screen.queryByText(/username.*required/i)).not.toBeInTheDocument()
+      expect(username).not.toHaveAttribute('aria-invalid')
+    })
+
+    it('shows all empty required field errors on a bare submit attempt', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+      expect(screen.getByText(/username.*required/i)).toBeInTheDocument()
+      expect(screen.getByText(/password.*required/i)).toBeInTheDocument()
+    })
+
+    it('marks both fields as required', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      expect(screen.getByLabelText('Username')).toBeRequired()
+      expect(screen.getByLabelText('Password')).toBeRequired()
+    })
+  })
+
+  describe('TOOLING-003-AC-05: submit stays enabled regardless of validity', () => {
+    it('keeps the Log in button enabled after a submit attempt with both fields empty', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+      expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled()
     })
   })
 })

@@ -1,6 +1,6 @@
 # Native Required-Field Validation Timing, Dialog Light-Dismiss, Color-Scheme Meta Tag (Tooling)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01)
 **Priority**: P3 — UX/platform polish, no new user-facing capability
 **Depends on**: `planner_spec_001_auth.md` (`LoginPage`), `planner_spec_002_activity_bank.md`
 (`ActivityForm`, `CategoryPicker`), `planner_spec_003_sub_tasks.md` (`SubTaskForm`),
@@ -8,6 +8,58 @@
 the shared `<dialog>`-based component both specs build on)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: N/A — internal/maintenance, not a V1–V5 feature
+
+## Summary
+
+All 7 ACs implemented and tested (Vitest/RTL, 330 total frontend tests passing, 0 regressions).
+`LoginPage`, `ActivityForm`/`CategoryPicker`, and `SubTaskForm` now surface required-field errors on
+blur-empty/submit-attempt (JS-driven state, `:user-invalid`/`:user-valid` CSS layered on top as a
+visual enhancement), `Modal`'s `<dialog>` carries `closedby="any"`, and `index.html` declares
+`<meta name="color-scheme" content="light dark">`. The separate, no-spec-needed `theme.css`
+`light-dark()` refactor (collapsing the three duplicated light/dark variable blocks into one) was
+done in the same pass per the user's request.
+
+**Real findings**:
+- `LoginPage`'s original `validationError` was a single combined "Username and password are
+  required." string, not per-field — the AC-01 test sketch's `/username.*required/i` and
+  `/password.*required/i` matchers implied separate per-field messages, so the implementation now
+  tracks `usernameTouchedEmpty`/`passwordTouchedEmpty` independently and renders "Username is
+  required."/"Password is required." as two separate error paragraphs. The pre-existing
+  FRONTEND-001-AC-07 test (`getByText(/required/i)`) had to change to `getAllByText` since two
+  matches now exist on a bare submit.
+- `SubTaskForm`'s name field is labelled "Sub-task name", not "Name" — AC-04's statement says it
+  "mirrors" AC-02 but the spec's own cross-reference test sketch for AC-02 uses
+  `screen.getByLabelText('Name')`; the actual AC-04 test instead uses
+  `screen.getByLabelText(/sub-task name/i)` to match the real label text. No behavior change needed,
+  just noting the label-text assumption didn't carry over exactly.
+- No existing `--error`/error-text CSS convention existed anywhere in the codebase (`role="alert"`
+  text was unstyled plain `<p>` with no red/error color) — this spec's Rationale pointed at "check
+  index.css/existing error-message styling for the house style" assuming one existed. Added a new
+  `--error` theme token (`light-dark(#b3261e, #ffb4ab)`, verified ≥6:1 contrast against `--bg` in
+  both themes via the project's own `contrast.ts` ratio formula) rather than inventing a one-off hex
+  per component, so it's reusable and theme-aware like the rest of the token set.
+- `CategoryPicker`'s invalid-state AC was implemented via a new `invalid?: boolean` prop (parent
+  `ActivityForm` owns the submit-attempt timing and passes it down), exposed as
+  `aria-invalid="true"` on the `<fieldset>` — the spec listed this as one of two acceptable options
+  and this was the simpler one given the fieldset has no associated error text of its own to
+  `aria-describedby` (the error paragraph is rendered by `ActivityForm`, not `CategoryPicker`).
+- **Real-browser pass completed** (Claude in Chrome, against the local dev stack): confirmed the
+  exact behaviors the implementation agent couldn't verify directly — `:user-invalid` red-border
+  styling only appears after a real interaction (typing then clearing, or a submit attempt; a bare
+  focus+blur with no value change does *not* trigger it, which is correct per the native
+  `:user-invalid` spec, not a bug), `ActivityForm`'s name and category errors both appear together on
+  a bare submit attempt and clear independently and correctly as each is fixed, `Modal`'s
+  `closedby="any"` light-dismiss closes the dialog on a backdrop click with no double-fire, and the
+  `theme.css` `light-dark()` refactor renders identically to before in both the System-resolved and
+  explicit Light/Dark `data-theme` override paths.
+- **Added `aria-describedby` linking each error paragraph to its input** (`LoginPage` username/
+  password, `ActivityForm` name + category fieldset, `SubTaskForm` name) during review, on top of the
+  implementation agent's work — the spec's AC statements only required `aria-invalid` sync, but the
+  `required-field-feedback` guide's own HTML example also associates the error text via
+  `aria-errormessage`/`aria-describedby` so a screen reader announces *why* a field is invalid, not
+  just that it is. `CategoryPicker` gained a matching `errorId` prop so `ActivityForm` (which owns
+  the error text) can wire its fieldset's `aria-describedby` to it. No AC text changed since this
+  was an omission in how AC-01 through AC-04 were originally scoped, not a new requirement.
 
 ## Overview
 
@@ -312,10 +364,10 @@ Verified by code review of the diff to `frontend/index.html` (see Rationale abov
 
 ## Acceptance Criteria Summary
 
-- [ ] TOOLING-003-AC-01 — LoginPage username/password error timing (blur-empty or submit, not on render)
-- [ ] TOOLING-003-AC-02 — ActivityForm name field error timing
-- [ ] TOOLING-003-AC-03 — ActivityForm category group error timing (submit-only)
-- [ ] TOOLING-003-AC-04 — SubTaskForm name field error timing
-- [ ] TOOLING-003-AC-05 — submit stays enabled regardless of validity (no regression)
-- [ ] TOOLING-003-AC-06 — Modal declares closedby="any", no onClose double-fire
-- [ ] TOOLING-003-AC-07 — index.html declares `<meta name="color-scheme" content="light dark">`
+- [x] TOOLING-003-AC-01 — LoginPage username/password error timing (blur-empty or submit, not on render)
+- [x] TOOLING-003-AC-02 — ActivityForm name field error timing
+- [x] TOOLING-003-AC-03 — ActivityForm category group error timing (submit-only)
+- [x] TOOLING-003-AC-04 — SubTaskForm name field error timing
+- [x] TOOLING-003-AC-05 — submit stays enabled regardless of validity (no regression)
+- [x] TOOLING-003-AC-06 — Modal declares closedby="any", no onClose double-fire
+- [x] TOOLING-003-AC-07 — index.html declares `<meta name="color-scheme" content="light dark">`

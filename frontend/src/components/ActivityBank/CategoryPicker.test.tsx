@@ -27,4 +27,24 @@ describe('CategoryPicker', () => {
       expect(onChange).toHaveBeenCalledWith('PLEASURABLE')
     })
   })
+
+  describe('TOOLING-003-AC-03: exposes an invalid state on the fieldset when invalid', () => {
+    it('has no invalid state by default', () => {
+      render(<CategoryPicker value={null} onChange={vi.fn()} />)
+      expect(screen.getByRole('group')).not.toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('sets aria-invalid="true" on the fieldset when invalid is true', () => {
+      render(<CategoryPicker value={null} onChange={vi.fn()} invalid />)
+      expect(screen.getByRole('group')).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('clears the invalid state once a category is selected', () => {
+      const { rerender } = render(<CategoryPicker value={null} onChange={vi.fn()} invalid />)
+      expect(screen.getByRole('group')).toHaveAttribute('aria-invalid', 'true')
+
+      rerender(<CategoryPicker value="ROUTINE" onChange={vi.fn()} invalid={false} />)
+      expect(screen.getByRole('group')).not.toHaveAttribute('aria-invalid', 'true')
+    })
+  })
 })

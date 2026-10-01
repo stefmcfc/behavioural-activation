@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ActivityForm } from './ActivityForm'
@@ -211,6 +211,68 @@ describe('ActivityForm', () => {
         description: 'Around the block',
         repeatable: true,
       })
+    })
+  })
+
+  describe('TOOLING-003-AC-02: ActivityForm name field error timing', () => {
+    it('shows no error until the name field is blurred empty or submit is attempted', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      expect(screen.queryByText('Name is required.')).not.toBeInTheDocument()
+    })
+
+    it('shows the error and sets aria-invalid after blurring an empty name field', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      const name = screen.getByLabelText(/^name$/i)
+      fireEvent.focus(name)
+      fireEvent.blur(name)
+      expect(screen.getByText('Name is required.')).toBeInTheDocument()
+      expect(name).toHaveAttribute('aria-invalid', 'true')
+    })
+
+    it('clears the error once a non-empty name is entered', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      const name = screen.getByLabelText(/^name$/i)
+      fireEvent.blur(name)
+      await userEvent.type(name, 'Walk')
+      expect(screen.queryByText('Name is required.')).not.toBeInTheDocument()
+      expect(name).not.toHaveAttribute('aria-invalid')
+    })
+
+    it('shows the error on a bare submit attempt and marks the field required', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /save activity/i }))
+      expect(screen.getByText('Name is required.')).toBeInTheDocument()
+      expect(screen.getByLabelText(/^name$/i)).toBeRequired()
+    })
+  })
+
+  describe('TOOLING-003-AC-03: ActivityForm category group error timing (submit-only)', () => {
+    it('shows no category error before a submit attempt, even with no category chosen', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
+      expect(screen.queryByText(/select a category/i)).not.toBeInTheDocument()
+    })
+
+    it('shows the category error only once submit is attempted with none chosen', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
+      fireEvent.click(screen.getByRole('button', { name: /save activity/i }))
+      expect(screen.getByText(/select a category/i)).toBeInTheDocument()
+    })
+
+    it('clears the category error once a category is selected', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /save activity/i }))
+      await userEvent.click(screen.getByLabelText('Routine'))
+      expect(screen.queryByText(/select a category/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('TOOLING-003-AC-05: submit stays enabled regardless of validity', () => {
+    it('ActivityForm submit button is never disabled by invalid required fields', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /save activity/i }))
+      expect(screen.getByRole('button', { name: /save activity/i })).toBeEnabled()
     })
   })
 
