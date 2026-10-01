@@ -64,6 +64,7 @@ header restructure and button-hierarchy candidates).
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
 | Weekday/Weekend grid tabs | — (frontend-only) | [`frontend_spec_015_weekday_weekend_grid_tabs.md`](.claude/specs/frontend_spec_015_weekday_weekend_grid_tabs.md) | Not started. Fixes weekend occurrences being invisible in the current grid. Must land before `frontend_spec_016_today_view.md`. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
+| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | Not started. Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing. |
 
 ## Internal / maintenance specs
 
