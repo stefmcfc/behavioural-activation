@@ -32,6 +32,7 @@ interface OccurrenceItemProps {
   readonly onMoveUp?: (id: string) => void
   readonly onMoveDown?: (id: string) => void
   readonly onDragStart?: (id: string) => void
+  readonly onDragEnd?: () => void
   readonly onDragOverItem?: (event: DragEvent) => void
   readonly onDropOnItem?: (id: string) => void
 }
@@ -96,6 +97,7 @@ export function OccurrenceItem({
   onMoveUp,
   onMoveDown,
   onDragStart,
+  onDragEnd,
   onDragOverItem,
   onDropOnItem,
 }: OccurrenceItemProps) {
@@ -116,7 +118,10 @@ export function OccurrenceItem({
 
   return (
     <li
-      className={styles.row}
+      className={isBucketItem ? styles.row : `${styles.row} ${styles.gridDraggable}`}
+      draggable={!isBucketItem}
+      onDragStart={!isBucketItem ? () => onDragStart?.(occurrence.id) : undefined}
+      onDragEnd={!isBucketItem ? onDragEnd : undefined}
       onDragOver={isBucketItem ? onDragOverItem : undefined}
       onDrop={isBucketItem ? () => onDropOnItem?.(occurrence.id) : undefined}
     >

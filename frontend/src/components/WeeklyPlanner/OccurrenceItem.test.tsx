@@ -376,12 +376,37 @@ describe('FRONTEND-010-AC-02/AC-03/AC-15: reorder controls render always at-rest
 })
 
 describe('FRONTEND-010-AC-16: grid items never render a drag handle or Move up/down controls', () => {
-  it('renders no draggable grip handle or Move up/down buttons for a grid-scheduled occurrence', () => {
+  it('renders no grip-handle drag source or Move up/down buttons for a grid-scheduled occurrence', () => {
     render(<OccurrenceItem {...baseProps({ isBucketItem: false })} />)
 
-    expect(document.querySelector('[draggable="true"]')).toBeNull()
+    // FRONTEND-025-AC-01 makes the root <li> itself draggable for grid items instead — this
+    // assertion now targets the dedicated grip-handle icon specifically, not any draggable node.
+    expect(document.querySelector(`.${styles.dragHandle}`)).toBeNull()
     expect(screen.queryByRole('button', { name: /move .* up/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /move .* down/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-025-AC-01: grid tiles are draggable, bucket tiles unaffected', () => {
+  it('renders draggable=true on a grid-scheduled occurrence row', () => {
+    render(<OccurrenceItem {...baseProps({ isBucketItem: false })} />)
+    expect(screen.getByRole('listitem')).toHaveAttribute('draggable', 'true')
+  })
+
+  it('calls onDragStart with the occurrence id when a grid tile starts dragging', () => {
+    const onDragStart = vi.fn()
+    render(<OccurrenceItem {...baseProps({ isBucketItem: false, onDragStart })} />)
+    fireEvent.dragStart(screen.getByRole('listitem'))
+    expect(onDragStart).toHaveBeenCalledWith('o1')
+  })
+
+  it('does not add draggable to the bucket item row itself (handle stays the drag source)', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true, onDragStart: vi.fn() })}
+      />,
+    )
+    expect(screen.getByRole('listitem')).not.toHaveAttribute('draggable', 'true')
   })
 })
 

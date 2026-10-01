@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
 import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
-import type { PlanDayOfWeek } from '../../types/plan'
+import type { PlanDayOfWeek, PlannedOccurrence } from '../../types/plan'
 
 const noop = () => {}
 
@@ -103,5 +103,123 @@ describe('FRONTEND-024-AC-06: day column headers show the date number before the
     // weekStart is 2026-09-28, a Monday; Friday that week is 2026-10-02
     expect(screen.getByText('28').nextSibling).toHaveTextContent('Monday')
     expect(screen.getByText('2').nextSibling).toHaveTextContent('Friday')
+  })
+})
+
+function makeOccurrence(overrides: Partial<PlannedOccurrence>): PlannedOccurrence {
+  return {
+    id: 'o1',
+    activityId: 'a1',
+    subTaskId: null,
+    name: 'Walk',
+    parentActivityName: null,
+    category: 'ROUTINE',
+    weekStart: '2026-09-28',
+    dayOfWeek: 'MONDAY',
+    slot: 'MORNING',
+    bucketPosition: null,
+    recentlyCarriedForward: false,
+    completed: false,
+    completedAt: null,
+    createdAt: '2026-09-28T00:00:00Z',
+    repeatable: true,
+    ...overrides,
+  }
+}
+
+const occurrenceOnMonMorning = makeOccurrence({
+  id: 'mon-morning',
+  name: 'Walk',
+  dayOfWeek: 'MONDAY',
+  slot: 'MORNING',
+})
+
+const occurrenceOnTueAfternoon = makeOccurrence({
+  id: 'tue-afternoon',
+  name: 'Read',
+  dayOfWeek: 'TUESDAY',
+  slot: 'AFTERNOON',
+})
+
+describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
+  it("AC-04: calls onConfirmMove with the dropped cell's day/slot", () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.dragOver(targetCell)
+    fireEvent.drop(targetCell)
+    expect(onConfirmMove).toHaveBeenCalledWith(occurrenceOnMonMorning.id, 'TUESDAY', 'AFTERNOON')
+  })
+
+  it('AC-05: does not call onConfirmMove when dropped back on its own cell', () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const ownCell = screen.getByLabelText('Add to Monday Morning').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(ownCell)
+    expect(onConfirmMove).not.toHaveBeenCalled()
+  })
+
+  it('AC-06: calls onConfirmMove when the target cell already has an occurrence', () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning, occurrenceOnTueAfternoon]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const occupiedCell = screen.getByText(occurrenceOnTueAfternoon.name).closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(occupiedCell)
+    expect(onConfirmMove).toHaveBeenCalledWith(occurrenceOnMonMorning.id, 'TUESDAY', 'AFTERNOON')
+  })
+
+  it('AC-07: a dragend with no drop leaves occurrences unchanged and resets cleanly', () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.dragEnd(sourceTile)
+    expect(onConfirmMove).not.toHaveBeenCalled()
+  })
+
+  it('AC-08: a drop while busyId is set does not call onConfirmMove', () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        busyId={occurrenceOnMonMorning.id}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(targetCell)
+    expect(onConfirmMove).not.toHaveBeenCalled()
   })
 })

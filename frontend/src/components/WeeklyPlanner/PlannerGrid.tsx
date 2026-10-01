@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
@@ -70,6 +71,17 @@ export function PlannerGrid({
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
   )
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+
+  const handleDrop = (targetDay: PlanDayOfWeek, targetSlot: PlanSlot) => {
+    const id = draggedId
+    setDraggedId(null)
+    if (id === null || busyId !== null) return
+    const dragged = occurrences.find((occurrence) => occurrence.id === id)
+    if (!dragged) return
+    if (dragged.dayOfWeek === targetDay && dragged.slot === targetSlot) return
+    onConfirmMove(id, targetDay, targetSlot)
+  }
 
   return (
     <section aria-label={heading} className={styles.section}>
@@ -91,7 +103,12 @@ export function PlannerGrid({
                 (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
               )
               return (
-                <div key={`${day}-${slot}`} className={cellClassName(day === todayColumn)}>
+                <div
+                  key={`${day}-${slot}`}
+                  className={cellClassName(day === todayColumn)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleDrop(day, slot)}
+                >
                   <div className={styles.cellHeader}>
                     <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
                     <button
@@ -124,6 +141,8 @@ export function PlannerGrid({
                         onComplete={onComplete}
                         onUndo={onUndo}
                         onCarryForward={() => {}}
+                        onDragStart={setDraggedId}
+                        onDragEnd={() => setDraggedId(null)}
                       />
                     ))}
                   </ul>
