@@ -25,20 +25,24 @@ function getErrorMessage(error: unknown): string {
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [usernameTouchedEmpty, setUsernameTouchedEmpty] = useState(false)
+  const [passwordTouchedEmpty, setPasswordTouchedEmpty] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const usernameInvalid = usernameTouchedEmpty && !username.trim()
+  const passwordInvalid = passwordTouchedEmpty && !password.trim()
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 
     if (!username.trim() || !password.trim()) {
-      setValidationError('Username and password are required.')
+      setUsernameTouchedEmpty(!username.trim())
+      setPasswordTouchedEmpty(!password.trim())
       return
     }
 
-    setValidationError(null)
     setIsSubmitting(true)
     try {
       const user = await authApi.login({ username, password })
@@ -61,9 +65,23 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             name="username"
             type="text"
             autoComplete="username"
+            required
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            aria-invalid={usernameInvalid ? 'true' : undefined}
+            aria-describedby={usernameInvalid ? 'username-error' : undefined}
+            onChange={(event) => {
+              setUsername(event.target.value)
+              if (event.target.value.trim()) {
+                setUsernameTouchedEmpty(false)
+              }
+            }}
+            onBlur={() => setUsernameTouchedEmpty(!username.trim())}
           />
+          {usernameInvalid && (
+            <p id="username-error" className={styles.fieldError}>
+              Username is required.
+            </p>
+          )}
         </div>
         <div className={styles.field}>
           <label htmlFor="password">Password</label>
@@ -72,12 +90,25 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             name="password"
             type="password"
             autoComplete="current-password"
+            required
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            aria-invalid={passwordInvalid ? 'true' : undefined}
+            aria-describedby={passwordInvalid ? 'password-error' : undefined}
+            onChange={(event) => {
+              setPassword(event.target.value)
+              if (event.target.value.trim()) {
+                setPasswordTouchedEmpty(false)
+              }
+            }}
+            onBlur={() => setPasswordTouchedEmpty(!password.trim())}
           />
+          {passwordInvalid && (
+            <p id="password-error" className={styles.fieldError}>
+              Password is required.
+            </p>
+          )}
         </div>
 
-        {validationError && <p>{validationError}</p>}
         {submitError && <p role="alert">{submitError}</p>}
         {isSubmitting && <output>Logging in…</output>}
 

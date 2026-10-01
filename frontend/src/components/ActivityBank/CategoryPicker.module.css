@@ -29,6 +29,14 @@
   outline-offset: 2px;
 }
 
+.fieldset[aria-invalid='true'] .option {
+  border-color: var(--error);
+}
+
+.fieldset[aria-invalid='true'] legend {
+  color: var(--error);
+}
+
 .option input[type='radio'] {
   position: absolute;
   width: 1px;

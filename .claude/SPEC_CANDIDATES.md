@@ -14,7 +14,10 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-01 (Activity Bank UX improvements batch fully resolved: category filter and
+Last updated: 2026-10-01 (added two candidates from the modern-web-guidance frontend review
+— `.claude/modern-web-guidance/reviews/review-2026-10-01.md` — touch-friendly bucket reordering
+and a bulk sub-task fetch endpoint; see entries below.)
+Earlier note: 2026-10-01, Activity Bank UX improvements batch fully resolved: category filter and
 plain sub-task count specced directly to `ROADMAP.md` — `frontend_spec_017`,
 `planner_spec_012`/`frontend_spec_018` — and the "2/3 done" progress variant added here as a new
 candidate, blocked on a product decision about what "done" means for a sub-task; see that entry.
@@ -33,6 +36,36 @@ soon". The weekly grid orientation toggle candidate is now also written up
 ---
 
 ## Candidates
+
+## Touch-friendly weekend bucket list reordering
+
+**Status**: Confirmed, not yet specced. Deferred 2026-10-01, raised by the modern-web-guidance
+frontend review (`.claude/modern-web-guidance/reviews/review-2026-10-01.md`, finding "Worth
+considering #5"). `BucketList.tsx`/`OccurrenceItem.tsx` (`planner_spec_010`/`frontend_spec_010`)
+implement reordering via the native HTML5 Drag and Drop API (`draggable`, `onDragStart`/`onDragOver`/
+`onDrop`), which has no touch support at all without a polyfill — on a phone/tablet, only the
+keyboard-accessible Move up/Move down buttons currently work; the drag handle itself does nothing.
+
+Explicitly deferred rather than dropped: current usage is desktop-only, so there's no confirmed gap
+today, but worth a proper Pointer-Events-based (or a maintained sortable library's touch-aware)
+reorder implementation if/when this app sees real mobile use of the bucket list. Revisit if that
+usage pattern actually shows up, rather than building ahead of it.
+
+## Bulk sub-task fetch endpoint (fix N+1 in AssignActivityPicker)
+
+**Status**: Confirmed, not yet specced. Deferred 2026-10-01, raised by the modern-web-guidance
+frontend review (`.claude/modern-web-guidance/reviews/review-2026-10-01.md`, finding "Optional #2").
+`AssignActivityPicker.tsx` calls `activityApi.getAll()` then fans out one
+`subTaskApi.getAll(activityId)` call per activity (parallelized via `Promise.all`, so not a
+sequential waterfall, but still N+1 round trips). There is currently no bulk endpoint — only
+`GET /api/v1/activities/{activityId}/sub-tasks`, one activity at a time.
+
+A real fix needs a new backend endpoint (e.g. all sub-tasks for the authenticated user in one call,
+or eager-loading sub-tasks onto the existing activities response) plus the matching `API.md` update
+and frontend consumption change — a full backend+frontend spec pair, not a frontend-only tweak.
+Deferred rather than actioned now: this is a scale/performance concern, not an active problem at
+this app's current (personal-use) activity counts. Revisit if the activity list grows enough for the
+extra round trips to matter in practice.
 
 ## Filter the Weekly Planner by completed status and by category
 

@@ -29,20 +29,21 @@ function getErrorMessage(error: unknown): string {
 
 export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: SubTaskFormProps) {
   const [name, setName] = useState(subTask?.name ?? '')
-  const [validationError, setValidationError] = useState<string | null>(null)
+  const [nameTouchedEmpty, setNameTouchedEmpty] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const nameInvalid = nameTouchedEmpty && !name.trim()
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitError(null)
 
     if (!name.trim()) {
-      setValidationError('Name is required.')
+      setNameTouchedEmpty(true)
       return
     }
 
-    setValidationError(null)
     setIsSubmitting(true)
     try {
       const result =
@@ -63,6 +64,7 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
   }
 
   const nameId = `sub-task-name-${mode}-${subTask?.id ?? 'new'}`
+  const nameErrorId = `${nameId}-error`
   const headingId = `sub-task-form-title-${mode}`
 
   return (
@@ -78,12 +80,25 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
             id={nameId}
             name="name"
             type="text"
+            required
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            aria-invalid={nameInvalid ? 'true' : undefined}
+            aria-describedby={nameInvalid ? nameErrorId : undefined}
+            onChange={(event) => {
+              setName(event.target.value)
+              if (event.target.value.trim()) {
+                setNameTouchedEmpty(false)
+              }
+            }}
+            onBlur={() => setNameTouchedEmpty(!name.trim())}
           />
+          {nameInvalid && (
+            <p id={nameErrorId} className={styles.fieldError}>
+              Name is required.
+            </p>
+          )}
         </div>
 
-        {validationError && <p>{validationError}</p>}
         {submitError && <p role="alert">{submitError}</p>}
         {isSubmitting && <output>Saving…</output>}
       </div>

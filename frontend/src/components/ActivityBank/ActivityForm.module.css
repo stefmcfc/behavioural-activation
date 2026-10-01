@@ -27,6 +27,15 @@
   color: var(--text);
 }
 
+.field input:user-invalid {
+  border-color: var(--error);
+}
+
+.fieldError {
+  color: var(--error);
+  font-size: 0.85rem;
+}
+
 .repeatableField {
   margin: 1rem 0;
 }

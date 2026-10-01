@@ -16,6 +16,13 @@ function formTargetTitleId(formTarget: FormTarget): string {
   return `activity-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
 }
 
+function getSubTasksLabel(activity: Activity, isExpanded: boolean): string {
+  if (isExpanded) {
+    return 'Hide sub-tasks'
+  }
+  return activity.subTaskCount === 0 ? 'Add sub-tasks' : `Show sub-tasks (${activity.subTaskCount})`
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.message
@@ -126,12 +133,7 @@ export function ActivityBank() {
   const renderRowActions = (activity: Activity) => {
     const toggleSubTasks = () =>
       setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
-    const subTasksLabel =
-      expandedActivityId === activity.id
-        ? 'Hide sub-tasks'
-        : activity.subTaskCount === 0
-          ? 'Add sub-tasks'
-          : `Show sub-tasks (${activity.subTaskCount})`
+    const subTasksLabel = getSubTasksLabel(activity, expandedActivityId === activity.id)
 
     if (activity.archived) {
       return (
@@ -199,7 +201,12 @@ export function ActivityBank() {
           <>
             <fieldset className={styles.filterFieldset}>
               <legend>Filter by category</legend>
-              <ul className={styles.filterGroup} role="presentation">
+              <ul // NOSONAR(typescript:S6819): deliberate -- the fieldset/legend above already labels
+                // this as a category filter group, so the <ul>'s own list semantics (announcing "list,
+                // N items") would just be redundant noise for screen reader users.
+                className={styles.filterGroup}
+                role="presentation"
+              >
                 {CATEGORY_FILTER_OPTIONS.map((option) => (
                   <li key={option.value}>
                     <label>

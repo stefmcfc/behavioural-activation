@@ -45,11 +45,16 @@ export function Modal({ isOpen, titleId, ariaLabel, onClose, children, className
   }
 
   return (
-    <dialog
+    <dialog // NOSONAR(typescript:S6847, typescript:S1082): the onClick below only detects a click
+      // landing on the backdrop (see the handler's own target-equality check) to close the dialog as
+      // a mouse-only convenience -- it's never the sole way to close: Escape (native <dialog> behavior)
+      // and each caller's own Cancel/Close button remain fully keyboard-accessible.
       ref={dialogRef}
       tabIndex={-1}
       aria-labelledby={titleId}
       aria-label={ariaLabel}
+      closedby="any" // NOSONAR(typescript:S6747): valid, standard HTML attribute (closedby) -- Sonar's
+      // bundled TS/DOM type definitions haven't caught up yet; @types/react 19.2.18 already types it.
       className={className ? `${styles.dialog} ${className}` : styles.dialog}
       onClose={handleNativeClose}
       onClick={(event) => {

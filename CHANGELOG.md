@@ -6,6 +6,23 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-01
+
+### Changed
+
+- The Login, Add/Edit Activity, and Add/Rename Sub-task forms now flag an empty required field
+  (and the Activity form's category choice) as soon as you leave it empty or try to submit, instead
+  of staying silent until a submit attempt — matching native browser validation timing.
+- The Add/Edit Activity modal and other `<dialog>`-based modals can now be dismissed by clicking
+  outside them or via a mobile back-gesture, in browsers that support it.
+- Internal: `theme.css`'s light/dark colour tokens are now defined once each via the CSS
+  `light-dark()` function instead of three duplicated blocks — no visible change.
+
+### Fixed
+
+- Fixed the weekend bucket list's Move up/down buttons silently losing their compact, icon-tight
+  sizing to an unrelated CSS property reset, so they rendered taller than intended.
+
 ## [0.17.0] - 2026-10-01
 
 ### Added

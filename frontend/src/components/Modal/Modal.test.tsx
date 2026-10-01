@@ -86,3 +86,24 @@ describe('FRONTEND-009-AC-08: the native close event calls onClose exactly once'
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('TOOLING-003-AC-06: Modal closedby + no double-fire', () => {
+  it('renders the dialog with closedby="any"', async () => {
+    render(<Modal isOpen titleId="t" onClose={vi.fn()}>
+      <h3 id="t">Title</h3>
+    </Modal>)
+    expect(await screen.findByRole('dialog')).toHaveAttribute('closedby', 'any')
+  })
+
+  it('fires onClose exactly once when the backdrop-click fallback closes it', async () => {
+    const onClose = vi.fn()
+    render(<Modal isOpen titleId="t" onClose={onClose}>
+      <h3 id="t">Title</h3>
+    </Modal>)
+    const dialog = await screen.findByRole('dialog')
+
+    fireEvent.click(dialog)
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})

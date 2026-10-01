@@ -1,77 +1,35 @@
 :root {
-  color-scheme: light;
-  --text: #706c64;
-  --text-h: #2b2a28;
-  --bg: #faf8f5;
-  --surface: #ffffff;
-  --border: #e4dfd7;
-  --border-strong: #c9c2b5;
-  --code-bg: #f2efe9;
-  --accent: #5f7a5e;
-  --accent-ink: #ffffff;
-  --accent-bg: rgba(95, 122, 94, 0.12);
-  --accent-border: rgba(95, 122, 94, 0.45);
-  --shadow:
-    rgba(43, 42, 40, 0.07) 0 1px 2px, rgba(43, 42, 40, 0.22) 0 4px 10px -6px;
-  --overlay: rgba(30, 28, 25, 0.5);
+  color-scheme: light dark;
+
+  --text: light-dark(#706c64, #b3ac9f);
+  --text-h: light-dark(#2b2a28, #f1ede6);
+  --bg: light-dark(#faf8f5, #211f1c);
+  --surface: light-dark(#ffffff, #2a2825);
+  --border: light-dark(#e4dfd7, #3c3833);
+  --border-strong: light-dark(#c9c2b5, #55504a);
+  --code-bg: light-dark(#f2efe9, #2f2c27);
+  --accent: light-dark(#5f7a5e, #93b28e);
+  --accent-ink: light-dark(#ffffff, #16220f);
+  --accent-bg: light-dark(rgba(95, 122, 94, 0.12), rgba(147, 178, 142, 0.15));
+  --accent-border: light-dark(rgba(95, 122, 94, 0.45), rgba(147, 178, 142, 0.5));
+  --shadow-color-1: light-dark(rgba(43, 42, 40, 0.07), rgba(0, 0, 0, 0.35));
+  --shadow-color-2: light-dark(rgba(43, 42, 40, 0.22), rgba(0, 0, 0, 0.5));
+  --shadow: var(--shadow-color-1) 0 1px 2px, var(--shadow-color-2) 0 4px 10px -6px;
+  --overlay: light-dark(rgba(30, 28, 25, 0.5), rgba(0, 0, 0, 0.6));
+  --error: light-dark(#b3261e, #ffb4ab);
 
   --category-routine: #0072b2;
   --category-necessary: #e69f00;
   --category-pleasurable: #009e73;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --text: #b3ac9f;
-    --text-h: #f1ede6;
-    --bg: #211f1c;
-    --surface: #2a2825;
-    --border: #3c3833;
-    --border-strong: #55504a;
-    --code-bg: #2f2c27;
-    --accent: #93b28e;
-    --accent-ink: #16220f;
-    --accent-bg: rgba(147, 178, 142, 0.15);
-    --accent-border: rgba(147, 178, 142, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.35) 0 1px 2px, rgba(0, 0, 0, 0.5) 0 4px 10px -6px;
-    --overlay: rgba(0, 0, 0, 0.6);
-  }
-}
-
+/* Explicit Light/Dark choices from Settings override the system preference above by pinning
+   color-scheme to a single value -- light-dark() then always resolves to that branch. The color
+   token values themselves are declared once in :root and inherited; only color-scheme changes here. */
 [data-theme='light'] {
   color-scheme: light;
-  --text: #706c64;
-  --text-h: #2b2a28;
-  --bg: #faf8f5;
-  --surface: #ffffff;
-  --border: #e4dfd7;
-  --border-strong: #c9c2b5;
-  --code-bg: #f2efe9;
-  --accent: #5f7a5e;
-  --accent-ink: #ffffff;
-  --accent-bg: rgba(95, 122, 94, 0.12);
-  --accent-border: rgba(95, 122, 94, 0.45);
-  --shadow:
-    rgba(43, 42, 40, 0.07) 0 1px 2px, rgba(43, 42, 40, 0.22) 0 4px 10px -6px;
-  --overlay: rgba(30, 28, 25, 0.5);
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --text: #b3ac9f;
-  --text-h: #f1ede6;
-  --bg: #211f1c;
-  --surface: #2a2825;
-  --border: #3c3833;
-  --border-strong: #55504a;
-  --code-bg: #2f2c27;
-  --accent: #93b28e;
-  --accent-ink: #16220f;
-  --accent-bg: rgba(147, 178, 142, 0.15);
-  --accent-border: rgba(147, 178, 142, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.35) 0 1px 2px, rgba(0, 0, 0, 0.5) 0 4px 10px -6px;
-  --overlay: rgba(0, 0, 0, 0.6);
 }

@@ -96,7 +96,7 @@ public class PlanService {
         List<UUID> staleIds = staleBucketItems.stream().map(PlannedOccurrence::getId).toList();
         Set<UUID> completedIds = completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(owner, staleIds)
             .stream()
-            .map(record -> record.getPlannedOccurrence().getId())
+            .map(completionRecord -> completionRecord.getPlannedOccurrence().getId())
             .collect(Collectors.toSet());
 
         Set<UUID> migratedIds = new HashSet<>();
@@ -107,9 +107,9 @@ public class PlanService {
             occurrence.autoCarryForwardTo(currentWeekMonday); // single-step jump, AC-06; resets bucketPosition, AC-07
             migratedIds.add(occurrence.getId());
         }
-        // No explicit save() call -- occurrence is a managed entity loaded within this transaction;
-        // Hibernate's dirty checking flushes the mutation at commit, matching applyMove()/
-        // applyCarryForward()'s existing style elsewhere in this class.
+        // No explicit persistence call is needed here: occurrence is a managed entity loaded within
+        // this transaction, so Hibernate's dirty checking flushes the mutation at commit, matching
+        // the applyMove and applyCarryForward methods' existing style elsewhere in this class.
         return migratedIds;
     }
 
