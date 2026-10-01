@@ -1,6 +1,6 @@
 # Weekly Planner Header and Spacing Polish (Frontend)
 
-**Status**: Implemented (2026-10-01) — all 5 ACs green.
+**Status**: Implemented (2026-10-01) — all 6 ACs green.
 **Priority**: P3 — cosmetic polish on an already-shipped screen, nothing else blocked on it
 **Depends on**: `frontend_spec_004_week_planning.md` (the week-navigation row and `PlannerGrid` this
 spec restyles), `frontend_spec_015_weekday_weekend_grid_tabs.md` (`PlannerGrid`'s current `days`
@@ -28,6 +28,15 @@ since both touch the same Weekly Planner area) rather than a separate branch.
   Next advanced to "Week Commencing 10/05/2026" correctly), and all three spacing increases
   (nav-to-grid, Morning/Afternoon/Evening row gap, grid-to-bucket-list) are clearly visible in both
   themes with no layout regressions.
+- `FRONTEND-024-AC-06` (day-of-month numbers) added after the above landed, same branch. First pass
+  used `justify-content: space-between` on `.dayLabel` (number flush left, day name flush right of
+  the full column width) — real-browser check showed this reads badly: a narrow column's day name
+  sits right against the *next* column's date number, so "MONDAY 29" visually reads as one pair even
+  though 29 belongs to Tuesday. Fixed by dropping `justify-content` (default flex-start) so the
+  number and day name sit together as a tight, unambiguous pair (`28 MONDAY`, `29 TUESDAY`, ...)
+  instead of spanning the column edge-to-edge. Verified correct in both themes, on both the Weekdays
+  tab (confirms the Sept→Oct month rollover: Wed 30 → Thu 1) and the Weekend tab (Sat 3 / Sun 4).
+  Final suite: 286 Vitest tests, 0 regressions.
 
 ## Overview
 
@@ -223,14 +232,64 @@ day columns do between each other; there's a clearly bigger gap between the grid
 below it. No layout regressions (grid still scrolls correctly on narrow viewports, nav row doesn't
 wrap awkwardly).
 
+## Requirement 4: Day-of-month number on each grid column header
+
+As a user, I want to see the actual date next to each day name in the grid header, so I don't have
+to cross-reference the week-commencing date to know what day-of-month "Wednesday" means.
+
+### FRONTEND-024-AC-06 [AUTO]: Each day column header shows its date number alongside the day name
+**Statement**: `PlannerGrid` shall render, for each day in its `days` prop, the day-of-month number
+(derived from `weekStart` plus that day's offset from Monday) on the left and the day name on the
+right of the same column header.
+
+**Rationale**: Small polish item raised alongside this spec's other five — "add date number to the
+top columns... Date number LHS, Day RHS." Needs the actual calendar date per column, not just the
+day name, so `PlannerGrid` needs a new `weekStart` prop it didn't previously require.
+
+**References**:
+- `planLabels.ts` gains a shared `parseWeekStart(weekStart: string): Date` helper (the same safe
+  `split('-').map(Number)` → `new Date(year, month - 1, day)` local-time construction already used
+  by `WeeklyPlanner.tsx`'s `shiftWeek`/`formatWeekCommencing`) — extracted here so the parsing logic
+  isn't triplicated across the two files now that `PlannerGrid` needs it too.
+- `PlannerGrid.tsx` gains `getDayDate(weekStart: string, day: PlanDayOfWeek): number`, built on
+  `parseWeekStart` plus `ALL_DAYS.indexOf(day)` as the day offset — relies on `Date`'s automatic
+  month/year rollover (e.g. offset past the end of September correctly lands in October).
+- `PlannerGrid`'s `PlannerGridProps` gains `weekStart: string` (required); `WeeklyPlanner.tsx` passes
+  its own `weekStart` state straight through.
+- Day-label markup becomes two child elements (date number, day name) instead of one text node, so
+  existing tests asserting `styles.dayLabel` directly on the "Monday" text node need to assert it via
+  `.closest()` on the container instead (see Test Case below) — the class itself still lands on the
+  same outer `<div>`, only the text node it used to sit directly on is now nested one level deeper.
+
+**Test Case (Red)**:
+```tsx
+it('FRONTEND-024-AC-06: shows the day-of-month number before the day name', () => {
+  render(<PlannerGrid {...baseGridProps()} weekStart="2026-09-28" />)
+
+  // 2026-09-28 is a Monday; Friday is 2026-10-02 — exercises month rollover too
+  expect(screen.getByText('28').nextSibling).toHaveTextContent('Monday')
+  expect(screen.getByText('2').nextSibling).toHaveTextContent('Friday')
+})
+```
+
+**Test Case (Green)**: implement `parseWeekStart`/`getDayDate` as described in References; render
+`<span>{getDayDate(weekStart, day)}</span><span>{DAY_LABELS[day]}</span>` inside the existing
+`dayLabelClassName(...)`-classed container.
+*(Implementer note: `baseGridProps()` in `PlannerGrid.test.tsx` needs a `weekStart` entry added now
+that it's a required prop — pick a fixed test date, e.g. `'2026-09-28'`, for determinism.)*
+
 ## Component/type changes
 
-No type or API contract changes. `WeeklyPlanner.tsx` gains:
+No API contract changes. `WeeklyPlanner.tsx` gains:
 - `formatWeekCommencing(weekStart: string): string` (local helper, alongside `formatDate`/`shiftWeek`)
 - `ChevronIcon({ direction }: { direction: 'left' | 'right' })` (local component, alongside the
   existing file-local helpers — not promoted to a shared component, since nothing else in the
   codebase currently needs a chevron, matching `OccurrenceItem.tsx`'s `CompletionIcon` precedent
   over `RepeatableIcon`'s shared-component precedent)
+
+`planLabels.ts` gains `parseWeekStart` (see `FRONTEND-024-AC-06`'s References); `WeeklyPlanner.tsx`'s
+`shiftWeek`/`formatWeekCommencing` are refactored to use it instead of each re-parsing `weekStart`
+independently. `PlannerGrid` gains a new required `weekStart: string` prop and `getDayDate`.
 
 `WeeklyPlanner.test.tsx`'s existing `FRONTEND-004-AC-16` test
 (`findByText(/week of \d{4}-\d{2}-\d{2}/i)`) needs updating to match the new "Week Commencing" text —
@@ -255,3 +314,4 @@ week") stays satisfied; only its wording/format changed, not its intent, so it i
 - [x] FRONTEND-024-AC-03 [AUTO]: Previous/Next controls become icon-only, with an accessible name
 - [x] FRONTEND-024-AC-04 [AUTO]: The chevron icons are decorative, not independently announced
 - [x] FRONTEND-024-AC-05 [MANUAL]: Spacing and centering render correctly in both themes
+- [x] FRONTEND-024-AC-06 [AUTO]: Each day column header shows its date number alongside the day name

@@ -21,6 +21,9 @@
 }
 
 .dayLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;

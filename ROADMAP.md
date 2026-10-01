@@ -52,7 +52,7 @@ spec-tidying effort this came out of).
 | Cascade an activity's category change to its sub-tasks (bug fix) | [`planner_spec_014_subtask_category_cascade.md`](.claude/specs/planner_spec_014_subtask_category_cascade.md) | — (backend-only) | ✅ Implemented (2026-10-01), v0.14.1. |
 | Refresh an open sub-task panel after editing its activity (bug fix) | — (frontend-only) | [`frontend_spec_023_subtask_panel_refresh_on_edit.md`](.claude/specs/frontend_spec_023_subtask_panel_refresh_on_edit.md) | ✅ Implemented (2026-10-01), v0.14.1. |
 | Weekday/Weekend grid tabs (bug fix) | — (frontend-only) | [`frontend_spec_015_weekday_weekend_grid_tabs.md`](.claude/specs/frontend_spec_015_weekday_weekend_grid_tabs.md) | ✅ Implemented (2026-10-01). Fixes weekend occurrences being invisible in the grid; `PlannerGrid` generalized to a `days` prop. |
-| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | ✅ Implemented (2026-10-01). Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing. |
+| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | ✅ Implemented (2026-10-01). Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing, day-of-month numbers on column headers. |
 
 ## Specced, coming soon
 

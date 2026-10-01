@@ -23,6 +23,8 @@ All notable changes to this project are documented in this file, in
   weekend bucket list.
 - The weekend bucket list's "Add" button is now right-aligned on the same row as its "Weekend
   bucket list" heading, matching the Activity Bank's sub-task panel layout.
+- Each Week grid day column header now shows the date number next to the day name (e.g. "28
+  Monday"), so the calendar date is visible without cross-referencing the "Week Commencing" date.
 
 ## [0.14.1] - 2026-10-01
 

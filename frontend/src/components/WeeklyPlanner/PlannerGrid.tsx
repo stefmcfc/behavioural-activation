@@ -1,10 +1,17 @@
 import type { CSSProperties } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
-import { ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
+import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, parseWeekStart } from './planLabels'
 import styles from './PlannerGrid.module.css'
 
+function getDayDate(weekStart: string, day: PlanDayOfWeek): number {
+  const date = parseWeekStart(weekStart)
+  date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
+  return date.getDate()
+}
+
 interface PlannerGridProps {
+  readonly weekStart: string
   readonly days: readonly PlanDayOfWeek[]
   readonly heading: string
   readonly emptyMessage: string
@@ -37,6 +44,7 @@ function dayLabelClassName(isToday: boolean): string {
 }
 
 export function PlannerGrid({
+  weekStart,
   days,
   heading,
   emptyMessage,
@@ -73,7 +81,8 @@ export function PlannerGrid({
         <div className={styles.grid} style={{ '--day-count': days.length } as CSSProperties}>
           {days.map((day) => (
             <div key={day} className={dayLabelClassName(day === todayColumn)}>
-              {DAY_LABELS[day]}
+              <span>{getDayDate(weekStart, day)}</span>
+              <span>{DAY_LABELS[day]}</span>
             </div>
           ))}
           {ALL_SLOTS.map((slot) =>

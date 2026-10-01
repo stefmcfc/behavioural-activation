@@ -6,7 +6,7 @@ import { AssignActivityPicker, type AssignTarget } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
-import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
+import { WEEKDAY_DAYS, WEEKEND_DAYS, parseWeekStart } from './planLabels'
 import styles from './WeeklyPlanner.module.css'
 
 function getErrorMessage(error: unknown): string {
@@ -41,20 +41,17 @@ function getMondayOfCurrentWeek(): string {
 }
 
 function shiftWeek(weekStart: string, days: number): string {
-  const [year, month, day] = weekStart.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
+  const date = parseWeekStart(weekStart)
   date.setDate(date.getDate() + days)
   return formatDate(date)
 }
 
 function formatWeekCommencing(weekStart: string): string {
-  const [year, month, day] = weekStart.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
   return new Intl.DateTimeFormat(undefined, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(date)
+  }).format(parseWeekStart(weekStart))
 }
 
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
@@ -316,6 +313,7 @@ export function WeeklyPlanner() {
           </fieldset>
 
           <PlannerGrid
+            weekStart={weekStart}
             days={gridTab === 'WEEKDAYS' ? WEEKDAY_DAYS : WEEKEND_DAYS}
             heading={gridTab === 'WEEKDAYS' ? 'Week grid' : 'Weekend grid'}
             emptyMessage={
