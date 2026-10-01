@@ -20,60 +20,21 @@ references may have moved or changed shape since the note was written.
 - **Not specced** — retain full detail: what's actually required, why, and any relevant
   constraints or prior discussion.
 
-Last full review: 2026-08-27 (V1 high-level planning session).
+Last full review: 2026-10-01 (re-checked every entry against current codebase state: fixed a stale
+`PlannedActivity.slot` reference to the real `PlannedOccurrence.slot`, updated the drag-and-drop
+entry's cross-reference from a since-promoted `SPEC_CANDIDATES.md` candidate to the real specs it
+became, removed the "Activity Bank UX improvements" batch entirely now that every item in it has
+either shipped or moved to `ROADMAP.md`/`SPEC_CANDIDATES.md`, fixed wording in the summary-strip
+entry that implied `frontend_spec_008` hadn't shipped yet, and removed the "Sub-task category
+drift" entry — now specced as `planner_spec_014_subtask_category_cascade.md`, see
+`ROADMAP.md`'s "Specced, coming soon"). Earlier review: 2026-08-27 (V1 high-level planning
+session).
 
 ---
 
-## Sub-task category drift when a parent activity's category is edited
-
-**Status**: Not specced. Surfaced 2026-09-30 while adding a category filter to the "Assign an
-activity or sub-task" picker (`frontend_spec_009_add_picker_modal.md`'s Requirement 9 amendment).
-**Confirmed live the same day** with real data: the user created a "Test category change" activity
-(initially Pleasurable, two sub-tasks), edited its category to Necessary via the normal Activity
-Bank edit flow, and the sub-tasks kept showing the stale Pleasurable chip exactly as predicted —
-this is a real, reproducible bug, not just a theoretical code-reading finding.
-`SubTask.category` is copied from the parent `Activity` once, at creation time, and never updated
-afterward (`SubTask.java`'s own field comment; confirmed `ActivityService.update()` only writes to
-the `Activity` row, with no cascade to its existing sub-tasks). So: create an activity as
-Necessary → add a sub-task (stores category `NECESSARY`) → later edit the activity's category to
-Pleasurable → the activity now shows `PLEASURABLE` everywhere, but that existing sub-task still
-carries the stale `NECESSARY` it was created with.
-
-This was a latent inconsistency before (nothing surfaced it visibly), but two places now display a
-sub-task's category chip literally read from its own stored value, so a real user could see a
-sub-task's category chip visibly disagree with its own parent activity's current chip:
-`AssignActivityPicker` (this session's addition) and `OccurrenceItem`'s tile/detail card
-(`frontend_spec_008_occurrence_detail_card.md`, planned occurrences from a sub-task use
-`PlannedOccurrence.category`, itself copied from the sub-task at occurrence-creation time — the same
-one-time-copy pattern, one layer further removed). `SubTaskList`'s own heading ("Sub-tasks — {category
-label}") already implicitly assumes sub-tasks share the *current* activity category — it labels
-using the activity's live `category` prop, not each sub-task's own stored value — so the app's
-existing UI language doesn't really account for this drift being possible today.
-
-Not yet decided which way to resolve it — options, not yet evaluated against each other:
-- **Cascade the update**: when an activity's category changes, update every existing sub-task's
-  stored `category` to match. Matches the "sub-tasks always inherit the parent" mental model the
-  rest of the UI already assumes; needs a backend migration-style bulk update in
-  `ActivityService.update()` (or a scheduled/lazy sync) and a decision on whether it should also
-  retroactively touch category values already copied onto historical `PlannedOccurrence` rows (audit-
-  trail question — does changing a sub-task's category after the fact rewrite what a *past* completed
-  occurrence says its category was?).
-- **Leave the snapshot semantics, but make them visible/intentional**: keep the current one-time-copy
-  behaviour (arguably correct for historical/audit purposes — "this was Necessary when it was
-  planned"), but surface it somewhere a user would actually notice/expect it, rather than it just
-  being an undocumented implementation detail that occasionally produces a surprising mismatched chip.
-- **Let a sub-task's category be edited independently** — a bigger change: `SubTaskForm` currently has
-  no category field at all (inherited, not user-selected); this would mean adding one, which is a
-  real product decision, not a bug fix.
-
-Touches `backend/src/main/java/uk/co/stefirby/behaviouralactivation/service/ActivityService.java`,
-`SubTask.java`, possibly `PlannedOccurrence`'s own category-copy behaviour
-(`planner_spec_004_week_planning.md`), and `SubTaskForm.tsx`/`SubTaskList.tsx` on the frontend if the
-"editable independently" option is chosen.
-
 ## Finer-grained/custom time slots for planned activities
 
-**Status**: Not specced. V1's `PlannedActivity.slot` is a fixed `MORNING`/`AFTERNOON`/`EVENING`
+**Status**: Not specced. V1's `PlannedOccurrence.slot` is a fixed `MORNING`/`AFTERNOON`/`EVENING`
 enum (nullable, for bucket-style entries). Raised during V1 planning: hourly or specific-time
 scheduling might be wanted later. Deliberately not built now — nothing in the current roadmap needs
 it, and building generic time-scheduling ahead of a real requirement would be solving a problem
@@ -88,7 +49,8 @@ to a day/slot) — drag-and-drop is a real interaction-complexity jump with no V
 requiring it. Confirmed during V1 planning as a good later-release candidate once the click-to-assign
 version exists and its rough edges (if any) are actually felt. Narrower in scope than it sounds now
 that drag-and-drop has been separately confirmed (2026-09-29) for *reordering* the weekend bucket
-list — see `.claude/SPEC_CANDIDATES.md`'s "Weekend bucket reordering + carry-forward" candidate.
+list — see `planner_spec_010_bucket_reordering.md`/`frontend_spec_010_bucket_reordering.md` in
+`ROADMAP.md`'s "Specced, coming soon" (specced, not yet implemented).
 This entry is specifically about dragging an activity/sub-task onto a grid day/slot to *assign* it
 (replacing or supplementing the click-to-assign flow) — still unconfirmed, don't assume it's
 decided just because bucket reordering now uses drag-and-drop.
@@ -112,29 +74,15 @@ integration, therapy-worksheet import, therapist-facing export, multiple activit
 natural-language activity entry, voice input, local/on-device AI, more sophisticated trend
 analysis, activity effectiveness scoring, social/connection activity tracking.
 
-## Activity Bank UX improvements (batch, 2026-09-29)
-
-**Status**: Fully specced (2026-10-01), nothing left in this file for this batch. Raised by the user
-right after shipping spec pair 6 (repeatable/archived activities), while it was fresh. The
-"Add-activity modal with category guidance" item shipped 2026-09-30 as
-`frontend_spec_013_add_activity_modal.md`, alongside a newly-confirmed companion,
-`frontend_spec_014_add_subtask_modal.md` — see `ROADMAP.md`'s "Delivered" table. The remaining two
-items are now specced and moved to `ROADMAP.md`'s "Specced, coming soon": category filter
-(`frontend_spec_017_activity_bank_category_filter.md`) and a plain sub-task count badge
-(`planner_spec_012_subtask_count.md` + `frontend_spec_018_subtask_count_badge.md`, count only — the
-"2/3 done" progress variant was confirmed worth tracking but not building yet, and now lives in
-`.claude/SPEC_CANDIDATES.md` instead, since it's blocked on a real product decision about what
-"done" means for a sub-task).
-
 ## Weekly grid completion/category-balance summary strip
 
 **Status**: Not specced — Claude's suggestion (2026-09-29), not yet confirmed by the user. A small
 summary strip at the top of the week grid (e.g. "5/12 planned, Pleasurable: 0") showing completion
 progress and category balance for the week at a glance. No new data needed — everything's already
 in the `PlannedOccurrence` list the grid already fetches. Ties into BA's core "am I keeping balance"
-purpose, and would pair naturally with `frontend_spec_008`'s decluttering once that ships, but was
-deliberately left out of that spec's scope since it was never explicitly confirmed — raise it again
-if/when there's appetite for another small Weekly Planner spec.
+purpose, and would pair naturally with the decluttered grid tile shape `frontend_spec_008` already
+shipped, but was deliberately left out of that spec's scope since it was never explicitly confirmed
+— raise it again if/when there's appetite for another small Weekly Planner spec.
 
 ## End-of-week reflection (light journal, no scoring)
 

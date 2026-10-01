@@ -155,15 +155,24 @@ planning data can't leak by ID guessing.
   owner, then the `SubTaskService` shall respond `404` in both cases identically — never `403`, and
   never a response body that reveals whether the resource exists under another owner.
 
-### Requirement 7 — Category is a snapshot, not a live reference
+### Requirement 7 — Category is a snapshot, not a live reference (SUPERSEDED, see AC-20 below)
 
 As a user, I want a sub-task's category to stay stable once created, so editing the parent
-activity's category later doesn't silently rewrite my existing checklist.
+activity's category later doesn't silently rewrite my existing checklist. **This requirement's
+premise no longer reflects the shipped product as of `planner_spec_014_subtask_category_cascade.md`
+— see that AC's superseded-note for why.**
 
-- **PLANNER-003-AC-20** [AUTO]: Where a parent `Activity`'s `category` is changed after one of its
-  `SubTask`s has already been created, the `SubTaskService` shall leave that `SubTask`'s
+- **PLANNER-003-AC-20** [AUTO] — **SUPERSEDED (2026-10-01) by `planner_spec_014_subtask_category_cascade.md`'s
+  `PLANNER-014-AC-01`, which implements the opposite behavior.** Original statement, kept verbatim
+  for history per this project's immutable-reference-ID convention — no longer true of the shipped
+  system once `planner_spec_014` lands: Where a parent `Activity`'s `category` is changed after one
+  of its `SubTask`s has already been created, the `SubTaskService` shall leave that `SubTask`'s
   already-stored `category` unchanged — the value copied at creation time (AC-02) does not track
-  later parent updates.
+  later parent updates. This was reversed after a real, user-confirmed bug: two UI surfaces
+  (`AssignActivityPicker`, `OccurrenceItem`) render a sub-task's own stored category directly, so
+  the "snapshot forever" behavior became a visibly wrong chip once those existed, not just a latent
+  inconsistency — see `.claude/ideas/future_ideas.md`'s former "Sub-task category drift" entry (now
+  resolved into the superseding spec) for the full history.
 
 ### Requirement 8 — Every endpoint requires a session (inherited)
 
@@ -456,5 +465,6 @@ def "PLANNER-003-AC-21: an unauthenticated request to sub-tasks returns 401 (inh
 - [x] PLANNER-003-AC-17 — deleting the parent activity cascade-deletes its sub-tasks
 - [x] PLANNER-003-AC-18 — `SubTask.owner` persisted directly, independent of `activity.owner`
 - [x] PLANNER-003-AC-19 — not-found and not-yours are indistinguishable (404 both) across every endpoint
-- [x] PLANNER-003-AC-20 — category is a creation-time snapshot, does not follow later parent changes
+- [x] ~~PLANNER-003-AC-20 — category is a creation-time snapshot, does not follow later parent changes~~
+  **SUPERSEDED 2026-10-01** by `planner_spec_014_subtask_category_cascade.md`'s `PLANNER-014-AC-01` (opposite behavior)
 - [x] PLANNER-003-AC-21 — existing SecurityFilterChain rule already covers new endpoints (regression test, no SecurityConfig change)
