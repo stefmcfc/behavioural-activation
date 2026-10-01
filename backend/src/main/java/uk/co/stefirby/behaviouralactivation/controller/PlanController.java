@@ -115,10 +115,13 @@ public class PlanController {
         UUID subTaskId = isActivity ? null : occurrence.getSubTask().getId();
         String name = isActivity ? occurrence.getActivity().getName() : occurrence.getSubTask().getName();
         String parentActivityName = isActivity ? null : occurrence.getSubTask().getActivity().getName();
+        boolean repeatable = isActivity
+            ? occurrence.getActivity().isRepeatable()
+            : occurrence.getSubTask().getActivity().isRepeatable();
         boolean completed = completion != null;
         Instant completedAt = completion != null ? completion.getCompletedAt() : null;
         return new PlannedOccurrenceResponse(occurrence.getId(), activityId, subTaskId, name, parentActivityName,
             occurrence.getCategory(), occurrence.getWeekStart(), occurrence.getDayOfWeek(),
-            occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt());
+            occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt(), repeatable);
     }
 }

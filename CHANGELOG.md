@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- The Add/Edit activity modal now shows the repeat icon live next to the "Repeatable" checkbox as
+  you toggle it, matching the icon already shown in the Activity Bank list.
+- Repeatable activities now show the repeat icon on their items in the weekend bucket list (weekly
+  grid cells intentionally do not show it, to avoid adding back the clutter removed in an earlier
+  decluttering pass).
+
 ## [0.12.0] - 2026-10-01
 
 ### Added

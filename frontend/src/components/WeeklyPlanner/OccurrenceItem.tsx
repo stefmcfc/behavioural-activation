@@ -3,6 +3,7 @@ import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/pla
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
+import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import styles from './OccurrenceItem.module.css'
 
 interface OccurrenceItemProps {
@@ -92,6 +93,7 @@ export function OccurrenceItem({
         {occurrence.name}
       </button>
       <CategoryChip category={occurrence.category} />
+      {isBucketItem && occurrence.repeatable && <RepeatableIcon />}
       {occurrence.completed && <CompletionIcon />}
       {occurrence.completed ? (
         <button

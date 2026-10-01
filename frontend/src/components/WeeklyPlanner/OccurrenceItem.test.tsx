@@ -18,6 +18,7 @@ const gridOccurrence: PlannedOccurrence = {
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
+  repeatable: true,
 }
 
 const subTaskOccurrence: PlannedOccurrence = {
@@ -33,6 +34,7 @@ const subTaskOccurrence: PlannedOccurrence = {
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
+  repeatable: true,
 }
 
 const bucketOccurrence: PlannedOccurrence = {
@@ -48,6 +50,7 @@ const bucketOccurrence: PlannedOccurrence = {
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
+  repeatable: false,
 }
 
 const noop = () => {}
@@ -298,5 +301,41 @@ describe('FRONTEND-008-AC-16/AC-17: completion indicator is an accessible icon, 
 
     rerender(<OccurrenceItem {...baseProps()} />)
     expect(screen.queryByRole('img', { name: /completed/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-021-AC-01: shows the repeatable icon for a repeatable bucket item', () => {
+  it('renders a RepeatableIcon between CategoryChip and the completion indicator', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...bucketOccurrence, repeatable: true }, isBucketItem: true })}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-021-AC-02: shows no repeatable icon for a one-off bucket item', () => {
+  it('renders no RepeatableIcon when the bucket item is not repeatable', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...bucketOccurrence, repeatable: false }, isBucketItem: true })}
+      />,
+    )
+
+    expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-021-AC-03: shows no repeatable icon on a grid cell, even when repeatable is true', () => {
+  it('renders no RepeatableIcon for a grid occurrence regardless of its repeatable value', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, repeatable: true }, isBucketItem: false })}
+      />,
+    )
+
+    expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
   })
 })

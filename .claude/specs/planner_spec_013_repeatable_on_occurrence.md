@@ -1,6 +1,9 @@
 # Expose repeatable on PlannedOccurrenceResponse (Backend)
 
-**Status**: Not started
+**Status**: Implemented — both ACs covered by new tests in `PlanControllerSpec.groovy`
+(`PLANNER-013-AC-01`, `PLANNER-013-AC-02`); full backend suite green (200 tests, 0 failures).
+`repeatable` added as the trailing field on `PlannedOccurrenceResponse` (only call site of its
+constructor is `PlanController.toResponse()`, no migration needed).
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_004_week_planning.md` (`PlannedOccurrence`, `PlannedOccurrenceResponse`,
 `PlanController.toResponse`), `planner_spec_006_repeatable_activities.md` (`Activity.repeatable`,
@@ -116,5 +119,5 @@ def "PLANNER-013-AC-02: sub-task-sourced occurrence resolves repeatable from its
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-013-AC-01 [AUTO]: Activity-sourced occurrence resolves `repeatable` from the activity directly
-- [ ] PLANNER-013-AC-02 [AUTO]: Sub-task-sourced occurrence resolves `repeatable` from its parent activity
+- [x] PLANNER-013-AC-01 [AUTO]: Activity-sourced occurrence resolves `repeatable` from the activity directly
+- [x] PLANNER-013-AC-02 [AUTO]: Sub-task-sourced occurrence resolves `repeatable` from its parent activity

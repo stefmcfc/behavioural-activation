@@ -136,11 +136,6 @@
   margin-left: auto;
 }
 
-.repeatableIcon {
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
 .archivedLabel {
   font-size: 0.72rem;
   font-weight: 700;

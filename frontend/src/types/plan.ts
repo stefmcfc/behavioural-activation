@@ -24,6 +24,7 @@ export interface PlannedOccurrence {
   completed: boolean
   completedAt: string | null
   createdAt: string
+  repeatable: boolean
 }
 
 export interface PlannedOccurrenceInput {

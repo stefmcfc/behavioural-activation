@@ -1,6 +1,15 @@
 # Repeatable Icon in the Weekend Bucket List (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — `PlannedOccurrence.repeatable: boolean` added to
+`frontend/src/types/plan.ts`; `OccurrenceItem.tsx` renders the shared `RepeatableIcon`
+(`frontend/src/components/RepeatableIcon/RepeatableIcon.tsx`) between `CategoryChip` and the
+completion indicator, gated on `isBucketItem && occurrence.repeatable`. All 3 ACs covered by
+tests in `OccurrenceItem.test.tsx`, including the AC-03 regression guard for grid cells. The
+sibling backend change (`planner_spec_013_repeatable_on_occurrence.md`) had already landed
+(uncommitted) in the working tree by the time this was implemented, so the frontend type matches
+the real API shape. Real-browser verification not performed by the implementing agent (no browser
+automation tooling available in that session) — recommend a manual check of the weekend bucket
+list (light + dark theme) before considering this fully done per the project's Definition of Done.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `planner_spec_013_repeatable_on_occurrence.md` (adds `repeatable` to
 `PlannedOccurrenceResponse` — this spec cannot be implemented ahead of that one landing),
@@ -132,6 +141,6 @@ it('FRONTEND-021-AC-03: shows no repeatable icon on a grid cell, even when repea
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-021-AC-01 [AUTO]: Icon renders on a repeatable bucket item
-- [ ] FRONTEND-021-AC-02 [AUTO]: No icon for a one-off bucket item
-- [ ] FRONTEND-021-AC-03 [AUTO]: No icon on grid cells, even for a repeatable occurrence (regression guard for the scoping decision)
+- [x] FRONTEND-021-AC-01 [AUTO]: Icon renders on a repeatable bucket item
+- [x] FRONTEND-021-AC-02 [AUTO]: No icon for a one-off bucket item
+- [x] FRONTEND-021-AC-03 [AUTO]: No icon on grid cells, even for a repeatable occurrence (regression guard for the scoping decision)

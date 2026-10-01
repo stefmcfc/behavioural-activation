@@ -108,6 +108,41 @@ class PlanControllerSpec extends Specification {
             result.andExpect(jsonPath('$.data[0].parentActivityName').value("Go for a walk"))
     }
 
+    def "PLANNER-013-AC-01: an activity-sourced occurrence's response resolves repeatable from the activity directly"() {
+        given: "the service returns one occurrence for a repeatable activity"
+            def repeatableActivity = new Activity("Walk", ActivityCategory.ROUTINE, null, true, owner)
+            def occurrence = new PlannedOccurrence(repeatableActivity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.getWeek("steve", monday) >> [occurrence]
+            planService.findCompletions("steve", _) >> [:]
+
+        when: "GET /api/v1/plan is requested"
+            def result = mockMvc.perform(get("/api/v1/plan?weekStart=2026-10-05")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "repeatable reflects the activity's own value"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].repeatable').value(true))
+    }
+
+    def "PLANNER-013-AC-02: a sub-task-sourced occurrence's response resolves repeatable from its parent activity, not itself"() {
+        given: "the service returns one occurrence for a sub-task of a one-off parent activity"
+            def oneOffActivity = new Activity("Big project", ActivityCategory.ROUTINE, null, false, owner)
+            def oneOffSubTask = new SubTask(oneOffActivity, "Step one", ActivityCategory.ROUTINE, owner)
+            def occurrence = new PlannedOccurrence(null, oneOffSubTask, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.getWeek("steve", monday) >> [occurrence]
+            planService.findCompletions("steve", _) >> [:]
+
+        when: "GET /api/v1/plan is requested"
+            def result = mockMvc.perform(get("/api/v1/plan?weekStart=2026-10-05")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "repeatable reflects the PARENT activity's value, not some independent sub-task value"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].repeatable').value(false))
+    }
+
     def "PLANNER-004-AC-05: GET /api/v1/plan returns 200 with an empty envelope, not 404, for an empty week"() {
         given: "the service returns no occurrences"
             planService.getWeek("steve", monday) >> []

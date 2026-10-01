@@ -4,6 +4,7 @@ import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
 import { CategoryPicker } from './CategoryPicker'
 import { CategoryGuidance } from './CategoryGuidance'
+import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import styles from './ActivityForm.module.css'
 
 interface ActivityFormProps {
@@ -126,7 +127,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
               checked={repeatable}
               onChange={(event) => setRepeatable(event.target.checked)}
             />{' '}
-            Repeatable
+            Repeatable {repeatable && <RepeatableIcon />}
           </label>
           <p className={styles.repeatableHint}>
             Repeatable activities (the default) are things you do again and again, like "Go for a
