@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-01
+
 ### Added
 
 - An incomplete weekend bucket item that's fallen behind the current week now automatically moves
