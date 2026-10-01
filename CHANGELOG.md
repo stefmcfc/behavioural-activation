@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-01
+
 ### Added
 
 - The Add/Edit activity modal now shows the repeat icon live next to the "Repeatable" checkbox as
