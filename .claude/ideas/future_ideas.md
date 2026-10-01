@@ -29,6 +29,10 @@ entry that implied `frontend_spec_008` hadn't shipped yet, and removed the "Sub-
 drift" entry — now specced as `planner_spec_014_subtask_category_cascade.md`, see
 `ROADMAP.md`'s "Specced, coming soon". Later the same day: removed the "already-open sub-task panel
 doesn't refresh" entry too — now specced as `frontend_spec_023_subtask_panel_refresh_on_edit.md`).
+Later the same day: split the "Drag-and-drop in the week planner" entry in two — the
+already-planned-item-move half is now specced as `frontend_spec_025_grid_drag_to_move.md` (see
+`ROADMAP.md`); this file keeps only the remaining not-yet-specced half (sidebar/drawer assign-by-
+drag for unplanned activities).
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -43,18 +47,27 @@ V1 doesn't have. The `slot` field is named generically (not something like `Thre
 nullable specifically so this would most likely be an *additive* future change (e.g. an optional
 `plannedTime` alongside the coarse `slot`), not a schema redesign, when/if it's actually needed.
 
-## Drag-and-drop in the week planner (assignment, not reordering)
+## Drag-and-drop in the week planner: assign an unplanned activity via a sidebar/drawer
 
-**Status**: Not specced. V1 ships click-to-assign only (pick an activity from the bank, assign it
-to a day/slot) — drag-and-drop is a real interaction-complexity jump with no V1 user story
-requiring it. Confirmed during V1 planning as a good later-release candidate once the click-to-assign
-version exists and its rough edges (if any) are actually felt. Narrower in scope than it sounds now
-that drag-and-drop has been separately confirmed (2026-09-29) for *reordering* the weekend bucket
-list — see `planner_spec_010_bucket_reordering.md`/`frontend_spec_010_bucket_reordering.md` in
-`ROADMAP.md`'s "Specced, coming soon" (specced, not yet implemented).
-This entry is specifically about dragging an activity/sub-task onto a grid day/slot to *assign* it
-(replacing or supplementing the click-to-assign flow) — still unconfirmed, don't assume it's
-decided just because bucket reordering now uses drag-and-drop.
+**Status**: Not specced. Split off 2026-10-01 from a broader "drag-and-drop in the week planner"
+idea during scoping — the other half (dragging an *already-planned* grid occurrence to a different
+slot within the current view) is now specced as `frontend_spec_025_grid_drag_to_move.md`
+(`ROADMAP.md`'s "Specced, coming soon"); this entry is what's left, still not specced.
+
+This half is about *assigning an unplanned activity/sub-task* onto a grid day/slot by dragging it,
+supplementing (not replacing) the existing click-to-assign flow (click "Add" → `AssignActivityPicker`
+modal). There is currently no persistent, always-visible list of activities within the Weekly
+Planner view to drag *from* — the Activity Bank is a separate tab/page — so this needs a new UI
+surface: most likely a collapsible sidebar/drawer panel that slides in from the side, listing
+activities/sub-tasks (filterable, same filters `AssignActivityPicker` already has), that the user
+drags items out of onto grid cells. Raised alongside this idea: a possible new "favourite
+activities" concept (doesn't exist yet) to make common repeatable activities faster to find/drag
+from such a panel — genuinely new scope beyond drag-and-drop itself, not assumed necessary, just
+noted as a plausible pairing if this gets built.
+
+Needs a real design pass before writing ACs (panel placement/interaction, filter UI reuse vs.
+duplication, whether "favourites" is in scope for v1 of this or a separate later idea) — not just a
+markup reshuffle, similar to other open UI candidates in `.claude/SPEC_CANDIDATES.md`.
 
 ## Dedicated activity-history view/endpoint
 
