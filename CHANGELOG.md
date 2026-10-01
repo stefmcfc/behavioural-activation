@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- An incomplete weekend bucket item that's fallen behind the current week now automatically moves
+  forward to the current week the next time you open the planner, instead of staying stuck in the
+  past with no way back into view. It's marked "Moved from last week" so it's clear what happened.
+
+### Fixed
+
+- Fixed a contrast issue where the Move up/down buttons' hover/focus highlight could render
+  near-white text on a near-white background in Light theme.
+
 ## [0.16.0] - 2026-10-01
 
 ### Added

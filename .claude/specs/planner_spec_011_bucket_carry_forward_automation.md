@@ -1,6 +1,6 @@
 # Automatic Carry-Forward for Incomplete Bucket Items (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 16 ACs green.
 **Priority**: P2 — a real UX improvement to the weekend bucket list (today a user must remember to
 manually hit "Carry forward" on every stale item, one at a time, or it just silently ages behind
 the real current week with no way back into view via the normal weekly-navigation flow). Not
@@ -17,6 +17,39 @@ parallel by a sibling agent, not yet merged as of this spec's own drafting** —
 **Area**: Backend
 **Roadmap version**: V1 (extends the core planner's weekend bucket list from `product.md`'s V1 row
 — not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+Implemented largely as specified, with one real sketch bug found and one real behavior confirmed
+end-to-end in a live browser.
+
+- **AC-01/AC-02's own sketch doesn't actually prove persistence.** It constructs
+  `new PlanService(repos..., fixedClock)` directly and expects the `weekStart` mutation to survive —
+  but a plain `new`-constructed `PlanService` has no Spring-managed `@Transactional` AOP proxy at
+  all, so each repository call runs its own disjoint mini-transaction and the subsequent mutation is
+  silently never flushed. This is a stronger version of the exact self-invocation hazard this spec's
+  own Requirement 4 warns about, just hitting a manually-constructed instance instead. Moved AC-01/
+  AC-02 (which is really only testing `Clock`-driven date arithmetic, not persistence) to a mocked
+  unit test in `PlanServiceSpec.groovy`; the *durable-persistence* proof stays on AC-06/AC-08, via
+  the real, Spring-managed `planService` bean.
+- `PlannedOccurrenceResponse` already had `parentActivityName`/`repeatable`/`bucketPosition` fields
+  from specs 008/013/010 by the time this was implemented — `recentlyCarriedForward` was appended as
+  the 15th (final) field, matching how each of those three was itself appended rather than inserted.
+- AC-10/AC-11/AC-14's sketch implied full-stack HTTP integration tests, which this codebase has no
+  precedent for (every `@SpringBootTest` here tests the service layer directly; every HTTP-layer spec
+  is `@WebMvcTest` with a mocked service). Split accordingly: migration/week-filtering correctness at
+  the `PlanService` level against real Postgres; the controller's `recentlyCarriedForward` boolean
+  mapping at the existing `@WebMvcTest` level.
+- Full suite: 242 tests (up from 229), 0 regressions — independently re-run from a clean
+  `--rerun-tasks` build.
+- **Real-browser end-to-end verification** (beyond what the paired frontend spec's own real-browser
+  check covers): created a bucket item in a stale past week via the live API, then triggered a real
+  `GET /api/v1/plan` for the current week through the already-running app — confirmed via direct
+  inspection of that exact response that the item's `weekStart` jumped straight to the current
+  Monday, `bucketPosition` reset to `null`, and `recentlyCarriedForward` was `true` specifically on
+  that triggering response (and correctly `false` on every later refetch, once no longer stale) —
+  proving Requirement 4's transaction-ordering fix actually works against the real dev database, not
+  just the integration spec's own assertions.
 
 ## Overview
 
@@ -597,19 +630,19 @@ actually run.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-011-AC-01 — `ClockConfig` declares a `Clock` bean (`Clock.systemDefaultZone()`)
-- [ ] PLANNER-011-AC-02 — `PlanService` takes `Clock` via constructor injection, uses `LocalDate.now(clock)`
-- [ ] PLANNER-011-AC-03 — `PlannedOccurrenceRepository` gains the stale-bucket-item derived query
-- [ ] PLANNER-011-AC-04 — a stale bucket item with a `CompletionRecord` is excluded from migration
-- [ ] PLANNER-011-AC-05 — migration is scoped to the authenticated owner only
-- [ ] PLANNER-011-AC-06 — a stale item jumps to the real current week in one step, any number of weeks stale
-- [ ] PLANNER-011-AC-07 — migration resets `bucketPosition` to `null` (`planner_spec_010` field)
-- [ ] PLANNER-011-AC-08 — migration is its own read-write `@Transactional` method, durably persisted before `getWeek()`'s read-only query runs
-- [ ] PLANNER-011-AC-09 — `PlanController.getWeek()` calls migration unconditionally, before `getWeek()`, on every request
-- [ ] PLANNER-011-AC-10 — a migrated item is absent from a non-current-week response
-- [ ] PLANNER-011-AC-11 — a migrated item is present in the current-week response, same request
-- [ ] PLANNER-011-AC-12 — grid-scheduled occurrences are never migrated
-- [ ] PLANNER-011-AC-13 — `PlannedOccurrenceResponse` declares `recentlyCarriedForward: boolean`
-- [ ] PLANNER-011-AC-14 — `recentlyCarriedForward: true` set only for that request's migrated occurrences
-- [ ] PLANNER-011-AC-15 — every other response path always sets `recentlyCarriedForward: false`
-- [ ] PLANNER-011-AC-16 — the existing manual carry-forward endpoint/behaviour is unchanged (regression)
+- [x] PLANNER-011-AC-01 — `ClockConfig` declares a `Clock` bean (`Clock.systemDefaultZone()`)
+- [x] PLANNER-011-AC-02 — `PlanService` takes `Clock` via constructor injection, uses `LocalDate.now(clock)`
+- [x] PLANNER-011-AC-03 — `PlannedOccurrenceRepository` gains the stale-bucket-item derived query
+- [x] PLANNER-011-AC-04 — a stale bucket item with a `CompletionRecord` is excluded from migration
+- [x] PLANNER-011-AC-05 — migration is scoped to the authenticated owner only
+- [x] PLANNER-011-AC-06 — a stale item jumps to the real current week in one step, any number of weeks stale
+- [x] PLANNER-011-AC-07 — migration resets `bucketPosition` to `null` (`planner_spec_010` field)
+- [x] PLANNER-011-AC-08 — migration is its own read-write `@Transactional` method, durably persisted before `getWeek()`'s read-only query runs
+- [x] PLANNER-011-AC-09 — `PlanController.getWeek()` calls migration unconditionally, before `getWeek()`, on every request
+- [x] PLANNER-011-AC-10 — a migrated item is absent from a non-current-week response
+- [x] PLANNER-011-AC-11 — a migrated item is present in the current-week response, same request
+- [x] PLANNER-011-AC-12 — grid-scheduled occurrences are never migrated
+- [x] PLANNER-011-AC-13 — `PlannedOccurrenceResponse` declares `recentlyCarriedForward: boolean`
+- [x] PLANNER-011-AC-14 — `recentlyCarriedForward: true` set only for that request's migrated occurrences
+- [x] PLANNER-011-AC-15 — every other response path always sets `recentlyCarriedForward: false`
+- [x] PLANNER-011-AC-16 — the existing manual carry-forward endpoint/behaviour is unchanged (regression)

@@ -16,6 +16,7 @@ const gridOccurrence: PlannedOccurrence = {
   dayOfWeek: 'MONDAY',
   slot: 'MORNING',
   bucketPosition: null,
+  recentlyCarriedForward: false,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -33,6 +34,7 @@ const subTaskOccurrence: PlannedOccurrence = {
   dayOfWeek: 'TUESDAY',
   slot: 'AFTERNOON',
   bucketPosition: null,
+  recentlyCarriedForward: false,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -50,6 +52,7 @@ const bucketOccurrence: PlannedOccurrence = {
   dayOfWeek: null,
   slot: null,
   bucketPosition: 0,
+  recentlyCarriedForward: false,
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
@@ -379,5 +382,32 @@ describe('FRONTEND-010-AC-16: grid items never render a drag handle or Move up/d
     expect(document.querySelector('[draggable="true"]')).toBeNull()
     expect(screen.queryByRole('button', { name: /move .* up/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /move .* down/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-011-AC-02/AC-03: the "moved from last week" label only renders when flagged', () => {
+  it('renders the label when recentlyCarriedForward is true, and omits it otherwise', () => {
+    const { rerender } = render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, recentlyCarriedForward: true } })}
+      />,
+    )
+    expect(screen.getByText(/moved from last week/i)).toBeInTheDocument()
+
+    rerender(<OccurrenceItem {...baseProps()} />)
+    expect(screen.queryByText(/moved from last week/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-011-AC-04: the label never uses fault/lateness wording', () => {
+  it('does not render "overdue", "missed", or "late" anywhere on a carried-forward item', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, recentlyCarriedForward: true } })}
+      />,
+    )
+    expect(screen.queryByText(/overdue/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/missed/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/\blate\b/i)).not.toBeInTheDocument()
   })
 })

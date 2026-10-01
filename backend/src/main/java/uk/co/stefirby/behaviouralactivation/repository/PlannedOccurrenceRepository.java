@@ -18,4 +18,10 @@ public interface PlannedOccurrenceRepository extends JpaRepository<PlannedOccurr
 
     List<PlannedOccurrence> findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc(
         User owner, LocalDate weekStart);
+
+    // planner_spec_011_bucket_carry_forward_automation.md's stale-bucket-item detection -- bucket
+    // items only (dayOfWeek/slot both null, PLANNER-011-AC-03); grid-scheduled occurrences are never
+    // selected by this query, regardless of how old their weekStart is (PLANNER-011-AC-12).
+    List<PlannedOccurrence> findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(
+        User owner, LocalDate weekStart);
 }

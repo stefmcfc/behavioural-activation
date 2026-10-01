@@ -1,8 +1,10 @@
 package uk.co.stefirby.behaviouralactivation.service;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -61,15 +63,54 @@ public class PlanService {
     private final ActivityRepository activityRepository;
     private final SubTaskRepository subTaskRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     public PlanService(PlannedOccurrenceRepository plannedOccurrenceRepository,
             CompletionRecordRepository completionRecordRepository, ActivityRepository activityRepository,
-            SubTaskRepository subTaskRepository, UserRepository userRepository) {
+            SubTaskRepository subTaskRepository, UserRepository userRepository, Clock clock) {
         this.plannedOccurrenceRepository = plannedOccurrenceRepository;
         this.completionRecordRepository = completionRecordRepository;
         this.activityRepository = activityRepository;
         this.subTaskRepository = subTaskRepository;
         this.userRepository = userRepository;
+        this.clock = clock;
+    }
+
+    // Runs as its own, ordinary read-write transaction -- must be called separately from getWeek()
+    // (still @Transactional(readOnly = true), unchanged) by PlanController, never as a self-invocation
+    // from inside getWeek() itself. A self-invocation would bypass PlanService's Spring-managed proxy
+    // and silently inherit getWeek()'s own readOnly transaction, so the weekStart mutation below would
+    // never be flushed -- see planner_spec_011_bucket_carry_forward_automation.md's Requirement 4
+    // implementation note (PLANNER-011-AC-08/AC-09).
+    @Transactional
+    public Set<UUID> migrateStaleBucketItems(String ownerUsername) {
+        User owner = resolveOwner(ownerUsername);
+        LocalDate currentWeekMonday = LocalDate.now(clock).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        List<PlannedOccurrence> staleBucketItems = plannedOccurrenceRepository
+            .findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(owner, currentWeekMonday);
+        if (staleBucketItems.isEmpty()) {
+            return Set.of();
+        }
+
+        List<UUID> staleIds = staleBucketItems.stream().map(PlannedOccurrence::getId).toList();
+        Set<UUID> completedIds = completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(owner, staleIds)
+            .stream()
+            .map(record -> record.getPlannedOccurrence().getId())
+            .collect(Collectors.toSet());
+
+        Set<UUID> migratedIds = new HashSet<>();
+        for (PlannedOccurrence occurrence : staleBucketItems) {
+            if (completedIds.contains(occurrence.getId())) {
+                continue; // already complete -- stays at its original weekStart, AC-04
+            }
+            occurrence.autoCarryForwardTo(currentWeekMonday); // single-step jump, AC-06; resets bucketPosition, AC-07
+            migratedIds.add(occurrence.getId());
+        }
+        // No explicit save() call -- occurrence is a managed entity loaded within this transaction;
+        // Hibernate's dirty checking flushes the mutation at commit, matching applyMove()/
+        // applyCarryForward()'s existing style elsewhere in this class.
+        return migratedIds;
     }
 
     @Transactional(readOnly = true)

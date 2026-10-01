@@ -22,6 +22,7 @@ export interface PlannedOccurrence {
   dayOfWeek: PlanDayOfWeek | null
   slot: PlanSlot | null
   bucketPosition: number | null
+  recentlyCarriedForward: boolean
   completed: boolean
   completedAt: string | null
   createdAt: string

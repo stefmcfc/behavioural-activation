@@ -19,6 +19,7 @@ function bucketOccurrence(overrides: Partial<PlannedOccurrence> = {}): PlannedOc
     dayOfWeek: null,
     slot: null,
     bucketPosition: 0,
+    recentlyCarriedForward: false,
     completed: false,
     completedAt: null,
     createdAt: '2026-10-01T00:00:00Z',

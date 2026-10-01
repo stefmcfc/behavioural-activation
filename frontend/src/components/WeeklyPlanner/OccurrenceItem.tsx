@@ -158,6 +158,9 @@ export function OccurrenceItem({
       </button>
       <CategoryChip category={occurrence.category} />
       {isBucketItem && occurrence.subTaskId === null && occurrence.repeatable && <RepeatableIcon />}
+      {occurrence.recentlyCarriedForward && (
+        <span className={styles.carriedForwardLabel}>Moved from last week</span>
+      )}
       {occurrence.completed && <CompletionIcon />}
       {occurrence.completed ? (
         <button

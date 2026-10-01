@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,14 +54,22 @@ public class PlanController {
         this.planService = planService;
     }
 
+    // migrateStaleBucketItems(...) is called first, as a genuinely separate call into PlanService's
+    // Spring-managed proxy -- NOT from inside getWeek() itself -- so it gets its own real read-write
+    // transaction, committed before getWeek()'s unchanged, @Transactional(readOnly = true) query runs
+    // (planner_spec_011_bucket_carry_forward_automation.md, Requirement 4's implementation note,
+    // PLANNER-011-AC-08/AC-09). Called unconditionally, even for a missing/invalid weekStart, since
+    // migration depends only on the owner, not the requested week.
     @GetMapping
     public ResponseEntity<PlannedOccurrenceListResponse> getWeek(
             @RequestParam(required = false) LocalDate weekStart, Authentication authentication) {
+        Set<UUID> migratedIds = planService.migrateStaleBucketItems(authentication.getName());
         List<PlannedOccurrence> occurrences = planService.getWeek(authentication.getName(), weekStart);
         List<UUID> ids = occurrences.stream().map(PlannedOccurrence::getId).toList();
         Map<UUID, CompletionRecord> completions = planService.findCompletions(authentication.getName(), ids);
         List<PlannedOccurrenceResponse> data = occurrences.stream()
-            .map(occurrence -> toResponse(occurrence, completions.get(occurrence.getId())))
+            .map(occurrence -> toResponse(occurrence, completions.get(occurrence.getId()),
+                migratedIds.contains(occurrence.getId())))
             .toList();
         return ResponseEntity.ok(new PlannedOccurrenceListResponse(data, data.size()));
     }
@@ -69,7 +78,7 @@ public class PlanController {
     public ResponseEntity<PlannedOccurrenceResponse> create(@Valid @RequestBody PlannedOccurrenceRequest request,
             Authentication authentication) {
         return planService.create(authentication.getName(), request)
-            .map(occurrence -> ResponseEntity.status(HttpStatus.CREATED).body(toResponse(occurrence, null)))
+            .map(occurrence -> ResponseEntity.status(HttpStatus.CREATED).body(toResponse(occurrence, null, false)))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -79,7 +88,7 @@ public class PlanController {
         return planService.move(authentication.getName(), id, request)
             .map(occurrence -> {
                 CompletionRecord completion = planService.findCompletion(authentication.getName(), id).orElse(null);
-                return ResponseEntity.ok(toResponse(occurrence, completion));
+                return ResponseEntity.ok(toResponse(occurrence, completion, false));
             })
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -93,7 +102,7 @@ public class PlanController {
     @PostMapping("/occurrences/{id}/completion")
     public ResponseEntity<PlannedOccurrenceResponse> complete(@PathVariable UUID id, Authentication authentication) {
         return planService.complete(authentication.getName(), id)
-            .map(completion -> ResponseEntity.ok(toResponse(completion.getPlannedOccurrence(), completion)))
+            .map(completion -> ResponseEntity.ok(toResponse(completion.getPlannedOccurrence(), completion, false)))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -107,7 +116,7 @@ public class PlanController {
     public ResponseEntity<PlannedOccurrenceResponse> carryForward(@PathVariable UUID id,
             Authentication authentication) {
         return planService.carryForward(authentication.getName(), id)
-            .map(occurrence -> ResponseEntity.ok(toResponse(occurrence, null)))
+            .map(occurrence -> ResponseEntity.ok(toResponse(occurrence, null, false)))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -119,14 +128,19 @@ public class PlanController {
                 List<UUID> ids = occurrences.stream().map(PlannedOccurrence::getId).toList();
                 Map<UUID, CompletionRecord> completions = planService.findCompletions(authentication.getName(), ids);
                 List<PlannedOccurrenceResponse> data = occurrences.stream()
-                    .map(occurrence -> toResponse(occurrence, completions.get(occurrence.getId())))
+                    .map(occurrence -> toResponse(occurrence, completions.get(occurrence.getId()), false))
                     .toList();
                 return ResponseEntity.ok(new PlannedOccurrenceListResponse(data, data.size()));
             })
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    private static PlannedOccurrenceResponse toResponse(PlannedOccurrence occurrence, CompletionRecord completion) {
+    // recentlyCarriedForward is set true only by getWeek()'s own call site above, for exactly the
+    // occurrences that same request's migrateStaleBucketItems(...) call just relocated -- every other
+    // call site in this class passes false (planner_spec_011_bucket_carry_forward_automation.md,
+    // PLANNER-011-AC-14/AC-15).
+    private static PlannedOccurrenceResponse toResponse(PlannedOccurrence occurrence, CompletionRecord completion,
+            boolean recentlyCarriedForward) {
         boolean isActivity = occurrence.getActivity() != null;
         UUID activityId = isActivity ? occurrence.getActivity().getId() : null;
         UUID subTaskId = isActivity ? null : occurrence.getSubTask().getId();
@@ -140,6 +154,6 @@ public class PlanController {
         return new PlannedOccurrenceResponse(occurrence.getId(), activityId, subTaskId, name, parentActivityName,
             occurrence.getCategory(), occurrence.getWeekStart(), occurrence.getDayOfWeek(),
             occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt(), repeatable,
-            occurrence.getBucketPosition());
+            occurrence.getBucketPosition(), recentlyCarriedForward);
     }
 }
