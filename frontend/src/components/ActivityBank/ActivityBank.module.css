@@ -49,6 +49,12 @@
   margin-left: auto;
 }
 
+.toolbarDivider {
+  align-self: stretch;
+  width: 1px;
+  background: var(--border);
+}
+
 .filterFieldset {
   border: none;
   padding: 0;

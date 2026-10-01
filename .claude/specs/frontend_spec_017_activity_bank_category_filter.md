@@ -17,6 +17,13 @@ together via `findByOwnerOrderByNameAsc`, never archived-only). Fixed by removin
 archived-only predicate — the category filter now simply narrows whatever the "Show archived" toggle
 already fetched, additive as everywhere else in the app. AC-03's Statement and test sketch below
 reflect the corrected behavior; the implementation and its test were updated to match.
+
+**Post-implementation layout tweak (2026-10-01)**: per user feedback on the same PR, the category
+filter now renders before "Show archived" (not after), a hairline vertical divider separates the two
+filter groups, and "Show archived" is now wrapped in its own `<fieldset>`+`<legend>Filter by
+status</legend>` to match the category filter's labeled-group treatment, rather than sitting
+unlabeled. No AC changes needed — none of the 4 ACs specify ordering or a label above "Show
+archived". Verified in a real browser (light theme) post-change; all 247 tests still green.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_002_activity_bank.md` (`ActivityBank`'s list + "Show archived" toggle),
 `frontend_spec_006_repeatable_activities.md` (the "Show archived" segmented-pill precedent this

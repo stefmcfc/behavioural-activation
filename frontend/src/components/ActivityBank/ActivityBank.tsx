@@ -185,36 +185,43 @@ export function ActivityBank() {
       <h2>Activity Bank</h2>
 
       <div className={styles.toolbar}>
-        <label className={styles.archivedToggle}>
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(event) => setShowArchived(event.target.checked)}
-          />{' '}
-          Show archived
-        </label>
-
         {activities !== null && activities.length > 0 && (
-          <fieldset className={styles.filterFieldset}>
-            <legend>Filter by category</legend>
-            <ul className={styles.filterGroup} role="presentation">
-              {CATEGORY_FILTER_OPTIONS.map((option) => (
-                <li key={option.value}>
-                  <label>
-                    <input
-                      type="radio"
-                      name="activity-bank-category-filter"
-                      value={option.value}
-                      checked={categoryFilter === option.value}
-                      onChange={() => setCategoryFilter(option.value)}
-                    />
-                    {option.label}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </fieldset>
+          <>
+            <fieldset className={styles.filterFieldset}>
+              <legend>Filter by category</legend>
+              <ul className={styles.filterGroup} role="presentation">
+                {CATEGORY_FILTER_OPTIONS.map((option) => (
+                  <li key={option.value}>
+                    <label>
+                      <input
+                        type="radio"
+                        name="activity-bank-category-filter"
+                        value={option.value}
+                        checked={categoryFilter === option.value}
+                        onChange={() => setCategoryFilter(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </fieldset>
+
+            <div className={styles.toolbarDivider} aria-hidden="true" />
+          </>
         )}
+
+        <fieldset className={styles.filterFieldset}>
+          <legend>Filter by status</legend>
+          <label className={styles.archivedToggle}>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(event) => setShowArchived(event.target.checked)}
+            />{' '}
+            Show archived
+          </label>
+        </fieldset>
 
         <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
           Add activity
