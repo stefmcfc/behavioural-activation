@@ -43,6 +43,7 @@ export function ActivityBank() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [unarchivingId, setUnarchivingId] = useState<string | null>(null)
   const [unarchiveError, setUnarchiveError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const fetchActivities = (includeArchived: boolean, onCancelled: () => boolean = () => false) => {
     setLoadError(null)
@@ -100,6 +101,9 @@ export function ActivityBank() {
       }
       return [...previous, activity]
     })
+    if (formTarget !== 'create' && formTarget !== null && activity.id === expandedActivityId) {
+      setRefreshKey((count) => count + 1)
+    }
     setFormTarget(null)
   }
 
@@ -270,6 +274,7 @@ export function ActivityBank() {
               {expandedActivityId === activity.id && (
                 <div className={styles.details}>
                   <SubTaskList
+                    key={`${activity.id}-${refreshKey}`}
                     activityId={activity.id}
                     readOnly={activity.archived}
                   />

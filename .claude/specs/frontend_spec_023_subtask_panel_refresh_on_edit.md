@@ -1,6 +1,17 @@
 # Refresh an Open Sub-task Panel After Editing Its Activity (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — all 3 ACs green. `ActivityBank` gained a `refreshKey` state,
+bumped in `handleFormSuccess` only when the saved activity is an edit (`formTarget !== 'create' &&
+formTarget !== null`) matching the currently-expanded activity (`activity.id ===
+expandedActivityId`); `<SubTaskList key={`${activity.id}-${refreshKey}`}>` forces a remount (and
+therefore a fresh fetch) exactly when needed. Two of the spec's own test sketches needed a fix
+during implementation: `getByRole('radio', { name: /^necessary$/i })` / `/^pleasurable$/i` collided
+with the "Filter by category" toolbar's own radio pills (also rendered once the activity list is
+non-empty) — scoped both to `within(screen.getByRole('dialog'))` to disambiguate. Full suite: 271
+Vitest tests, 0 regressions; `oxlint`/`tsc -b --noEmit` clean. Full real-browser pass (light + dark)
+against the live "Test category change" activity confirmed the exact originally-observed scenario is
+now fixed: editing an activity's category while its sub-task panel is already open updates the
+panel's chips immediately, with no manual collapse/re-expand needed.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_003_sub_tasks.md` (`SubTaskList`'s fetch-on-mount behavior,
 `ActivityBank`'s expand/collapse control), `frontend_spec_013_add_activity_modal.md` (`ActivityForm`
@@ -165,6 +176,6 @@ expandedActivityId` check from `FRONTEND-023-AC-01`.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-023-AC-01 [AUTO]: Editing the currently-expanded activity refetches its sub-tasks
-- [ ] FRONTEND-023-AC-02 [AUTO]: Editing a different, non-expanded activity does not refetch the open panel
-- [ ] FRONTEND-023-AC-03 [AUTO]: Creating a new activity does not refetch the open panel
+- [x] FRONTEND-023-AC-01 [AUTO]: Editing the currently-expanded activity refetches its sub-tasks
+- [x] FRONTEND-023-AC-02 [AUTO]: Editing a different, non-expanded activity does not refetch the open panel
+- [x] FRONTEND-023-AC-03 [AUTO]: Creating a new activity does not refetch the open panel
