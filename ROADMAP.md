@@ -64,6 +64,7 @@ header restructure and button-hierarchy candidates).
 | Automatic carry-forward for incomplete bucket items (Weekly Planner UX batch, 3b of 4) | [`planner_spec_011_bucket_carry_forward_automation.md`](.claude/specs/planner_spec_011_bucket_carry_forward_automation.md) | [`frontend_spec_011_bucket_carry_forward_automation.md`](.claude/specs/frontend_spec_011_bucket_carry_forward_automation.md) | Not started. Introduces this backend's first injectable `Clock` bean. |
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
+| Weekly Planner header/spacing polish (bug fix) | — (frontend-only) | [`frontend_spec_024_weekly_planner_header_polish.md`](.claude/specs/frontend_spec_024_weekly_planner_header_polish.md) | Not started. Locale-aware "Week Commencing" date, chevron nav buttons, grid/bucket-list spacing. |
 
 ## Internal / maintenance specs
 
