@@ -15,6 +15,7 @@ const walk: Activity = {
   repeatable: true,
   archived: false,
   createdAt: '2026-09-28T00:00:00Z',
+  subTaskCount: 0,
 }
 
 describe('ActivityForm', () => {

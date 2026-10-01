@@ -6,6 +6,19 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-01
+
+### Added
+
+- The Activity Bank's "Show sub-tasks" button now shows the sub-task count directly in its label
+  ("Show sub-tasks (3)"), or reads "Add sub-tasks" when there are none yet.
+
+### Changed
+
+- Removed the "Sub-tasks — {Category}" heading from the expanded sub-task panel; "Add sub-task" is
+  now right-aligned at the top of the panel, and sits on the same row as "No sub-tasks yet." when
+  an activity has none.
+
 ## [0.13.0] - 2026-10-01
 
 ### Added

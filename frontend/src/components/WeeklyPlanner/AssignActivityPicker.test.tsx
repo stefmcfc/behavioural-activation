@@ -19,6 +19,7 @@ const walk: Activity = {
   repeatable: true,
   archived: false,
   createdAt: '2026-09-01T00:00:00Z',
+  subTaskCount: 0,
 }
 
 const party: Activity = {
@@ -29,6 +30,7 @@ const party: Activity = {
   repeatable: true,
   archived: false,
   createdAt: '2026-09-01T00:00:00Z',
+  subTaskCount: 0,
 }
 
 const jobs: Activity = {
@@ -39,6 +41,7 @@ const jobs: Activity = {
   repeatable: false,
   archived: false,
   createdAt: '2026-09-01T00:00:00Z',
+  subTaskCount: 0,
 }
 
 const sendInvitations: SubTask = {

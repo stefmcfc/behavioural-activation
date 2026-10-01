@@ -173,6 +173,7 @@ describe('WeeklyPlanner', () => {
           repeatable: true,
           archived: false,
           createdAt: '2026-09-01T00:00:00Z',
+          subTaskCount: 0,
         },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
@@ -201,6 +202,7 @@ describe('WeeklyPlanner', () => {
           repeatable: true,
           archived: false,
           createdAt: '2026-09-01T00:00:00Z',
+          subTaskCount: 0,
         },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([
@@ -425,6 +427,7 @@ describe('WeeklyPlanner', () => {
           repeatable: true,
           archived: false,
           createdAt: '2026-09-01T00:00:00Z',
+          subTaskCount: 0,
         },
       ])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])

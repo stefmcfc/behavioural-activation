@@ -122,7 +122,12 @@ export function ActivityBank() {
   const renderRowActions = (activity: Activity) => {
     const toggleSubTasks = () =>
       setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
-    const subTasksLabel = expandedActivityId === activity.id ? 'Hide sub-tasks' : 'Show sub-tasks'
+    const subTasksLabel =
+      expandedActivityId === activity.id
+        ? 'Hide sub-tasks'
+        : activity.subTaskCount === 0
+          ? 'Add sub-tasks'
+          : `Show sub-tasks (${activity.subTaskCount})`
 
     if (activity.archived) {
       return (
@@ -266,7 +271,6 @@ export function ActivityBank() {
                 <div className={styles.details}>
                   <SubTaskList
                     activityId={activity.id}
-                    category={activity.category}
                     readOnly={activity.archived}
                   />
                 </div>

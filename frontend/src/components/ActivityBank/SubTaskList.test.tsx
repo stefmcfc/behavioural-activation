@@ -28,7 +28,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-003-AC-03: fetches the checklist on mount', () => {
     it('calls subTaskApi.getAll with the activity id', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await waitFor(() => expect(subTaskApi.getAll).toHaveBeenCalledWith('a1'))
     })
@@ -37,20 +37,19 @@ describe('SubTaskList', () => {
   describe('FRONTEND-005-AC-18: per-sub-task category is a CategoryChip, not plain "— Category" text', () => {
     it('renders a CategoryChip, not raw "— Pleasurable" text, for each sub-task row', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
       const list = within(screen.getByRole('list'))
       expect(list.getByTestId('category-chip-PLEASURABLE')).toBeInTheDocument()
       expect(list.queryByText(/— pleasurable/i)).not.toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: /sub-tasks — pleasurable/i })).toBeInTheDocument()
     })
   })
 
   describe('FRONTEND-007-AC-21/AC-22: sub-task rows use the nested hairline treatment', () => {
     it('applies the row and nested classes to each sub-task li', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       const row = (await screen.findByText('Create a guest list')).closest('li')
       expect(row).toHaveClass(styles.row)
@@ -66,7 +65,7 @@ describe('SubTaskList', () => {
           resolveGetAll = resolve
         }),
       )
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       expect(screen.getByRole('status')).toBeInTheDocument()
 
@@ -78,7 +77,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-014-AC-01/AC-02/AC-03: Add sub-task opens a modal, not an inline top-of-list form', () => {
     it('renders no form until Add sub-task is clicked, then opens it in a dialog', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await screen.findByText(/no sub-tasks yet/i)
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -91,10 +90,31 @@ describe('SubTaskList', () => {
     })
   })
 
+  describe('FRONTEND-018-AC-04: no "Sub-tasks — {Category}" heading', () => {
+    it('renders no heading', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" />)
+
+      await screen.findByText('Create a guest list')
+      expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-018-AC-06: "No sub-tasks yet." and "Add sub-task" share the same row', () => {
+    it('renders the empty message and the Add sub-task button in the same container', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" />)
+
+      const emptyMessage = await screen.findByText(/no sub-tasks yet/i)
+      const addButton = screen.getByRole('button', { name: /add sub-task/i })
+      expect(emptyMessage.parentElement).toBe(addButton.parentElement)
+    })
+  })
+
   describe('FRONTEND-014-AC-08: create-mode submit button is "Save sub-task", not "Add sub-task"', () => {
     it("does not collide with the page-level trigger's own label", async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
       await screen.findByRole('dialog')
@@ -107,7 +127,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-014-AC-09/AC-10: Cancel in create mode closes with no create call', () => {
     it('calls no create and closes the modal', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
       await screen.findByRole('dialog')
@@ -122,7 +142,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-014-AC-12: a second Add/Rename while open retargets, never a second dialog', () => {
     it('switches from create to rename without stacking a dialog', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(screen.getByRole('button', { name: /add sub-task/i }))
       await screen.findByRole('dialog', { name: /add sub-task/i })
@@ -138,7 +158,7 @@ describe('SubTaskList', () => {
     it('shows the new sub-task and closes the dialog', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       vi.mocked(subTaskApi.create).mockResolvedValue({ ...guestList })
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /add sub-task/i }))
       await userEvent.type(screen.getByLabelText(/sub-task name/i), 'Create a guest list')
@@ -152,7 +172,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-003-AC-09: rename is activated and prefills the field', () => {
     it('shows the rename form with the current name', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /rename/i }))
 
@@ -169,7 +189,7 @@ describe('SubTaskList', () => {
         ...guestList,
         name: 'Create and send a guest list',
       })
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /rename/i }))
       await userEvent.clear(screen.getByLabelText(/sub-task name/i))
@@ -186,7 +206,7 @@ describe('SubTaskList', () => {
     it('cancelling the inline confirm does not call subTaskApi.remove', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm')
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
       await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
@@ -201,7 +221,7 @@ describe('SubTaskList', () => {
     it('calls subTaskApi.remove and removes the row on success', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
       vi.mocked(subTaskApi.remove).mockResolvedValue(undefined)
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
       await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
@@ -214,7 +234,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-003-AC-17: empty checklist shows an explanatory message', () => {
     it('renders an empty-state message, not a blank checklist', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       expect(await screen.findByText(/no sub-tasks yet/i)).toBeInTheDocument()
     })
@@ -225,7 +245,7 @@ describe('SubTaskList', () => {
       vi.mocked(subTaskApi.getAll)
         .mockRejectedValueOnce(new ApiError(500, 'Something went wrong. Please try again.'))
         .mockResolvedValueOnce([])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       expect(await screen.findByRole('alert')).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: /retry/i }))
@@ -239,7 +259,7 @@ describe('SubTaskList', () => {
     it('displays the error and leaves the row in place', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
       vi.mocked(subTaskApi.remove).mockRejectedValue({ status: 500, message: 'Server error' })
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
       await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
@@ -252,7 +272,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-003-AC-22: category is shown read-only, never inside a picker', () => {
     it('renders the category label but no CategoryPicker in the add form', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" />)
+      render(<SubTaskList activityId="a1" />)
 
       expect(await screen.findByText(/pleasurable/i)).toBeInTheDocument()
       expect(screen.queryByRole('radio')).not.toBeInTheDocument()
@@ -262,7 +282,7 @@ describe('SubTaskList', () => {
   describe('FRONTEND-006-AC-15: readOnly hides the create form and per-row Rename/Delete actions', () => {
     it('renders sub-tasks with no create form, Rename, or Delete controls', async () => {
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
-      render(<SubTaskList activityId="a1" category="PLEASURABLE" readOnly />)
+      render(<SubTaskList activityId="a1" readOnly />)
 
       expect(await screen.findByText('Create a guest list')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /add sub-task/i })).not.toBeInTheDocument()

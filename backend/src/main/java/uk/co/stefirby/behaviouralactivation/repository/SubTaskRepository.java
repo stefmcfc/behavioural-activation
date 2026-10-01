@@ -17,4 +17,8 @@ public interface SubTaskRepository extends JpaRepository<SubTask, UUID> {
     // carries only a subTaskId (no activityId), so PlanService needs to resolve+own-check a
     // SubTask by id alone, unlike SubTaskService's activity-scoped lookups above.
     Optional<SubTask> findByIdAndOwner(UUID id, User owner);
+
+    // Added for planner_spec_012_subtask_count.md -- ActivityResponse.subTaskCount, owner-scoped
+    // like every other query here (PLANNER-012-AC-02).
+    long countByActivityIdAndOwner(UUID activityId, User owner);
 }

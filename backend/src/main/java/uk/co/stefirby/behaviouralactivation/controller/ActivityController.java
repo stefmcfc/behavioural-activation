@@ -40,7 +40,8 @@ public class ActivityController {
     public ResponseEntity<ActivityResponse> create(@Valid @RequestBody ActivityRequest request,
             Authentication authentication) {
         Activity created = activityService.create(authentication.getName(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
+        // A freshly created activity can't have any sub-tasks yet (PLANNER-012-AC-01).
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created, 0));
     }
 
     @GetMapping
@@ -49,7 +50,7 @@ public class ActivityController {
             Authentication authentication) {
         List<ActivityResponse> data = activityService
             .listForOwner(authentication.getName(), includeArchived).stream()
-            .map(ActivityController::toResponse)
+            .map(pair -> toResponse(pair.activity(), pair.subTaskCount()))
             .toList();
         return ResponseEntity.ok(new ActivityListResponse(data, data.size()));
     }
@@ -58,7 +59,8 @@ public class ActivityController {
     public ResponseEntity<ActivityResponse> update(@PathVariable UUID id, @Valid @RequestBody ActivityRequest request,
             Authentication authentication) {
         return activityService.update(authentication.getName(), id, request)
-            .map(activity -> ResponseEntity.ok(toResponse(activity)))
+            .map(activity -> ResponseEntity.ok(
+                toResponse(activity, activityService.countSubTasks(authentication.getName(), id))))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -71,7 +73,8 @@ public class ActivityController {
     @PostMapping("/{id}/archive")
     public ResponseEntity<ActivityResponse> archive(@PathVariable UUID id, Authentication authentication) {
         return activityService.archive(authentication.getName(), id)
-            .map(activity -> ResponseEntity.ok(toResponse(activity)))
+            .map(activity -> ResponseEntity.ok(
+                toResponse(activity, activityService.countSubTasks(authentication.getName(), id))))
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -81,8 +84,9 @@ public class ActivityController {
         return unarchived ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
-    private static ActivityResponse toResponse(Activity activity) {
+    private static ActivityResponse toResponse(Activity activity, long subTaskCount) {
         return new ActivityResponse(activity.getId(), activity.getName(), activity.getCategory(),
-            activity.getDescription(), activity.isRepeatable(), activity.isArchived(), activity.getCreatedAt());
+            activity.getDescription(), activity.isRepeatable(), activity.isArchived(), activity.getCreatedAt(),
+            (int) subTaskCount);
     }
 }
