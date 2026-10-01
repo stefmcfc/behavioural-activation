@@ -1,6 +1,12 @@
 # Repeatable Icon in the Add/Edit Activity Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — `RepeatableIcon` extracted to its own shared component
+(`frontend/src/components/RepeatableIcon/RepeatableIcon.tsx`, mirroring `CategoryChip`'s
+directory structure) and reused here; `ActivityForm.tsx` renders it live inside the "Repeatable"
+label, gated on the `repeatable` local state. All 4 ACs covered by tests in
+`ActivityForm.test.tsx` (`npm test`, `npm run lint`, `tsc -b --noEmit` all clean). Full real-browser
+pass (light + dark) confirmed the icon appears/disappears live as "Repeatable" is toggled in the
+Edit activity modal, with correct contrast in both themes.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_019_repeatable_activity_icon.md` (origin of `RepeatableIcon`, which
 this spec reuses as-is — no new icon), `frontend_spec_013_add_activity_modal.md` (`ActivityForm`'s
@@ -156,7 +162,7 @@ the icon's render guard reads the same initial state the checkbox does.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-020-AC-01 [AUTO]: Icon renders inside the label when the checkbox is checked
-- [ ] FRONTEND-020-AC-02 [AUTO]: Icon disappears when the checkbox is unchecked
-- [ ] FRONTEND-020-AC-03 [AUTO]: Icon reacts live to toggling in one interaction
-- [ ] FRONTEND-020-AC-04 [AUTO]: Edit mode prefills the icon correctly on initial render
+- [x] FRONTEND-020-AC-01 [AUTO]: Icon renders inside the label when the checkbox is checked
+- [x] FRONTEND-020-AC-02 [AUTO]: Icon disappears when the checkbox is unchecked
+- [x] FRONTEND-020-AC-03 [AUTO]: Icon reacts live to toggling in one interaction
+- [x] FRONTEND-020-AC-04 [AUTO]: Edit mode prefills the icon correctly on initial render

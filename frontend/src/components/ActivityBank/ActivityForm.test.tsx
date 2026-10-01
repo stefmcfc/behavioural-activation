@@ -47,7 +47,7 @@ describe('ActivityForm', () => {
       vi.mocked(activityApi.create).mockResolvedValue({ ...walk })
       render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
 
-      expect(screen.getByLabelText(/repeatable/i)).toBeChecked()
+      expect(screen.getByLabelText(/repeatable/i, { selector: 'input' })).toBeChecked()
 
       await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
       await userEvent.click(screen.getByLabelText(/routine/i))
@@ -63,7 +63,7 @@ describe('ActivityForm', () => {
     it('unchecks when the activity is not repeatable', () => {
       render(<ActivityForm mode="edit" activity={{ ...walk, repeatable: false }} onSuccess={vi.fn()} />)
 
-      expect(screen.getByLabelText(/repeatable/i)).not.toBeChecked()
+      expect(screen.getByLabelText(/repeatable/i, { selector: 'input' })).not.toBeChecked()
     })
   })
 
@@ -72,13 +72,53 @@ describe('ActivityForm', () => {
       vi.mocked(activityApi.update).mockResolvedValue({ ...walk, repeatable: false })
       render(<ActivityForm mode="edit" activity={walk} onSuccess={vi.fn()} />)
 
-      await userEvent.click(screen.getByLabelText(/repeatable/i))
+      await userEvent.click(screen.getByLabelText(/repeatable/i, { selector: 'input' }))
       await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
       expect(activityApi.update).toHaveBeenCalledWith(
         '1',
         expect.objectContaining({ repeatable: false }),
       )
+    })
+  })
+
+  describe('FRONTEND-020-AC-01: shows the repeatable icon when the checkbox is checked', () => {
+    it('renders the repeatable icon by default on create (repeatable defaults to true)', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+
+      expect(screen.getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-020-AC-02: hides the repeatable icon when the checkbox is unchecked', () => {
+    it('removes the icon after unchecking the checkbox', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+
+      await userEvent.click(screen.getByLabelText(/repeatable/i, { selector: 'input' }))
+
+      expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-020-AC-03: toggling the checkbox live-updates the icon in one interaction', () => {
+    it('shows, hides, then shows the icon again across two toggles', async () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+
+      expect(screen.getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByLabelText(/repeatable/i, { selector: 'input' }))
+      expect(screen.queryByRole('img', { name: /repeatable/i })).not.toBeInTheDocument()
+
+      await userEvent.click(screen.getByLabelText(/repeatable/i, { selector: 'input' }))
+      expect(screen.getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-020-AC-04: shows the icon on initial render in edit mode for a repeatable activity', () => {
+    it('renders the icon before any user interaction when editing a repeatable activity', () => {
+      render(<ActivityForm mode="edit" activity={{ ...walk, repeatable: true }} onSuccess={vi.fn()} />)
+
+      expect(screen.getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
     })
   })
 

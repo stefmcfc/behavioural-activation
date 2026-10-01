@@ -16,6 +16,10 @@ import uk.co.stefirby.behaviouralactivation.model.PlanSlot;
 // `completed`/`completedAt` reflect the occurrence's CompletionRecord, if any (PLANNER-004-AC-27)
 // -- `completed` is true and `completedAt` non-null once POST .../completion has been called,
 // reset to false/null by DELETE .../completion (undo).
+//
+// `repeatable` is likewise resolved live, from the underlying Activity -- a SubTask has no
+// independent repeatable value of its own, so a sub-task-sourced occurrence resolves it from its
+// parent Activity, same indirection as `parentActivityName` (PLANNER-013-AC-01/AC-02).
 public record PlannedOccurrenceResponse(
     UUID id,
     UUID activityId,
@@ -28,6 +32,7 @@ public record PlannedOccurrenceResponse(
     PlanSlot slot,
     boolean completed,
     Instant completedAt,
-    Instant createdAt
+    Instant createdAt,
+    boolean repeatable
 ) {
 }

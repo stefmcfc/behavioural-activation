@@ -7,6 +7,7 @@ import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/pla
 import { planApi } from '../../services/planApi'
 import type { SubTask } from '../../types/subTask'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './AssignActivityPicker.module.css'
 
@@ -208,6 +209,7 @@ export function AssignActivityPicker({
                     {activity.name}
                   </button>
                   <CategoryChip category={activity.category} />
+                  {activity.repeatable && <RepeatableIcon />}
                 </div>
 
                 {subTasks.length > 0 && (

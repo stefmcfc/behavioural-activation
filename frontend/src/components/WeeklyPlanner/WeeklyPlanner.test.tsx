@@ -26,6 +26,7 @@ const walk: PlannedOccurrence = {
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
+  repeatable: true,
 }
 
 const bucketItem: PlannedOccurrence = {
@@ -41,6 +42,7 @@ const bucketItem: PlannedOccurrence = {
   completed: false,
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
+  repeatable: true,
 }
 
 describe('WeeklyPlanner', () => {
