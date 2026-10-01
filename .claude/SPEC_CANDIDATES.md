@@ -14,7 +14,11 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-09-30 (Weekday/Weekend grid tabs + "Today" view candidate now fully specced and
+Last updated: 2026-10-01 (Activity Bank UX improvements batch fully resolved: category filter and
+plain sub-task count specced directly to `ROADMAP.md` — `frontend_spec_017`,
+`planner_spec_012`/`frontend_spec_018` — and the "2/3 done" progress variant added here as a new
+candidate, blocked on a product decision about what "done" means for a sub-task; see that entry.
+Earlier note: 2026-09-30, Weekday/Weekend grid tabs + "Today" view candidate now fully specced and
 moved to `ROADMAP.md`'s "Specced, coming soon" — split into two specs per the design pass:
 `frontend_spec_015_weekday_weekend_grid_tabs.md` (the bug fix, must land first) and
 `frontend_spec_016_today_view.md` (the new top-level "Today" tab, depends on 015).
@@ -29,6 +33,29 @@ soon". The weekly grid orientation toggle candidate is now also written up
 ---
 
 ## Candidates
+
+## Sub-task completion progress indicator (e.g. "2/3 done")
+
+**Status**: Confirmed worth a candidate, not yet specced — blocked on a product decision. Split off
+2026-10-01 from the "Activity Bank UX improvements" batch's sub-task count idea
+(`.claude/ideas/future_ideas.md`), which shipped as a plain count instead
+(`planner_spec_012_subtask_count.md`/`frontend_spec_018_subtask_count_badge.md`). This was
+originally Claude's own suggestion, not yet confirmed by the user at the time; the user has now
+confirmed it's worth tracking as a real candidate, but explicitly deferred building it.
+
+Blocker: there is no existing concept of a sub-task being "done". Completion today only exists as a
+`CompletionRecord` wrapping a `PlannedOccurrence`, which is scoped per calendar week — a sub-task can
+have many occurrences across many weeks, each independently completable. Before this can be spec'd,
+someone needs to pick what "N of M done" actually means for a given activity, e.g.:
+- done *this week* only (ties the count to whatever week is currently being viewed/planned)
+- done *at least once, ever* (a lifetime completion flag, needs a new aggregation or a denormalized
+  field)
+- most recent occurrence per sub-task, whatever its completion state
+
+Whichever is chosen needs real backend aggregation work across `CompletionRecord`/
+`PlannedOccurrence` joined by `sub_task_id` — not a client-side computation over already-fetched
+data. Revisit once there's a concrete answer to the "done" question above, ideally prompted by this
+mattering in actual day-to-day use rather than decided speculatively now.
 
 ## Header restructure: Settings + Account/Profile icons, tabs demoted to a second row
 

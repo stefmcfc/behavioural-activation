@@ -114,21 +114,17 @@ analysis, activity effectiveness scoring, social/connection activity tracking.
 
 ## Activity Bank UX improvements (batch, 2026-09-29)
 
-**Status**: Partially delivered. Raised by the user right after shipping spec pair 6
-(repeatable/archived activities), while it was fresh. The "Add-activity modal with category
-guidance" item below shipped 2026-09-30 as `frontend_spec_013_add_activity_modal.md`, alongside a
-newly-confirmed companion, `frontend_spec_014_add_subtask_modal.md`, for the equivalent sub-task
-create/rename flow (not part of the original 2026-09-29 batch, raised and confirmed 2026-09-30
-alongside speccing this item). See `ROADMAP.md`'s "Delivered" table. The remaining two items below
-are still not specced:
-
-- **Filter by category**: a category filter on the Activity Bank list, alongside the existing "Show
-  archived" toggle.
-- **Sub-task count on the chip**: for an activity with sub-tasks, show a count (e.g. "3") on or
-  near its `CategoryChip` so the sub-task checklist's size is visible without expanding "Show
-  sub-tasks" first. *(Claude's suggestion, not yet confirmed by the user: once counting is in
-  place, showing progress — e.g. "2/3" — rather than just a total would tie more directly into BA's
-  core "am I making progress" framing; worth folding in if this gets spec'd.)*
+**Status**: Fully specced (2026-10-01), nothing left in this file for this batch. Raised by the user
+right after shipping spec pair 6 (repeatable/archived activities), while it was fresh. The
+"Add-activity modal with category guidance" item shipped 2026-09-30 as
+`frontend_spec_013_add_activity_modal.md`, alongside a newly-confirmed companion,
+`frontend_spec_014_add_subtask_modal.md` — see `ROADMAP.md`'s "Delivered" table. The remaining two
+items are now specced and moved to `ROADMAP.md`'s "Specced, coming soon": category filter
+(`frontend_spec_017_activity_bank_category_filter.md`) and a plain sub-task count badge
+(`planner_spec_012_subtask_count.md` + `frontend_spec_018_subtask_count_badge.md`, count only — the
+"2/3 done" progress variant was confirmed worth tracking but not building yet, and now lives in
+`.claude/SPEC_CANDIDATES.md` instead, since it's blocked on a real product decision about what
+"done" means for a sub-task).
 
 ## Weekly grid completion/category-balance summary strip
 
