@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-10-01
+
 ### Fixed
 
 - Unmapped backend routes (e.g. hitting the bare API origin or a stray `/favicon.ico`) now return
