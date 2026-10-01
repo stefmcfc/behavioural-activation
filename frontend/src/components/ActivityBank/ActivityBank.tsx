@@ -201,11 +201,10 @@ export function ActivityBank() {
           <>
             <fieldset className={styles.filterFieldset}>
               <legend>Filter by category</legend>
-              <ul
-                className={styles.filterGroup}
-                // NOSONAR(typescript:S6819): deliberate -- the fieldset/legend above already labels
+              <ul // NOSONAR(typescript:S6819): deliberate -- the fieldset/legend above already labels
                 // this as a category filter group, so the <ul>'s own list semantics (announcing "list,
                 // N items") would just be redundant noise for screen reader users.
+                className={styles.filterGroup}
                 role="presentation"
               >
                 {CATEGORY_FILTER_OPTIONS.map((option) => (
