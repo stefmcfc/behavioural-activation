@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { DragEvent } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
@@ -25,6 +26,14 @@ interface OccurrenceItemProps {
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
+  readonly isFirst?: boolean
+  readonly isLast?: boolean
+  readonly reorderDisabled?: boolean
+  readonly onMoveUp?: (id: string) => void
+  readonly onMoveDown?: (id: string) => void
+  readonly onDragStart?: (id: string) => void
+  readonly onDragOverItem?: (event: DragEvent) => void
+  readonly onDropOnItem?: (id: string) => void
 }
 
 function CompletionIcon() {
@@ -49,6 +58,19 @@ function CompletionIcon() {
   )
 }
 
+function GripIcon() {
+  return (
+    <svg className={styles.gripIcon} viewBox="0 0 10 16" width="10" height="16" aria-hidden="true">
+      <circle cx="3" cy="2" r="1.3" fill="currentColor" />
+      <circle cx="7" cy="2" r="1.3" fill="currentColor" />
+      <circle cx="3" cy="8" r="1.3" fill="currentColor" />
+      <circle cx="7" cy="8" r="1.3" fill="currentColor" />
+      <circle cx="3" cy="14" r="1.3" fill="currentColor" />
+      <circle cx="7" cy="14" r="1.3" fill="currentColor" />
+    </svg>
+  )
+}
+
 export function OccurrenceItem({
   occurrence,
   isBucketItem,
@@ -68,6 +90,14 @@ export function OccurrenceItem({
   onComplete,
   onUndo,
   onCarryForward,
+  isFirst,
+  isLast,
+  reorderDisabled,
+  onMoveUp,
+  onMoveDown,
+  onDragStart,
+  onDragOverItem,
+  onDropOnItem,
 }: OccurrenceItemProps) {
   const [moveDay, setMoveDay] = useState<PlanDayOfWeek>(occurrence.dayOfWeek ?? 'MONDAY')
   const [moveSlot, setMoveSlot] = useState<PlanSlot>(occurrence.slot ?? 'MORNING')
@@ -85,7 +115,41 @@ export function OccurrenceItem({
   }
 
   return (
-    <li className={styles.row}>
+    <li
+      className={styles.row}
+      onDragOver={isBucketItem ? onDragOverItem : undefined}
+      onDrop={isBucketItem ? () => onDropOnItem?.(occurrence.id) : undefined}
+    >
+      {isBucketItem && (
+        <span className={styles.reorderControls}>
+          <span
+            className={styles.dragHandle}
+            draggable
+            onDragStart={() => onDragStart?.(occurrence.id)}
+            aria-hidden="true"
+          >
+            <GripIcon />
+          </span>
+          <button
+            type="button"
+            className={styles.moveButton}
+            onClick={() => onMoveUp?.(occurrence.id)}
+            disabled={isFirst || reorderDisabled}
+            aria-label={`Move ${occurrence.name} up`}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className={styles.moveButton}
+            onClick={() => onMoveDown?.(occurrence.id)}
+            disabled={isLast || reorderDisabled}
+            aria-label={`Move ${occurrence.name} down`}
+          >
+            ↓
+          </button>
+        </span>
+      )}
       {occurrence.subTaskId !== null && occurrence.parentActivityName !== null && (
         <span className={styles.parentActivityName}>{occurrence.parentActivityName}</span>
       )}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
@@ -30,6 +31,7 @@ interface BucketListProps {
   readonly detailOpenId: string | null
   readonly confirmingRemoveId: string | null
   readonly movingId: string | null
+  readonly reorderInFlight: boolean
   readonly onAdd: () => void
   readonly onOpenDetail: (id: string) => void
   readonly onCloseDetail: () => void
@@ -42,6 +44,7 @@ interface BucketListProps {
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
+  readonly onReorder: (occurrenceIds: string[]) => void
 }
 
 export function BucketList({
@@ -50,6 +53,7 @@ export function BucketList({
   detailOpenId,
   confirmingRemoveId,
   movingId,
+  reorderInFlight,
   onAdd,
   onOpenDetail,
   onCloseDetail,
@@ -62,11 +66,44 @@ export function BucketList({
   onComplete,
   onUndo,
   onCarryForward,
+  onReorder,
 }: BucketListProps) {
-  const bucketOccurrences = occurrences.filter(
-    (occurrence) => occurrence.dayOfWeek === null && occurrence.slot === null,
-  )
+  const bucketOccurrences = occurrences
+    .filter((occurrence) => occurrence.dayOfWeek === null && occurrence.slot === null)
+    .slice()
+    .sort((a, b) => (a.bucketPosition ?? 0) - (b.bucketPosition ?? 0)) // FRONTEND-010-AC-01
   const zeroCategories = computeZeroCategories(bucketOccurrences)
+  const idsInOrder = bucketOccurrences.map((occurrence) => occurrence.id)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+
+  const handleMoveUp = (id: string) => {
+    const index = idsInOrder.indexOf(id)
+    if (index <= 0) return
+    const next = [...idsInOrder]
+    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+    onReorder(next)
+  }
+
+  const handleMoveDown = (id: string) => {
+    const index = idsInOrder.indexOf(id)
+    if (index === -1 || index >= idsInOrder.length - 1) return
+    const next = [...idsInOrder]
+    ;[next[index + 1], next[index]] = [next[index], next[index + 1]]
+    onReorder(next)
+  }
+
+  const handleDrop = (targetId: string) => {
+    if (!draggedId || draggedId === targetId) return
+    const originalTargetIndex = idsInOrder.indexOf(targetId)
+    const withoutDragged = idsInOrder.filter((id) => id !== draggedId)
+    const next = [
+      ...withoutDragged.slice(0, originalTargetIndex),
+      draggedId,
+      ...withoutDragged.slice(originalTargetIndex),
+    ]
+    onReorder(next)
+    setDraggedId(null)
+  }
 
   return (
     <section aria-label="Weekend bucket list" className={styles.panel}>
@@ -87,7 +124,7 @@ export function BucketList({
 
       {bucketOccurrences.length > 0 && (
         <ul className={styles.list}>
-          {bucketOccurrences.map((occurrence) => (
+          {bucketOccurrences.map((occurrence, index) => (
             <OccurrenceItem
               key={occurrence.id}
               occurrence={occurrence}
@@ -108,6 +145,14 @@ export function BucketList({
               onComplete={onComplete}
               onUndo={onUndo}
               onCarryForward={onCarryForward}
+              isFirst={index === 0}
+              isLast={index === bucketOccurrences.length - 1}
+              reorderDisabled={reorderInFlight}
+              onMoveUp={handleMoveUp}
+              onMoveDown={handleMoveDown}
+              onDragStart={setDraggedId}
+              onDragOverItem={(event) => event.preventDefault()}
+              onDropOnItem={handleDrop}
             />
           ))}
         </ul>

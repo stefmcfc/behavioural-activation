@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-01
+
+### Added
+
+- The weekend bucket list can now be manually reordered: drag an item (via a grip handle) to a new
+  position, or use the keyboard-accessible Move up/Move down buttons on each row. The new order is
+  saved immediately and persists across reloads.
+
 ## [0.15.0] - 2026-10-01
 
 ### Fixed

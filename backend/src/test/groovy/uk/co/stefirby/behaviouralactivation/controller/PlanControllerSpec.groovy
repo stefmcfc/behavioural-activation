@@ -5,12 +5,15 @@ import org.spockframework.spring.SpringBean
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification
 import uk.co.stefirby.behaviouralactivation.config.CorsConfig
+import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
+import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException
 import uk.co.stefirby.behaviouralactivation.model.Activity
@@ -31,6 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
@@ -479,6 +483,85 @@ class PlanControllerSpec extends Specification {
 
         then: "the response is 404"
             result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-010-AC-08/AC-15: PUT /api/v1/plan/bucket/order returns 200 with the reordered bucket occurrences in the {data, count} envelope"() {
+        given: "the service reorders the bucket successfully"
+            def first = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday, null, null, owner)
+            first.assignBucketPosition(0)
+            def second = new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday, null, null, owner)
+            second.assignBucketPosition(1)
+            planService.reorderBucket("steve", _ as BucketReorderRequest) >> Optional.of([first, second])
+            planService.findCompletions("steve", _) >> [:]
+            def body = objectMapper.writeValueAsString([weekStart: "2026-10-05", occurrenceIds: [UUID.randomUUID(), UUID.randomUUID()]])
+
+        when: "PUT /api/v1/plan/bucket/order is requested"
+            def result = mockMvc.perform(put("/api/v1/plan/bucket/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 200 with the reordered occurrences in the {data, count} envelope"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.count').value(2))
+            result.andExpect(jsonPath('$.data[0].bucketPosition').value(0))
+            result.andExpect(jsonPath('$.data[1].bucketPosition').value(1))
+    }
+
+    def "PLANNER-010-AC-09: a non-Monday weekStart in a reorder request returns 400"() {
+        given: "PlanService rejects a non-Monday weekStart"
+            planService.reorderBucket(_, _) >> { throw new InvalidPlanRequestException("weekStart is required and must be a Monday") }
+
+        when: "PUT /api/v1/plan/bucket/order is requested with a Tuesday weekStart"
+            def result = mockMvc.perform(put("/api/v1/plan/bucket/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"weekStart":"2026-10-06","occurrenceIds":["' + UUID.randomUUID() + '"]}'))
+
+        then: "the response is 400"
+            result.andExpect(status().isBadRequest())
+    }
+
+    def "PLANNER-010-AC-10: an empty occurrenceIds list returns 400 without calling PlanService"() {
+        when: "PUT /api/v1/plan/bucket/order is requested with an empty occurrenceIds list"
+            def result = mockMvc.perform(put("/api/v1/plan/bucket/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"weekStart":"2026-10-05","occurrenceIds":[]}'))
+
+        then: "the response is 400, and the service is never invoked"
+            result.andExpect(status().isBadRequest())
+            0 * planService.reorderBucket(_, _)
+    }
+
+    def "PLANNER-010-AC-11: PUT /api/v1/plan/bucket/order returns 404 when the service reports an id not found/not owned"() {
+        given: "the service reports an id not found/not owned"
+            planService.reorderBucket("steve", _ as BucketReorderRequest) >> Optional.empty()
+            def body = objectMapper.writeValueAsString([weekStart: "2026-10-05", occurrenceIds: [UUID.randomUUID()]])
+
+        when: "PUT /api/v1/plan/bucket/order is requested"
+            def result = mockMvc.perform(put("/api/v1/plan/bucket/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-010-AC-12/AC-13: PUT /api/v1/plan/bucket/order returns 409 when the service rejects it as not reorderable"() {
+        given: "the service rejects the reorder as ineligible"
+            planService.reorderBucket("steve", _ as BucketReorderRequest) >> { throw new BucketReorderNotAllowedException("bad") }
+            def body = objectMapper.writeValueAsString([weekStart: "2026-10-05", occurrenceIds: [UUID.randomUUID()]])
+
+        when: "PUT /api/v1/plan/bucket/order is requested"
+            def result = mockMvc.perform(put("/api/v1/plan/bucket/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 409"
+            result.andExpect(status().isConflict())
     }
 
     def "PLANNER-004-AC-37: an unauthenticated request to /api/v1/plan returns 401 (inherited SecurityFilterChain rule)"() {

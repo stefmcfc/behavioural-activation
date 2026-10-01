@@ -102,6 +102,7 @@ export function WeeklyPlanner() {
   const [detailOpenId, setDetailOpenId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [gridTab, setGridTab] = useState<GridTab>(() => getDefaultGridTab())
+  const [bucketReorderInFlight, setBucketReorderInFlight] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -233,6 +234,23 @@ export function WeeklyPlanner() {
     setMovingId(null)
   }
 
+  const handleReorderBucket = async (occurrenceIds: string[]) => {
+    setActionError(null)
+    setBucketReorderInFlight(true)
+    try {
+      const updated = await planApi.reorderBucket(weekStart, occurrenceIds)
+      setOccurrences((previous) => {
+        if (!previous) return previous
+        const updatedById = new Map(updated.map((occurrence) => [occurrence.id, occurrence]))
+        return previous.map((occurrence) => updatedById.get(occurrence.id) ?? occurrence)
+      })
+    } catch (error) {
+      setActionError(getErrorMessage(error))
+    } finally {
+      setBucketReorderInFlight(false)
+    }
+  }
+
   const todayColumn = weekStart === getMondayOfCurrentWeek() ? getTodayPlanDayOfWeek() : null
 
   const handleCarryForward = async (id: string) => {
@@ -347,6 +365,7 @@ export function WeeklyPlanner() {
             detailOpenId={detailOpenId}
             confirmingRemoveId={confirmingRemoveId}
             movingId={movingId}
+            reorderInFlight={bucketReorderInFlight}
             onAdd={() => setAssignTarget({ dayOfWeek: null, slot: null })}
             onOpenDetail={handleOpenDetail}
             onCloseDetail={handleCloseDetail}
@@ -359,6 +378,7 @@ export function WeeklyPlanner() {
             onComplete={handleComplete}
             onUndo={handleUndo}
             onCarryForward={handleCarryForward}
+            onReorder={handleReorderBucket}
           />
         </>
       )}

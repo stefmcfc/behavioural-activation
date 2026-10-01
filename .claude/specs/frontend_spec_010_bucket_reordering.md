@@ -1,25 +1,65 @@
 # Weekend Bucket List Manual Reordering (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-01) — 15 of 16 ACs verified; `FRONTEND-010-AC-08` (real-mouse
+drag-and-drop) could not be automatically verified — see Summary.
 **Priority**: P2 — chunk 3a of the Weekly Planner UX batch raised after
 `frontend_spec_006_repeatable_activities.md` shipped. Chunks 1–2 (occurrence detail card, "Add"
 picker modal — `frontend_spec_008_occurrence_detail_card.md`, `frontend_spec_009_add_picker_modal.md`)
-are specced but not yet implemented. Chunk 3b (automatic carry-forward of stale bucket items) is a
-separate, independent spec pair — `planner_spec_011_bucket_carry_forward_automation.md` and possibly
-a paired frontend spec — with no dependency on this one in either direction.
+were specced but not yet implemented when this spec was originally written — **both have since
+shipped** (2026-09-30), before this spec's own implementation; see Summary for how that affected the
+real prop shape this spec's implementation was written against. Chunk 3b (automatic carry-forward of
+stale bucket items) is a separate, independent spec pair —
+`planner_spec_011_bucket_carry_forward_automation.md` and possibly a paired frontend spec — with no
+dependency on this one in either direction.
 **Depends on**: `planner_spec_010_bucket_reordering.md` (paired backend spec — `bucketPosition`,
 `PUT /api/v1/plan/bucket/order`), `frontend_spec_004_week_planning.md` (origin of `BucketList.tsx`,
 `OccurrenceItem.tsx`, `WeeklyPlanner.tsx`, `PlannerGrid.tsx`, `planApi`, `types/plan.ts`),
 `frontend_spec_007_visual_refresh.md` (CSS Modules + theme custom-properties convention this spec's
 new drag-handle/button styles follow), `frontend_spec_008_occurrence_detail_card.md` (its
 `FRONTEND-008-AC-01` at-rest-tile contract is amended, additively, by this spec — see Requirement 5
-below; **not yet implemented**, so this spec is otherwise written against the actual current `main`
-state of `OccurrenceItem.tsx`/`BucketList.tsx`, not that spec's not-yet-real `detailOpenId`/
-`onOpenDetail` shape, matching the precedent `frontend_spec_009_add_picker_modal.md` already
-established for the same situation)
+below; was not yet implemented when this spec was originally written, **since shipped** — see Summary
+for how the real `detailOpenId`/`onOpenDetail` shape it introduced was reconciled with this spec's
+new reorder props during implementation)
 **Area**: Frontend
 **Roadmap version**: V1 (extends the weekend bucket list UX from `product.md`'s V1 row / US-007
 "Create a weekend bucket list" — not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+Implemented per the spec's own sketches, with one real bug found and fixed in them:
+
+- **`handleDrop`'s index math in the spec's own sketch was wrong** against its own
+  `FRONTEND-010-AC-07` test case. The sketch computed the drop target's index *within the
+  dragged-item-removed array*, which for dragging the first item onto the third (order `a,b,c`)
+  produces `[b,a,c]`, not the sketch's own asserted `[b,c,a]`. Fixed by computing the target's index
+  in the *original* full list, before removing the dragged item, then splicing into the
+  dragged-removed array at that index — verified by hand-tracing the corrected math against the
+  exact scenario in `FRONTEND-010-AC-07`'s test, which now passes with the sketch's original
+  (correct) expected assertion unchanged.
+- `OccurrenceItem`/`BucketList`'s real current prop lists already included `detailOpenId`/
+  `onOpenDetail`/`onCloseDetail` from `frontend_spec_008_occurrence_detail_card.md`, which hadn't
+  shipped yet when this spec was written — kept those intact alongside the new reorder props.
+- CSS: `.dragHandle` is a quiet, secondary affordance (`opacity: 0.6`, `cursor: grab`/`grabbing`) so
+  it doesn't compete visually with the name/category/complete-button; `.moveButton` matches this
+  file's existing small-inline-button treatment (hover/focus-visible via `--accent-bg`/
+  `--accent-border`/`--accent-ink`), with a `disabled` state at `opacity: 0.4`.
+- Full suite: 299 Vitest tests (up from 286), 0 regressions; `oxlint`/`tsc -b --noEmit` clean —
+  independently re-run, not just trusting the implementing agent's own report.
+- Real-browser verified (Light + Dark, live dev data, after restarting the backend to pick up the
+  new migration/endpoint): the grip handle and Move up/down controls render on every bucket row;
+  Move up/down disabled correctly at the list boundaries; clicking Move down swapped "Apply for
+  jobs"/"Go for a walk" and the new order **persisted across a full page reload**, confirming the
+  real `PUT /api/v1/plan/bucket/order` round-trip (not just client-side state).
+- **`FRONTEND-010-AC-08` (a real mouse drag gesture) could not be verified.** The available
+  Chrome-automation tool's drag primitive synthesizes a plain mouse-selection drag, not a native
+  HTML5 `draggable`/`dragstart` gesture — attempting it over the grip handle produced a text-selection
+  highlight, not a reorder, confirming the gesture never reached the `onDragStart` handler. This
+  matches a real, known limitation of CDP-level mouse-event synthesis against native HTML5 DnD, not a
+  bug in the implementation — the underlying drop-handler logic this gesture would exercise is
+  already covered by `FRONTEND-010-AC-07`'s automated test (dispatching real `dragstart`/`drop` DOM
+  events directly, which passes). A genuine physical-mouse check still needs either a human doing it
+  by hand, or the real-browser e2e tool (Playwright) the spec's own `AC-08` rationale already named
+  as the eventual fix for this exact gap.
 
 ## Overview
 
@@ -564,19 +604,19 @@ Strategy note.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-010-AC-01 — bucket items render ordered by `bucketPosition`, not array order
-- [ ] FRONTEND-010-AC-02 — a draggable, `aria-hidden` grip handle renders on every bucket item's row
-- [ ] FRONTEND-010-AC-03 — Move up/Move down buttons with accessible names render on every bucket item's row
-- [ ] FRONTEND-010-AC-04 — Move up disabled/no-op on the first item
-- [ ] FRONTEND-010-AC-05 — Move down disabled/no-op on the last item
-- [ ] FRONTEND-010-AC-06 — Move up/down computes the full swapped order and calls `onReorder` once
-- [ ] FRONTEND-010-AC-07 — dropping on another row computes the full relocated order via `onReorder`
+- [x] FRONTEND-010-AC-01 — bucket items render ordered by `bucketPosition`, not array order
+- [x] FRONTEND-010-AC-02 — a draggable, `aria-hidden` grip handle renders on every bucket item's row
+- [x] FRONTEND-010-AC-03 — Move up/Move down buttons with accessible names render on every bucket item's row
+- [x] FRONTEND-010-AC-04 — Move up disabled/no-op on the first item
+- [x] FRONTEND-010-AC-05 — Move down disabled/no-op on the last item
+- [x] FRONTEND-010-AC-06 — Move up/down computes the full swapped order and calls `onReorder` once
+- [x] FRONTEND-010-AC-07 — dropping on another row computes the full relocated order via `onReorder`
 - [ ] FRONTEND-010-AC-08 — real-browser mouse drag-and-drop check (manual)
-- [ ] FRONTEND-010-AC-09 — `planApi.reorderBucket(...)` calls `PUT /plan/bucket/order`
-- [ ] FRONTEND-010-AC-10 — `WeeklyPlanner` awaits the response before updating displayed order (no optimistic update)
-- [ ] FRONTEND-010-AC-11 — all reorder controls disabled while a reorder request is in flight
-- [ ] FRONTEND-010-AC-12 — a rejected reorder sets `actionError`, rendered via `role="alert"`
-- [ ] FRONTEND-010-AC-13 — a rejected reorder leaves the previously-displayed order unchanged
-- [ ] FRONTEND-010-AC-14 — `PlannedOccurrence.bucketPosition` type field added
-- [ ] FRONTEND-010-AC-15 — reorder controls always at-rest-visible, additively amending `FRONTEND-008-AC-01`
-- [ ] FRONTEND-010-AC-16 — grid items never render reorder controls; `PlannerGrid.tsx` unchanged
+- [x] FRONTEND-010-AC-09 — `planApi.reorderBucket(...)` calls `PUT /plan/bucket/order`
+- [x] FRONTEND-010-AC-10 — `WeeklyPlanner` awaits the response before updating displayed order (no optimistic update)
+- [x] FRONTEND-010-AC-11 — all reorder controls disabled while a reorder request is in flight
+- [x] FRONTEND-010-AC-12 — a rejected reorder sets `actionError`, rendered via `role="alert"`
+- [x] FRONTEND-010-AC-13 — a rejected reorder leaves the previously-displayed order unchanged
+- [x] FRONTEND-010-AC-14 — `PlannedOccurrence.bucketPosition` type field added
+- [x] FRONTEND-010-AC-15 — reorder controls always at-rest-visible, additively amending `FRONTEND-008-AC-01`
+- [x] FRONTEND-010-AC-16 — grid items never render reorder controls; `PlannerGrid.tsx` unchanged

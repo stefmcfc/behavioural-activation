@@ -3,6 +3,8 @@ package uk.co.stefirby.behaviouralactivation.service;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,8 +15,10 @@ import java.util.stream.Collectors;
 import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest;
+import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException;
 import uk.co.stefirby.behaviouralactivation.model.Activity;
@@ -99,7 +103,7 @@ public class PlanService {
         validateDaySlotPair(request.dayOfWeek(), request.slot());
         User owner = resolveOwner(ownerUsername);
         return plannedOccurrenceRepository.findByIdAndOwner(id, owner)
-            .map(occurrence -> applyMove(occurrence, request));
+            .map(occurrence -> applyMove(occurrence, request, owner));
     }
 
     @Transactional
@@ -138,6 +142,52 @@ public class PlanService {
         User owner = resolveOwner(ownerUsername);
         return plannedOccurrenceRepository.findByIdAndOwner(id, owner)
             .map(occurrence -> applyCarryForward(occurrence, owner));
+    }
+
+    // PUT /api/v1/plan/bucket/order -- a whole-order replacement, not a single-item move
+    // (planner_spec_010_bucket_reordering.md, Requirement 3). Every "not found"/"not yours" id
+    // collapses to an empty Optional for the whole batch (PLANNER-010-AC-11), matching the rest of
+    // this class's convention; a found-but-ineligible id (not currently a bucket item for the
+    // requested weekStart, or a submitted set that doesn't exactly match the current bucket) is a 409
+    // via BucketReorderNotAllowedException instead (PLANNER-010-AC-12/AC-13), mirroring
+    // CarryForwardNotAllowedException's existing "found but wrong state" precedent.
+    @Transactional
+    public Optional<List<PlannedOccurrence>> reorderBucket(String ownerUsername, BucketReorderRequest request) {
+        validateWeekStart(request.weekStart());
+        validateNoDuplicateIds(request.occurrenceIds());
+
+        User owner = resolveOwner(ownerUsername);
+
+        List<PlannedOccurrence> submitted = new ArrayList<>();
+        for (UUID id : request.occurrenceIds()) {
+            Optional<PlannedOccurrence> found = plannedOccurrenceRepository.findByIdAndOwner(id, owner);
+            if (found.isEmpty()) {
+                return Optional.empty(); // PLANNER-010-AC-11
+            }
+            submitted.add(found.get());
+        }
+
+        boolean allCurrentBucketItemsForWeek = submitted.stream()
+            .allMatch(occurrence -> occurrence.isBucketItem() && occurrence.getWeekStart().equals(request.weekStart()));
+        if (!allCurrentBucketItemsForWeek) {
+            throw new BucketReorderNotAllowedException(
+                "Every occurrenceId must currently be a weekend-bucket item for the given weekStart");
+        }
+
+        List<PlannedOccurrence> currentBucket = plannedOccurrenceRepository
+            .findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc(owner, request.weekStart());
+        Set<UUID> currentIds = currentBucket.stream().map(PlannedOccurrence::getId).collect(Collectors.toSet());
+        Set<UUID> submittedIds = new HashSet<>(request.occurrenceIds());
+        if (!currentIds.equals(submittedIds)) {
+            throw new BucketReorderNotAllowedException(
+                "occurrenceIds must be exactly the current set of weekend-bucket items for the given weekStart");
+        }
+
+        for (int i = 0; i < submitted.size(); i++) {
+            submitted.get(i).assignBucketPosition(i); // PLANNER-010-AC-14
+        }
+        submitted.forEach(PlanService::initializeTarget);
+        return Optional.of(submitted);
     }
 
     @Transactional(readOnly = true)
@@ -217,19 +267,39 @@ public class PlanService {
         if (completionRecordRepository.findByPlannedOccurrenceIdAndOwner(occurrence.getId(), owner).isPresent()) {
             throw new CarryForwardNotAllowedException("A completed occurrence cannot be carried forward");
         }
+        // Computed BEFORE mutating occurrence -- see the class-level hazard note in
+        // planner_spec_010_bucket_reordering.md: mutating weekStart first would let the subsequent
+        // COUNT query auto-flush that change and count the occurrence's own now-updated row as
+        // already belonging to the destination week, inflating the computed position by one.
+        int position = nextBucketPosition(owner, occurrence.getWeekStart().plusDays(7)); // PLANNER-010-AC-07
         occurrence.carryForward();
+        occurrence.assignBucketPosition(position);
         initializeTarget(occurrence);
         return occurrence;
     }
 
-    private PlannedOccurrence applyMove(PlannedOccurrence occurrence, PlannedOccurrenceMoveRequest request) {
+    private PlannedOccurrence applyMove(PlannedOccurrence occurrence, PlannedOccurrenceMoveRequest request, User owner) {
         if (request.dayOfWeek() == null && request.slot() == null) {
+            // Computed BEFORE mutating occurrence -- same auto-flush hazard as applyCarryForward(...).
+            int position = nextBucketPosition(owner, occurrence.getWeekStart()); // PLANNER-010-AC-05
             occurrence.moveToBucket();
+            occurrence.assignBucketPosition(position);
         } else {
-            occurrence.assignSlot(request.dayOfWeek(), request.slot());
+            occurrence.assignSlot(request.dayOfWeek(), request.slot()); // PLANNER-010-AC-06
         }
         initializeTarget(occurrence);
         return occurrence;
+    }
+
+    private int nextBucketPosition(User owner, LocalDate weekStart) {
+        return (int) plannedOccurrenceRepository
+            .countByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNull(owner, weekStart);
+    }
+
+    private void validateNoDuplicateIds(List<UUID> occurrenceIds) {
+        if (new HashSet<>(occurrenceIds).size() != occurrenceIds.size()) {
+            throw new InvalidPlanRequestException("occurrenceIds must not contain duplicates");
+        }
     }
 
     // Activity/SubTask are LAZY associations, and open-in-view is deliberately disabled
@@ -273,6 +343,11 @@ public class PlanService {
             PlannedOccurrenceRequest request, User owner) {
         PlannedOccurrence occurrence = new PlannedOccurrence(activity, subTask, category, request.weekStart(),
             request.dayOfWeek(), request.slot(), owner);
+        if (occurrence.isBucketItem()) {
+            // No auto-flush hazard here (unlike applyMove/applyCarryForward) -- occurrence is a
+            // freshly-constructed, not-yet-persisted entity, so nothing to flush ahead of the count.
+            occurrence.assignBucketPosition(nextBucketPosition(owner, request.weekStart())); // PLANNER-010-AC-03
+        }
         PlannedOccurrence saved = plannedOccurrenceRepository.save(occurrence);
         initializeTarget(saved);
         return saved;

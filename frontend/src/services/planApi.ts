@@ -28,4 +28,9 @@ export const planApi = {
 
   carryForward: (id: string): Promise<PlannedOccurrence> =>
     request<PlannedOccurrence>(() => client.post(`/plan/occurrences/${id}/carry-forward`)),
+
+  reorderBucket: (weekStart: string, occurrenceIds: string[]): Promise<PlannedOccurrence[]> =>
+    request<{ data: PlannedOccurrence[]; count: number }>(() =>
+      client.put('/plan/bucket/order', { weekStart, occurrenceIds }),
+    ).then((r) => r.data),
 }

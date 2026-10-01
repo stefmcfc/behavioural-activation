@@ -52,6 +52,9 @@ public class PlannedOccurrence {
     @Enumerated(EnumType.STRING)
     private PlanSlot slot;
 
+    @Column(name = "bucket_position")
+    private Integer bucketPosition;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -78,6 +81,7 @@ public class PlannedOccurrence {
     public void assignSlot(DayOfWeek dayOfWeek, PlanSlot slot) {
         this.dayOfWeek = dayOfWeek;
         this.slot = slot;
+        this.bucketPosition = null; // PLANNER-010-AC-06 -- no longer a bucket item
         this.updatedAt = Instant.now();
     }
 
@@ -89,6 +93,12 @@ public class PlannedOccurrence {
 
     public void carryForward() {
         this.weekStart = this.weekStart.plusDays(7);
+        this.bucketPosition = null; // PLANNER-010-AC-07 -- reset; caller re-appends in the new week
+        this.updatedAt = Instant.now();
+    }
+
+    public void assignBucketPosition(int bucketPosition) {
+        this.bucketPosition = bucketPosition;
         this.updatedAt = Instant.now();
     }
 
@@ -126,6 +136,10 @@ public class PlannedOccurrence {
 
     public PlanSlot getSlot() {
         return slot;
+    }
+
+    public Integer getBucketPosition() {
+        return bucketPosition;
     }
 
     public Instant getCreatedAt() {

@@ -13,4 +13,9 @@ public interface PlannedOccurrenceRepository extends JpaRepository<PlannedOccurr
     List<PlannedOccurrence> findByOwnerAndWeekStartOrderByCreatedAtAsc(User owner, LocalDate weekStart);
 
     Optional<PlannedOccurrence> findByIdAndOwner(UUID id, User owner);
+
+    long countByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNull(User owner, LocalDate weekStart);
+
+    List<PlannedOccurrence> findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc(
+        User owner, LocalDate weekStart);
 }
