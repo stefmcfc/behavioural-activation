@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- Activity Bank gained a "Filter by category" control (All/Routine/Necessary/Pleasurable,
+  defaulting to All) alongside "Show archived", narrowing the list to activities in just one
+  category at a time.
+
 ## [0.10.3] - 2026-10-01
 
 ### Fixed

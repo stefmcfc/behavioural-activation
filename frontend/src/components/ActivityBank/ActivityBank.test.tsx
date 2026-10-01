@@ -437,4 +437,90 @@ describe('ActivityBank', () => {
       expect(screen.getByRole('button', { name: /unarchive/i })).toBeInTheDocument()
     })
   })
+
+  describe('FRONTEND-017-AC-01: renders a category filter defaulting to All', () => {
+    it('renders a "Filter by category" group with all four options, All checked', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+
+      expect(screen.getByRole('group', { name: /filter by category/i })).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /all/i })).toBeChecked()
+      expect(screen.getByRole('radio', { name: /^routine$/i })).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /^necessary$/i })).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /^pleasurable$/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-017-AC-02: selecting a category narrows the list to matching activities', () => {
+    it('shows only Pleasurable activities when Pleasurable is selected', async () => {
+      const paint: Activity = {
+        id: '3',
+        name: 'Paint',
+        category: 'PLEASURABLE',
+        description: null,
+        repeatable: false,
+        archived: false,
+        createdAt: '2026-09-28T00:00:00Z',
+      }
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, paint])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      await userEvent.click(screen.getByRole('radio', { name: /^pleasurable$/i }))
+
+      expect(screen.queryByText('Walk')).not.toBeInTheDocument()
+      expect(screen.getByText('Paint')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-017-AC-03: category filter and Show archived combine with AND logic', () => {
+    it('narrows whatever Show archived already includes (active + archived) to the selected category', async () => {
+      const oldWalk: Activity = {
+        id: '4',
+        name: 'Old walk',
+        category: 'ROUTINE',
+        description: null,
+        repeatable: false,
+        archived: true,
+        createdAt: '2026-09-28T00:00:00Z',
+      }
+      const paint: Activity = {
+        id: '3',
+        name: 'Paint',
+        category: 'PLEASURABLE',
+        description: null,
+        repeatable: false,
+        archived: true,
+        createdAt: '2026-09-28T00:00:00Z',
+      }
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      await screen.findByText('Walk')
+
+      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, oldWalk, paint])
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await screen.findByText('Old walk')
+
+      await userEvent.click(screen.getByRole('radio', { name: /^routine$/i }))
+
+      expect(screen.getByText('Walk')).toBeInTheDocument()
+      expect(screen.getByText('Old walk')).toBeInTheDocument()
+      expect(screen.queryByText('Paint')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-017-AC-04: shows a filtered-empty message, not the generic empty state', () => {
+    it('shows "No activities in this category." when the filter matches nothing', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      await userEvent.click(screen.getByRole('radio', { name: /^pleasurable$/i }))
+
+      expect(screen.getByText(/no activities in this category/i)).toBeInTheDocument()
+      expect(screen.queryByText(/no activities yet/i)).not.toBeInTheDocument()
+    })
+  })
 })

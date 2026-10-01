@@ -1,6 +1,22 @@
 # Activity Bank Category Filter (Frontend)
 
-**Status**: Not started
+**Status**: Implemented — all 4 ACs green (4 new Vitest/RTL tests added to `ActivityBank.test.tsx`,
+full suite 247/247 passing, `oxlint` clean, `tsc -b`/production build clean). Verified in a real
+Chrome browser (headless, via a scratch Puppeteer script driving the actual dev servers) against
+live backend data in both light and dark `prefers-color-scheme`: filter pills render and narrow the
+list correctly, combine correctly with "Show archived", and the "No activities in this category."
+empty state renders distinctly from the generic "No activities yet." state.
+
+**Post-implementation correction (2026-10-01)**: this spec's original AC-03 Statement and test
+sketch were wrong and have been corrected below. As first written, they specified that selecting
+both a category and "Show archived" should narrow the list to *only* archived activities of that
+category — excluding active ones. The first implementation followed that literally, which silently
+contradicted `frontend_spec_006_repeatable_activities.md`'s actual "Show archived" semantics
+(confirmed in `ActivityService.listForOwner`: `includeArchived=true` returns active **and** archived
+together via `findByOwnerOrderByNameAsc`, never archived-only). Fixed by removing the extra
+archived-only predicate — the category filter now simply narrows whatever the "Show archived" toggle
+already fetched, additive as everywhere else in the app. AC-03's Statement and test sketch below
+reflect the corrected behavior; the implementation and its test were updated to match.
 **Priority**: P3 — small UX polish, nothing else blocked on it
 **Depends on**: `frontend_spec_002_activity_bank.md` (`ActivityBank`'s list + "Show archived" toggle),
 `frontend_spec_006_repeatable_activities.md` (the "Show archived" segmented-pill precedent this
@@ -93,30 +109,37 @@ it('FRONTEND-017-AC-02: selecting Pleasurable shows only Pleasurable activities'
 **Test Case (Green)**: derive a `visibleActivities` list (or equivalent `.filter()` inline) gated on
 `categoryFilter`, rendered instead of the raw fetched list.
 
-### FRONTEND-017-AC-03 [AUTO]: Category filter combines with "Show archived" using AND logic
-**Statement**: While both a non-`All` category filter and "Show archived" are active, the
-`ActivityBank` component shall display only activities that are both archived and match the
-selected category.
+### FRONTEND-017-AC-03 [AUTO]: Category filter narrows whatever "Show archived" already includes
+**Statement**: While a non-`All` category filter is active, the `ActivityBank` component shall
+display only activities matching that category from whatever "Show archived" already fetched —
+active-only when "Show archived" is off, active-and-archived together when it's on — never
+excluding an active activity just because "Show archived" happens to be on.
 
-**Rationale**: Matches `AssignActivityPicker`'s existing combinable-filters precedent
-(`frontend_spec_009`) — the two controls narrow independently, not exclusively.
+**Rationale**: `ActivityService.listForOwner`'s `includeArchived=true` returns active **and**
+archived activities together (`findByOwnerOrderByNameAsc`), never archived-only
+(`frontend_spec_006_repeatable_activities.md`). The category filter must narrow that same additive
+list, not silently change what "Show archived" itself means — the two controls narrow
+independently (per `AssignActivityPicker`'s combinable-filters precedent, `frontend_spec_009`), they
+don't combine into a third, different meaning.
 
 **References**: Related: `FRONTEND-017-AC-02`.
 
 **Test Case (Red)**:
 ```tsx
-it('FRONTEND-017-AC-03: category filter and Show archived combine with AND logic', async () => {
+it('FRONTEND-017-AC-03: narrows whatever Show archived already includes (active + archived) to the selected category', async () => {
   // seed: "Walk" (ROUTINE, active), "Old walk" (ROUTINE, archived), "Paint" (PLEASURABLE, archived)
   renderActivityBank()
   await userEvent.click(await screen.findByLabelText(/show archived/i))
   await userEvent.click(await screen.findByRole('radio', { name: /^routine$/i }))
+  expect(screen.getByText('Walk')).toBeInTheDocument()
   expect(screen.getByText('Old walk')).toBeInTheDocument()
-  expect(screen.queryByText('Walk')).not.toBeInTheDocument()
   expect(screen.queryByText('Paint')).not.toBeInTheDocument()
 })
 ```
 
-**Test Case (Green)**: chain both filter predicates in the same `.filter()`/derived list.
+**Test Case (Green)**: a single `.filter()` on `categoryFilter` alone, applied on top of whatever
+`activities` the "Show archived" toggle already fetched — no second predicate referencing
+`archived`.
 
 ### FRONTEND-017-AC-04 [AUTO]: Filtering to an empty result shows an explanatory empty state
 **Statement**: If the selected category filter (combined with "Show archived") matches no
@@ -153,7 +176,7 @@ it('FRONTEND-017-AC-04: shows a filtered-empty message, not the generic empty st
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-017-AC-01 [AUTO]: Category filter control renders with All/Routine/Necessary/Pleasurable, defaulting to All
-- [ ] FRONTEND-017-AC-02 [AUTO]: Selecting a category narrows the list to matching activities
-- [ ] FRONTEND-017-AC-03 [AUTO]: Category filter combines with "Show archived" using AND logic
-- [ ] FRONTEND-017-AC-04 [AUTO]: Filtering to an empty result shows a distinct "no activities in this category" message
+- [x] FRONTEND-017-AC-01 [AUTO]: Category filter control renders with All/Routine/Necessary/Pleasurable, defaulting to All
+- [x] FRONTEND-017-AC-02 [AUTO]: Selecting a category narrows the list to matching activities
+- [x] FRONTEND-017-AC-03 [AUTO]: Category filter combines with "Show archived" using AND logic
+- [x] FRONTEND-017-AC-04 [AUTO]: Filtering to an empty result shows a distinct "no activities in this category" message
