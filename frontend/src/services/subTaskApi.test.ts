@@ -4,7 +4,13 @@ const post = vi.fn()
 const get = vi.fn()
 const patch = vi.fn()
 const del = vi.fn()
-const create = vi.fn(() => ({ post, get, patch, delete: del }))
+const create = vi.fn(() => ({
+  post,
+  get,
+  patch,
+  delete: del,
+  interceptors: { response: { use: vi.fn() } },
+}))
 
 function isMockAxiosError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error

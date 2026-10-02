@@ -2,6 +2,9 @@ server:
   port: ${SERVER_PORT:8420}
   servlet:
     session:
+      # PLANNER-016-AC-01/AC-02: unchanged default (30 minutes, matching Spring Boot's own
+      # untouched default), now tunable via SESSION_TIMEOUT without a code change.
+      timeout: ${SESSION_TIMEOUT:30m}
       cookie:
         # PLANNER-001-AC-15: CSRF is disabled (see the spec's Non-functional notes), so this is the
         # practical CSRF defense for the session cookie, alongside the CORS allow-list.

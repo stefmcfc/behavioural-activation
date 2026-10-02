@@ -1,3 +1,10 @@
+server:
+  servlet:
+    session:
+      # Mirrors application.yml (main) so PLANNER-016 behavior can be verified against this
+      # self-contained test profile without a developer/CI exporting SESSION_TIMEOUT first.
+      timeout: ${SESSION_TIMEOUT:30m}
+
 spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/behaviouralactivation_test}

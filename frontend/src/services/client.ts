@@ -8,6 +8,22 @@ export const client = axios.create({
   withCredentials: true,
 })
 
+let onUnauthorized: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  onUnauthorized = handler
+}
+
+client.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (isAxiosError<ApiErrorResponse>(error) && error.response?.status === 401) {
+      onUnauthorized?.()
+    }
+    return Promise.reject(error)
+  },
+)
+
 export async function request<T>(fn: () => Promise<{ data: T }>): Promise<T> {
   try {
     const response = await fn()

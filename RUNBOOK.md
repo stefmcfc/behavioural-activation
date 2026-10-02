@@ -174,6 +174,7 @@ Configured via `backend/src/main/resources/application.yml`.
 | `spring.datasource.username` / `password` | `behaviouralactivation` / `behaviouralactivation`        | Overridable via `DB_USERNAME`/`DB_PASSWORD` — local-dev-only placeholders matching `docker-compose.yml`                                                                                       |
 | `app.cors.allowed-origins`                | `http://localhost:4321`                                  | Origin(s) allowed to call `/api/**` cross-origin (never a wildcard) — see `CorsConfig`                                                                                                        |
 | `app.bootstrap.username` / `password`     | *(none)*                                                 | The single seeded user's credentials, created on first startup if not already present. **No default** — must be supplied via `APP_BOOTSTRAP_USERNAME`/`APP_BOOTSTRAP_PASSWORD`. Never logged. |
+| `server.servlet.session.timeout`          | `30m`                                                     | How long an idle session stays valid. Overridable via `SESSION_TIMEOUT`, Spring's standard duration-string format (e.g. `10m`, `2h`).                                                        |
 
 Override any property with a `SPRING_`-prefixed environment variable (or, for `app.*` properties,
 the plain `APP_`-prefixed equivalent):

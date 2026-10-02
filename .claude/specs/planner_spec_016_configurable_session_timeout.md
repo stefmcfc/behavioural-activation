@@ -1,6 +1,6 @@
 # Configurable Session Timeout (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02)
 **Priority**: P2 — bug-fix-adjacent: the current timeout is an unexamined framework default, not a
 deliberate choice, and the frontend half of this spec pair needs a timeout the backend can be tuned
 against during manual verification
@@ -8,6 +8,25 @@ against during manual verification
 **Area**: Backend
 **Roadmap version**: V1 hardening — a gap noticed in real use, not tied to a `HIGH_LEVEL_DESIGN.md`
 version theme
+
+## Summary
+
+Both ACs implemented and tested (2 new Spock tests, 268 total in the backend suite, 0 regressions).
+`server.servlet.session.timeout: ${SESSION_TIMEOUT:30m}` added to `application.yml` as a sibling of
+the existing `server.servlet.session.cookie` block, mirroring the `server.port` / `SERVER_PORT`
+pattern exactly.
+
+**Real finding**: `backend/src/test/resources/application.yml` fully shadows (not merges with)
+`backend/src/main/resources/application.yml` on the test classpath — Spring Boot resolves
+`classpath:/application.yml` to a single resource, and the test source set's own resources directory
+wins. A test asserting a main-`application.yml`-only property (initially `server.servlet.session.timeout`
+alone, nothing in the test profile) resolved `null`, not the main file's default. Fix: added the
+identical `server.servlet.session.timeout: ${SESSION_TIMEOUT:30m}` line to the test profile's
+`application.yml` too, matching the existing convention there (`app.cors.allowed-origins`,
+`app.bootstrap.*` are already duplicated with test-appropriate values for the same reason). This is
+worth knowing for any future spec that adds a main-`application.yml`-only property and expects an
+`@SpringBootTest` to see its default — it won't, unless the property is also added to the test
+profile's `application.yml`.
 
 ## Overview
 
@@ -97,5 +116,5 @@ def "PLANNER-016-AC-02: session timeout honors SESSION_TIMEOUT when set"() {
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-016-AC-01 — session timeout defaults to 30 minutes, matching current behavior
-- [ ] PLANNER-016-AC-02 — session timeout overridable via `SESSION_TIMEOUT`
+- [x] PLANNER-016-AC-01 — session timeout defaults to 30 minutes, matching current behavior
+- [x] PLANNER-016-AC-02 — session timeout overridable via `SESSION_TIMEOUT`

@@ -1,11 +1,13 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
 import App from './App'
 import { authApi } from './services/authApi'
 import { activityApi } from './services/activityApi'
 import { planApi } from './services/planApi'
+import * as clientModule from './services/client'
+import { ApiError } from './types/api'
 import type { User } from './types/auth'
 import styles from './App.module.css'
 
@@ -21,6 +23,10 @@ describe('App', () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([])
     vi.mocked(planApi.getWeek).mockReset()
     vi.mocked(planApi.getWeek).mockResolvedValue([])
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('FRONTEND-001-AC-08/AC-09: session check on mount', () => {
@@ -84,6 +90,149 @@ describe('App', () => {
 
       await waitFor(() => expect(authApi.logout).toHaveBeenCalled())
       expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-029-AC-01/AC-02: registers the unauthorized handler, scoped to authenticated state', () => {
+    it('registers a handler with client.ts on mount', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      const spy = vi.spyOn(clientModule, 'setUnauthorizedHandler')
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      expect(spy).toHaveBeenCalledWith(expect.any(Function))
+    })
+
+    it('AC-02: a 401 firing while the session check is still "checking" has no effect', async () => {
+      let resolveMe: (value: User) => void = () => {}
+      vi.mocked(authApi.me).mockReturnValue(
+        new Promise((resolve) => {
+          resolveMe = resolve
+        }),
+      )
+      const spy = vi.spyOn(clientModule, 'setUnauthorizedHandler')
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      expect(screen.getByRole('status')).toBeInTheDocument()
+      const handler = spy.mock.calls[0]?.[0]
+      act(() => handler?.())
+
+      expect(screen.getByRole('status')).toBeInTheDocument()
+      resolveMe({ username: 'steve' })
+      await screen.findByText(/steve/i)
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+
+    it('AC-02: a 401 firing while unauthenticated (e.g. the initial me() check itself) has no effect', async () => {
+      vi.mocked(authApi.me).mockRejectedValue({ status: 401 })
+      const spy = vi.spyOn(clientModule, 'setUnauthorizedHandler')
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+      const handler = spy.mock.calls[0]?.[0]
+      act(() => handler?.())
+
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-029-AC-03/AC-04: a 401 while authenticated bounces to the login screen with a notice', () => {
+    it('transitions to LoginPage and shows the session-expired notice', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      const spy = vi.spyOn(clientModule, 'setUnauthorizedHandler')
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      const handler = spy.mock.calls[0]?.[0]
+      act(() => handler?.())
+
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+      expect(screen.getByText(/session has expired/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-029-AC-05: logging back in clears the expired state and resumes normally', () => {
+    it('returns to the authenticated shell with no expired notice after a fresh login', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      const spy = vi.spyOn(clientModule, 'setUnauthorizedHandler')
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      const handler = spy.mock.calls[0]?.[0]
+      act(() => handler?.())
+      await screen.findByText(/session has expired/i)
+
+      vi.mocked(authApi.login).mockResolvedValue({ username: 'steve' })
+      await userEvent.type(screen.getByLabelText(/username/i), 'steve')
+      await userEvent.type(screen.getByLabelText(/password/i), 'password')
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+
+      expect(await screen.findByText(/steve/i)).toBeInTheDocument()
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-029-AC-07: explicit logout shows no session-expired notice', () => {
+    it('renders LoginPage with no expired notice after logging out on purpose', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      vi.mocked(authApi.logout).mockResolvedValue(undefined)
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('button', { name: /log out/i }))
+
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-029-AC-08: a failed login attempt keeps its own inline error', () => {
+    it('shows the inline submitError, unaffected by the global 401 handler', async () => {
+      vi.mocked(authApi.me).mockRejectedValue({ status: 401 })
+      vi.mocked(authApi.login).mockRejectedValue(new ApiError(401, 'Invalid username or password'))
+
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await userEvent.type(await screen.findByLabelText(/username/i), 'steve')
+      await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
+      await userEvent.click(screen.getByRole('button', { name: /log in/i }))
+
+      expect(await screen.findByText(/invalid username or password/i)).toBeInTheDocument()
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
     })
   })
 
