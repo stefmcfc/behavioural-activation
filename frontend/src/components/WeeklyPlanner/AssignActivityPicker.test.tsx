@@ -166,6 +166,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'Necessary' }))
 
@@ -179,6 +180,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Organise a leaving party' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'Pleasurable' }))
 
@@ -192,6 +194,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'Pleasurable' }))
 
@@ -207,6 +210,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'Repeatable' }))
 
@@ -220,6 +224,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'One-off' }))
 
@@ -233,6 +238,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
 
       await userEvent.click(screen.getByRole('radio', { name: 'Necessary' }))
       await userEvent.click(screen.getByRole('radio', { name: 'Repeatable' }))
@@ -299,6 +305,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
       const group = screen.getByRole('group', { name: 'Filter by favourite' })
       expect(within(group).getByRole('radio', { name: 'All' })).toBeChecked()
       expect(within(group).getByRole('radio', { name: 'Favourites only' })).not.toBeChecked()
@@ -314,6 +321,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
       await userEvent.click(screen.getByRole('radio', { name: 'Favourites only' }))
 
       expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
@@ -328,6 +336,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Organise a leaving party' })
+      await userEvent.click(screen.getByText('Filters'))
       await userEvent.click(screen.getByRole('radio', { name: 'Favourites only' }))
 
       expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
@@ -343,6 +352,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByText('Filters'))
       const group = screen.getByRole('group', { name: 'Filter by favourite' })
       await userEvent.click(within(group).getByRole('radio', { name: 'Favourites only' }))
       expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
@@ -361,6 +371,17 @@ describe('AssignActivityPicker', () => {
       const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
       expect(activityButton).not.toHaveClass(buttonStyles.primary)
       expect(activityButton).not.toHaveClass(buttonStyles.destructive)
+    })
+  })
+
+  describe('FRONTEND-032-AC-04: the Filters disclosure is collapsed by default, with zero changes to AssignActivityPicker.tsx itself', () => {
+    it('shows the Filters disclosure collapsed via its unmodified ActivityPickerList render', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const disclosure = (await screen.findByText('Filters')).closest('details')!
+      expect(disclosure).not.toHaveAttribute('open')
     })
   })
 

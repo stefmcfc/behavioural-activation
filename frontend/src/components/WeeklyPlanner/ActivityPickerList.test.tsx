@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ActivityPickerList } from './ActivityPickerList'
@@ -135,10 +135,71 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
     render(<ActivityPickerList {...dragProps()} />)
 
     await screen.findByText('Go for a walk')
-
+    await userEvent.click(screen.getByText('Filters'))
     await userEvent.click(screen.getByRole('radio', { name: 'Necessary' }))
 
     expect(screen.queryByText('Go for a walk')).not.toBeInTheDocument()
     expect(screen.getByText('Organise a leaving party')).toBeInTheDocument()
+  })
+})
+
+// FRONTEND-032-AC-01/AC-02: the three filter fieldsets live inside one collapsed-by-default
+// <details> disclosure (see frontend_spec_032_collapsible_filters.md). Confirmed during
+// implementation: jsdom (v30, this project's version) correctly flips the native `open` attribute
+// when the <summary> is activated -- the toggle mechanics themselves are not the gap. What jsdom
+// does NOT model is the browser's own "a closed <details>'s non-summary content is excluded from
+// the accessibility tree" rendering behaviour (the same category of limitation as this project's
+// already-documented "jsdom doesn't render CSS" gap -- it's UA-stylesheet-driven hiding, not a
+// `hidden`/`aria-hidden` attribute, so Testing Library's isInaccessible check can't see it).
+// `getByRole('radio', ...)` still finds a collapsed filter's radios in jsdom even without opening
+// the disclosure first. Because of that, AC-02's assertions below deliberately verify the real,
+// confirmed-working signal (the `open` attribute toggling) plus structural containment (all three
+// groups are descendants of the one <details>), rather than asserting on role-query
+// visibility/absence, which would pass in jsdom regardless of whether real-browser hiding worked.
+describe('FRONTEND-032-AC-01/AC-02: filters live inside one collapsed-by-default disclosure', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAll).mockReset()
+  })
+
+  it('AC-01: the Filters disclosure is collapsed on initial render', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    render(<ActivityPickerList {...dragProps()} />)
+
+    await screen.findByText('Go for a walk')
+
+    const disclosure = screen.getByText('Filters').closest('details')!
+    expect(disclosure).not.toHaveAttribute('open')
+  })
+
+  it('AC-02: activating the summary opens the disclosure and reveals all three fieldsets together', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    render(<ActivityPickerList {...dragProps()} />)
+
+    await screen.findByText('Go for a walk')
+    const disclosure = screen.getByText('Filters').closest('details')!
+
+    await userEvent.click(screen.getByText('Filters'))
+
+    expect(disclosure).toHaveAttribute('open')
+    expect(within(disclosure).getByRole('group', { name: /category/i })).toBeInTheDocument()
+    expect(within(disclosure).getByRole('group', { name: /type/i })).toBeInTheDocument()
+    expect(within(disclosure).getByRole('group', { name: /favourite/i })).toBeInTheDocument()
+  })
+
+  it('AC-07: filter state resets to All on a fresh mount', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    const { unmount } = render(<ActivityPickerList {...dragProps()} />)
+    unmount()
+
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    render(<ActivityPickerList {...dragProps()} />)
+    await userEvent.click(await screen.findByText('Filters'))
+
+    const categoryGroup = screen.getByRole('group', { name: /category/i })
+    expect(within(categoryGroup).getByRole('radio', { name: 'All' })).toBeChecked()
   })
 })

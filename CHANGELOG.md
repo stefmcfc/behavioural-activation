@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Changed
+
+- The category/type/favourite filters in the "Add" modal and Today's "Browse activities" drawer are
+  now tucked behind a single collapsed "Filters" disclosure instead of three always-visible blocks —
+  less clutter when you're not using them, especially in the narrower drawer.
+
 ## [0.26.0] - 2026-10-02
 
 ### Added

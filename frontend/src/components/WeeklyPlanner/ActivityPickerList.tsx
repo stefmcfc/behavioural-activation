@@ -149,7 +149,15 @@ export function ActivityPickerList({
   return (
     <>
       {activities !== null && activities.length > 0 && (
-        <>
+        // FRONTEND-032-AC-01/AC-02: all three filters share one collapsed-by-default disclosure
+        // rather than each being its own always-visible block -- see
+        // frontend_spec_032_collapsible_filters.md. Closed by default is safe because
+        // categoryFilter/repeatableFilter/favouriteFilter (AC-07) already reset to 'ALL' on every
+        // fresh mount, so there's never a non-default filter hidden behind a closed disclosure the
+        // user didn't open themselves.
+        <details className={styles.filtersDisclosure}>
+          <summary className={styles.filtersSummary}>Filters</summary>
+
           <fieldset className={styles.filterFieldset}>
             <legend>Filter by category</legend>
             <ul className={styles.filterGroup}>
@@ -209,7 +217,7 @@ export function ActivityPickerList({
               ))}
             </ul>
           </fieldset>
-        </>
+        </details>
       )}
 
       {loadError && <p role="alert">{loadError}</p>}
