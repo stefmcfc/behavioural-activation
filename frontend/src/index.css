@@ -4,7 +4,7 @@
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  letter-spacing: 0.01em;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -23,7 +23,7 @@ body {
 }
 
 h1 {
-  font-family: var(--heading);
+  font-family: var(--heading), sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
   text-wrap: balance;
@@ -33,7 +33,7 @@ h1 {
 /* Section headings (Activity Bank, Weekly planner, Settings) read as a quiet
    label under the page title, not a second page title. */
 h2 {
-  font-family: var(--heading);
+  font-family: var(--heading), sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -45,7 +45,7 @@ h2 {
 /* Fieldset legends (e.g. Settings' "Appearance"/"Category colours") are a
    level below an h2 section heading -- same quiet-label language, smaller. */
 legend {
-  font-family: var(--heading);
+  font-family: var(--heading), sans-serif;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -59,7 +59,7 @@ p {
 }
 
 code {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: 15px;
   line-height: 135%;
   display: inline-flex;

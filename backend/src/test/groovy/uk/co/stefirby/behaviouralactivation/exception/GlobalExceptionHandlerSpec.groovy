@@ -5,6 +5,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.authentication.BadCredentialsException
+import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.validation.BeanPropertyBindingResult
 import org.springframework.core.MethodParameter
@@ -31,7 +32,7 @@ class GlobalExceptionHandlerSpec extends Specification {
         given: "a binding result with a field error"
             def target = new Object()
             def bindingResult = new BeanPropertyBindingResult(target, "loginRequest")
-            bindingResult.addError(new org.springframework.validation.FieldError("loginRequest", "username", "username is required"))
+            bindingResult.addError(new FieldError("loginRequest", "username", "username is required"))
             def methodParameter = Stub(MethodParameter)
             def ex = new MethodArgumentNotValidException(methodParameter, bindingResult)
 

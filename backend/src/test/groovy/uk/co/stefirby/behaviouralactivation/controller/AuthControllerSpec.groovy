@@ -1,5 +1,6 @@
 package uk.co.stefirby.behaviouralactivation.controller
 
+import org.hamcrest.Matchers
 import tools.jackson.databind.ObjectMapper
 import org.spockframework.spring.SpringBean
 import org.springframework.beans.factory.annotation.Autowired
@@ -73,10 +74,10 @@ class AuthControllerSpec extends Specification {
             result.andExpect(status().isUnauthorized())
 
         and: "the message does not reveal which field was wrong"
-            result.andExpect(jsonPath('$.message').value(org.hamcrest.Matchers.not(
-                org.hamcrest.Matchers.containsString("username"))))
-            result.andExpect(jsonPath('$.message').value(org.hamcrest.Matchers.not(
-                org.hamcrest.Matchers.containsString("password"))))
+            result.andExpect(jsonPath('$.message').value(Matchers.not(
+                    Matchers.containsString("username"))))
+            result.andExpect(jsonPath('$.message').value(Matchers.not(
+                    Matchers.containsString("password"))))
     }
 
     def "PLANNER-001-AC-07: missing username or password returns 400 without calling AuthenticationManager"() {
