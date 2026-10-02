@@ -37,7 +37,7 @@ interface PlannerGridProps {
   readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
   readonly onDragEnd: () => void
-  readonly onAssignFromDrawer: (
+  readonly onAssignFromDrawer?: (
     payload: DragPayload,
     dayOfWeek: PlanDayOfWeek | null,
     slot: PlanSlot | null,
@@ -91,7 +91,9 @@ export function PlannerGrid({
     if (payload.kind !== 'occurrence') {
       // FRONTEND-028-AC-10: a drawer-origin drag has no existing occurrence to move -- it needs a
       // brand-new one created, not frontend_spec_025/026's existing move/demote/promote branch.
-      onAssignFromDrawer(payload, targetDay, targetSlot)
+      // onAssignFromDrawer is optional -- no Weekly-Planner-owned drag source exists for these
+      // payload kinds, but PlannerGrid's own drop-branching stays ready for frontend_spec_016.
+      onAssignFromDrawer?.(payload, targetDay, targetSlot)
       return
     }
     const id = payload.id

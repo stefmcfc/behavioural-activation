@@ -371,6 +371,36 @@ describe('FRONTEND-028-AC-13/AC-14: dropping a drawer item onto the bucket', () 
     )
     expect(onReorder).not.toHaveBeenCalled()
   })
+
+  it('does not throw when onAssignFromDrawer is omitted and a non-occurrence payload is dropped on the panel', () => {
+    render(
+      <BucketList
+        {...baseBucketProps({
+          dragPayload: { kind: 'activity', activityId: 'activity-1' },
+          onAssignFromDrawer: undefined,
+        })}
+      />,
+    )
+
+    expect(() =>
+      fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' })),
+    ).not.toThrow()
+  })
+
+  it('does not throw when onAssignFromDrawer is omitted and a non-occurrence payload is dropped on an existing item', () => {
+    const occurrences = [bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 })]
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences,
+          dragPayload: { kind: 'subtask', subTaskId: 'subtask-1' },
+          onAssignFromDrawer: undefined,
+        })}
+      />,
+    )
+
+    expect(() => fireEvent.drop(screen.getByText('First').closest('li')!)).not.toThrow()
+  })
 })
 
 describe('FRONTEND-010-AC-11: reorder controls are disabled while a reorder request is in flight', () => {

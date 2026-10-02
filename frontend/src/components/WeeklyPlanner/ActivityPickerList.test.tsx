@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ActivityDrawer } from './ActivityDrawer'
+import { ActivityPickerList } from './ActivityPickerList'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import type { Activity } from '../../types/activity'
@@ -45,18 +45,22 @@ const sendInvitations: SubTask = {
 const noop = () => {}
 
 function dragProps(
-  overrides: Partial<Parameters<typeof ActivityDrawer>[0]> = {},
-): Parameters<typeof ActivityDrawer>[0] {
+  overrides: Partial<Parameters<typeof ActivityPickerList>[0]> = {},
+): Parameters<typeof ActivityPickerList>[0] {
   return {
+    mode: 'drag',
     onDragStartActivity: noop,
     onDragStartSubTask: noop,
     onDragEnd: noop,
-    onClose: noop,
     ...overrides,
   }
 }
 
-describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
+// FRONTEND-028-AC-06 through AC-09: moved here from the now-deleted ActivityDrawer.test.tsx (see
+// frontend_spec_028's "Post-ship correction" section, 2026-10-02) -- ActivityDrawer itself was
+// removed from the Weekly Planner, but ActivityPickerList's mode="drag" behavior is unchanged and
+// reusable, so its coverage lives here directly rather than only being reachable through a wrapper.
+describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
@@ -65,7 +69,7 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
   it('AC-06: rows are draggable with no select button', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
     vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-    render(<ActivityDrawer {...dragProps()} />)
+    render(<ActivityPickerList {...dragProps()} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
     expect(row).toHaveAttribute('draggable', 'true')
@@ -75,7 +79,7 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
   it('AC-06: a sub-task row is also draggable with no select button', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([party])
     vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
-    render(<ActivityDrawer {...dragProps()} />)
+    render(<ActivityPickerList {...dragProps()} />)
 
     const row = (await screen.findByText('Send invitations')).closest('li')!
     expect(row).toHaveAttribute('draggable', 'true')
@@ -87,7 +91,7 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
     const onDragStartSubTask = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
     vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-    render(<ActivityDrawer {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
+    render(<ActivityPickerList {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
     fireEvent.dragStart(row)
@@ -101,7 +105,7 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
     const onDragStartSubTask = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([party])
     vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
-    render(<ActivityDrawer {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
+    render(<ActivityPickerList {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
 
     const row = (await screen.findByText('Send invitations')).closest('li')!
     fireEvent.dragStart(row)
@@ -114,7 +118,7 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
     const onDragEnd = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
     vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-    render(<ActivityDrawer {...dragProps({ onDragEnd })} />)
+    render(<ActivityPickerList {...dragProps({ onDragEnd })} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
     fireEvent.dragStart(row)
@@ -123,12 +127,12 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
     expect(onDragEnd).toHaveBeenCalled()
   })
 
-  it('AC-09: the category filter hides a non-matching activity the same as the modal does', async () => {
+  it('AC-09: the category filter hides a non-matching activity the same as select mode does', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk, party])
     vi.mocked(subTaskApi.getAll).mockImplementation((activityId) =>
       Promise.resolve(activityId === 'activity-2' ? [sendInvitations] : []),
     )
-    render(<ActivityDrawer {...dragProps()} />)
+    render(<ActivityPickerList {...dragProps()} />)
 
     await screen.findByText('Go for a walk')
 
@@ -136,15 +140,5 @@ describe('FRONTEND-028: ActivityDrawer is drag-only', () => {
 
     expect(screen.queryByText('Go for a walk')).not.toBeInTheDocument()
     expect(screen.getByText('Organise a leaving party')).toBeInTheDocument()
-  })
-
-  it('renders a close control that calls onClose', async () => {
-    const onClose = vi.fn()
-    vi.mocked(activityApi.getAll).mockResolvedValue([])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-    render(<ActivityDrawer {...dragProps({ onClose })} />)
-
-    await userEvent.click(screen.getByRole('button', { name: /close/i }))
-    expect(onClose).toHaveBeenCalled()
   })
 })

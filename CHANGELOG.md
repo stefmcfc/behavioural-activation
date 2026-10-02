@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Removed
+
+- The Weekly Planner's "Browse activities" drag-and-drop drawer has been removed. In real use it
+  wasn't usable — items didn't look draggable, opening the drawer squeezed the week's columns down
+  to the point of being illegible, and the weekend bucket list couldn't be reached mid-drag. The
+  existing "Add" button and picker still work exactly as before; a fixed version of the drawer is
+  planned for the upcoming Today view instead.
+
 ## [0.25.0] - 2026-10-02
 
 ### Changed

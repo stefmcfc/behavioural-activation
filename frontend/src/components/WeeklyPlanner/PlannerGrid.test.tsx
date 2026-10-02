@@ -299,6 +299,18 @@ describe('FRONTEND-028-AC-10/AC-15: dropping a drawer item on a grid cell', () =
     )
   })
 
+  it('does not throw when onAssignFromDrawer is omitted and a non-occurrence payload is dropped', () => {
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        dragPayload={{ kind: 'activity', activityId: 'activity-1' }}
+        onAssignFromDrawer={undefined}
+      />,
+    )
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    expect(() => fireEvent.drop(targetCell)).not.toThrow()
+  })
+
   it('AC-15: an occurrence-kind payload is unaffected, still calling onConfirmMove', () => {
     const onConfirmMove = vi.fn()
     const onAssignFromDrawer = vi.fn()

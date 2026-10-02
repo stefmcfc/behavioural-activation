@@ -50,7 +50,7 @@ interface BucketListProps {
   readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
   readonly onDragEnd: () => void
-  readonly onAssignFromDrawer: (
+  readonly onAssignFromDrawer?: (
     payload: DragPayload,
     dayOfWeek: PlanDayOfWeek | null,
     slot: PlanSlot | null,
@@ -113,7 +113,9 @@ export function BucketList({
     if (payload.kind !== 'occurrence') {
       // FRONTEND-028-AC-14: a drawer-origin payload is never already a bucket member — it always
       // gets a brand-new occurrence created in the bucket, never a same-bucket reorder.
-      onAssignFromDrawer(payload, null, null)
+      // onAssignFromDrawer is optional -- no Weekly-Planner-owned drag source exists for these
+      // payload kinds, but BucketList's own drop-branching stays ready for frontend_spec_016.
+      onAssignFromDrawer?.(payload, null, null)
       return
     }
     const id = payload.id
@@ -143,7 +145,7 @@ export function BucketList({
     if (!payload) return
     if (payload.kind !== 'occurrence') {
       // FRONTEND-028-AC-13: dropped on empty bucket space — same new-assignment path, no day/slot.
-      onAssignFromDrawer(payload, null, null)
+      onAssignFromDrawer?.(payload, null, null)
       return
     }
     const id = payload.id
