@@ -1,5 +1,6 @@
 package uk.co.stefirby.behaviouralactivation.repository
 
+import jakarta.persistence.EntityManager
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataIntegrityViolationException
@@ -34,6 +35,9 @@ class PlannedOccurrenceRepositorySpec extends Specification {
 
     @Autowired
     PlannedOccurrenceRepository plannedOccurrenceRepository
+
+    @Autowired
+    EntityManager entityManager
 
     User owner
     LocalDate monday = LocalDate.of(2026, 10, 5)
@@ -106,5 +110,61 @@ class PlannedOccurrenceRepositorySpec extends Specification {
 
         then: "the database itself rejects it via the CHECK constraint"
             thrown(DataIntegrityViolationException)
+    }
+
+    def "PLANNER-017-AC-01: findByOwnerAndWeekStartOrderByCreatedAtAsc returns occurrences with activity/subTask/subTask.activity already initialized"() {
+        given: "an activity-based and a sub-task-based occurrence for the same week"
+            def activity = activityRepository.save(
+                new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner))
+            def subTask = subTaskRepository.save(
+                new SubTask(activity, "subtask 1", ActivityCategory.ROUTINE, owner))
+            plannedOccurrenceRepository.save(
+                new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                    DayOfWeek.MONDAY, PlanSlot.MORNING, owner))
+            plannedOccurrenceRepository.save(
+                new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday, null, null, owner))
+
+        when: "fetched via the repository method, outside any further open Hibernate session"
+            def results = plannedOccurrenceRepository.findByOwnerAndWeekStartOrderByCreatedAtAsc(owner, monday)
+            entityManager.clear() // detach -- a lazy proxy would now throw if accessed
+
+        then: "every relationship is already populated, no LazyInitializationException"
+            results.find { it.activity != null }.activity.name == 'Go for a walk'
+            def subTaskOccurrence = results.find { it.subTask != null }
+            subTaskOccurrence.subTask.name == 'subtask 1'
+            subTaskOccurrence.subTask.activity.name == 'Go for a walk'
+
+        cleanup:
+            activityRepository.delete(activity)
+    }
+
+    def "PLANNER-017-AC-03: findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc also returns initialized relationships"() {
+        given: "an activity-based and a sub-task-based occurrence, both sitting in the weekend bucket (dayOfWeek/slot both null)"
+            def activity = activityRepository.save(
+                new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner))
+            def subTask = subTaskRepository.save(
+                new SubTask(activity, "subtask 1", ActivityCategory.ROUTINE, owner))
+            def bucketActivityOccurrence = plannedOccurrenceRepository.save(
+                new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday, null, null, owner))
+            bucketActivityOccurrence.assignBucketPosition(0)
+            def bucketSubTaskOccurrence = plannedOccurrenceRepository.save(
+                new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday, null, null, owner))
+            bucketSubTaskOccurrence.assignBucketPosition(1)
+            plannedOccurrenceRepository.flush()
+
+        when: "fetched via the bucket-order repository method, outside any further open Hibernate session"
+            def results = plannedOccurrenceRepository
+                .findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc(owner, monday)
+            entityManager.clear() // detach -- a lazy proxy would now throw if accessed
+
+        then: "every relationship is already populated, no LazyInitializationException"
+            results.size() == 2
+            results.find { it.activity != null }.activity.name == 'Go for a walk'
+            def subTaskOccurrence = results.find { it.subTask != null }
+            subTaskOccurrence.subTask.name == 'subtask 1'
+            subTaskOccurrence.subTask.activity.name == 'Go for a walk'
+
+        cleanup:
+            activityRepository.delete(activity)
     }
 }
