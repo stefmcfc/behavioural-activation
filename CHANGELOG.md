@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-02
+
 ### Changed
 
 - The page header is now Title | Settings icon | Account icon, with navigation tabs demoted to a
