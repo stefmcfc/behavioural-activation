@@ -58,7 +58,11 @@ export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageP
   return (
     <main className={styles.shell}>
       <h1>Log in</h1>
-      {sessionExpired && <p>Your session has expired. Please log in again.</p>}
+      {sessionExpired && (
+        <p className={styles.sessionExpiredNotice} role="alert">
+          Your session has expired. Please log in again.
+        </p>
+      )}
       <form onSubmit={handleSubmit} noValidate>
         <div className={styles.field}>
           <label htmlFor="username">Username</label>

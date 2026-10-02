@@ -1,6 +1,7 @@
 # Graceful Session Expiry Handling
 
-**Status**: Implemented (2026-10-02) — all 8 ACs implemented and test-covered
+**Status**: Implemented (2026-10-02) — all 8 ACs implemented and test-covered, verified end-to-end in
+a real browser; AC-04's notice styling refined post-implementation per user feedback
 **Priority**: P2 — real UX bug found in use: the existing "Retry" button on an expired session can
 never succeed, and nothing tells the user why
 **Depends on**: `frontend_spec_001_login.md` (the `App.tsx` session gate and `LoginPage` this
@@ -54,12 +55,23 @@ shown/hidden/omitted). AC-06 (non-401 regression guard) relies on the pre-existi
 `WeeklyPlanner.test.tsx` (`FRONTEND-004-AC-38`) and `ActivityBank.test.tsx` (`FRONTEND-006-AC-13`)
 Retry-flow tests continuing to pass unchanged (confirmed), plus the dedicated
 `client.test.ts` case confirming the interceptor itself is a no-op for non-`401` statuses. Full
-suite: 411 tests passing (32 files), `npm run lint` (oxlint) clean, `npm run build` clean. Backend
-was running locally during verification (`GET /auth/me` confirmed returning `401` as expected); no
-interactive browser click-through was performed in this pass beyond confirming the dev server
-serves the app — this is a logic-only change with no new CSS, and the one new UI element (the
-expired-session `<p>` notice) reuses existing plain-paragraph text styling already present in
-`LoginPage`.
+suite: 411 tests passing (32 files), `npm run lint` (oxlint) clean, `npm run build` clean.
+
+**Verified end-to-end in a real browser** (Claude in Chrome, against the local dev stack): logged in,
+invalidated the session server-side directly (`POST /auth/logout` via `fetch`, bypassing the app's own
+logout flow — the same way an idle timeout would leave the client-side cookie present but the
+server-side session gone), triggered a subsequent API call from the UI, and confirmed the app correctly
+bounced to the login screen with the expired message; confirmed logging back in clears it and resumes
+normally.
+
+**Post-implementation refinement (2026-10-02)**: the user felt the initial plain, unstyled `<p>` notice
+didn't stand out enough. Amended `FRONTEND-029-AC-04` (see its own entry for the full rationale, ID
+unchanged) to require real visual prominence — a bordered, tinted, bold notice box, `role="alert"`.
+Added `--error-bg`/`--error-border` to `theme.css`, mirroring the shape of the existing
+`--accent-bg`/`--accent-border` tokens (same light/dark `light-dark()` pattern, same opacity values),
+rather than inventing one-off colors in the component file — keeps the design-token approach this
+project already uses elsewhere. Re-verified in a real browser after the change: the notice now renders
+as a clearly bordered, error-tinted box immediately below the "Log in" heading.
 
 ## Overview
 
@@ -137,14 +149,24 @@ shell.
 **References**: Component: `frontend/src/App.tsx` (`SessionState` type gains an `expired?: boolean`
 field on the `'unauthenticated'` variant)
 
-### FRONTEND-029-AC-04 [AUTO]: LoginPage shows a session-expired notice only when shown for that reason
+### FRONTEND-029-AC-04 [AUTO]: LoginPage shows a prominent session-expired notice only when shown for that reason
 **Statement**: `LoginPage` shall accept a new prop (e.g. `sessionExpired?: boolean`) and, when `true`,
-render a visible notice (e.g. "Your session has expired. Please log in again.") above the login form.
-When the prop is absent or `false` — the normal first-visit and explicit-logout cases — no such notice
-shall render.
+render a visually prominent notice (e.g. "Your session has expired. Please log in again.") above the
+login form — bordered, background-filled, and bold, not plain unstyled text, so it reads as an
+important system message rather than blending into the page. When the prop is absent or `false` — the
+normal first-visit and explicit-logout cases — no such notice shall render.
 
-**References**: Component: `frontend/src/components/LoginPage.tsx`, `frontend/src/App.tsx` (passes
-`sessionExpired={session.status === 'unauthenticated' && session.expired === true}`)
+**Rationale**: **Amended 2026-10-02** (ID unchanged): the user confirmed after the initial
+implementation that a plain, unstyled `<p>` didn't stand out enough — a session-expiry message is
+urgent (it explains why the page just changed out from under you) and needed real visual weight. Styled
+via new `--error-bg`/`--error-border` theme tokens, mirroring the shape of the existing
+`--accent-bg`/`--accent-border` tokens — a bordered, tinted box using the existing `--error` color,
+`role="alert"` for immediate screen-reader announcement.
+
+**References**: Component: `frontend/src/components/LoginPage.tsx`, `frontend/src/components/LoginPage.module.css`
+(`.sessionExpiredNotice`), `frontend/src/theme.css` (new `--error-bg`/`--error-border` tokens),
+`frontend/src/App.tsx` (passes `sessionExpired={session.status === 'unauthenticated' && session.expired
+=== true}`)
 
 ### FRONTEND-029-AC-05 [AUTO]: Logging back in clears the expired state and resumes normally
 **Statement**: After a session-expired `LoginPage` is shown and the user successfully logs in again,
