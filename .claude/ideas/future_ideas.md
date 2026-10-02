@@ -44,6 +44,12 @@ to its own real spec pair (`planner_spec_015_favourite_activities.md`/
 `frontend_spec_027_favourite_activities.md`, see `ROADMAP.md`'s "Specced, coming soon"), decoupled
 from the sidebar/drawer idea it was raised alongside — the sidebar/drawer entry itself remains here,
 trimmed to remove the now-specced favourites mention.
+Later the same day: the sidebar/drawer entry itself ("Drag-and-drop in the week planner: assign an
+unplanned activity via a sidebar/drawer") moved to a real spec
+(`frontend_spec_028_activity_drawer.md`, see `ROADMAP.md`'s "Specced, coming soon") — the design pass
+it was waiting on (panel placement, filter reuse) is done; removed from this file. This closes out
+the three-way split of the original "drag-and-drop in the week planner" idea
+(`frontend_spec_025`/`026`/`028`).
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -57,30 +63,6 @@ it, and building generic time-scheduling ahead of a real requirement would be so
 V1 doesn't have. The `slot` field is named generically (not something like `ThreePartDay`) and left
 nullable specifically so this would most likely be an *additive* future change (e.g. an optional
 `plannedTime` alongside the coarse `slot`), not a schema redesign, when/if it's actually needed.
-
-## Drag-and-drop in the week planner: assign an unplanned activity via a sidebar/drawer
-
-**Status**: Not specced. Split off 2026-10-01 from a broader "drag-and-drop in the week planner"
-idea during scoping — the other half (dragging an *already-planned* grid occurrence to a different
-slot within the current view) is now specced as `frontend_spec_025_grid_drag_to_move.md`
-(`ROADMAP.md`'s "Specced, coming soon"); this entry is what's left, still not specced.
-
-This half is about *assigning an unplanned activity/sub-task* onto a grid day/slot by dragging it,
-supplementing (not replacing) the existing click-to-assign flow (click "Add" → `AssignActivityPicker`
-modal). There is currently no persistent, always-visible list of activities within the Weekly
-Planner view to drag *from* — the Activity Bank is a separate tab/page — so this needs a new UI
-surface: most likely a collapsible sidebar/drawer panel that slides in from the side, listing
-activities/sub-tasks (filterable, same filters `AssignActivityPicker` already has), that the user
-drags items out of onto grid cells.
-
-Needs a real design pass before writing ACs (panel placement/interaction, filter UI reuse vs.
-duplication) — not just a markup reshuffle, similar to other open UI candidates in
-`.claude/SPEC_CANDIDATES.md`. The "favourite activities" concept once mooted alongside this idea (to
-make common activities faster to find/drag from such a panel) has been split out and specced
-separately — see `planner_spec_015_favourite_activities.md`/`frontend_spec_027_favourite_activities.md`
-in `ROADMAP.md`'s "Specced, coming soon" — this entry no longer depends on it; a future drawer could
-reasonably lean on favourites once both exist, but doesn't need to wait for this entry to be
-specced.
 
 ## Should a completed occurrence be movable?
 
