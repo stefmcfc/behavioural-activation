@@ -142,6 +142,17 @@ whenever this actually gets spec'd, not just a nice-to-have tone note.
   row" callout) — worth stating explicitly as a design constraint whenever this is scoped, so a
   well-meaning later feature doesn't quietly turn a private note into a scored data point.
 
+## Pagination on `GET /api/v1/activities` (and similar unbounded list endpoints)
+
+**Status**: Not specced. Raised 2026-10-02 during a deliberate performance investigation (alongside
+`planner_spec_017_plan_response_n_plus_one.md`/`planner_spec_018_bulk_sub_task_fetch.md`, the two
+findings from that same pass that *were* confirmed worth specifying). `GET /api/v1/activities`
+returns every activity owned by the user in one unbounded list, with no `limit`/`offset`/cursor —
+matches this app's stated personal/small-scale use (`.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` §7a),
+genuinely fine today and for the foreseeable future. Logged here, not actioned, in case the activity
+count ever grows enough (e.g. heavy multi-user adoption) for an unbounded response to start mattering
+— revisit only if that actually happens, don't build pagination ahead of a concrete need for it.
+
 ## Self-hosted/local LLM inference for AI features
 
 **Status**: Not specced — deliberately deferred, not rejected. See

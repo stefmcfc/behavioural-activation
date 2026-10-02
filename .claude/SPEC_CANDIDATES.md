@@ -14,7 +14,13 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-02 (the button-hierarchy candidate moved to a real spec —
+Last updated: 2026-10-02 (the bulk sub-task fetch candidate moved to a real spec pair —
+`planner_spec_018_bulk_sub_task_fetch.md`/`frontend_spec_033_bulk_sub_task_fetch.md`, see
+`ROADMAP.md`'s "Specced, coming soon" — removed from this file. A second, related finding from the
+same performance investigation, the `GET /api/v1/plan` N+1, was *not* in this file — it moved
+straight to a real spec, `planner_spec_017_plan_response_n_plus_one.md`, same as several other
+findings this session that skipped this file entirely.)
+Earlier note: 2026-10-02, the button-hierarchy candidate moved to a real spec —
 `frontend_spec_031_button_hierarchy.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
 this file.)
 Earlier note: 2026-10-02, the header restructure candidate moved to a real spec —
@@ -55,22 +61,6 @@ Explicitly deferred rather than dropped: current usage is desktop-only, so there
 today, but worth a proper Pointer-Events-based (or a maintained sortable library's touch-aware)
 reorder implementation if/when this app sees real mobile use of the bucket list. Revisit if that
 usage pattern actually shows up, rather than building ahead of it.
-
-## Bulk sub-task fetch endpoint (fix N+1 in AssignActivityPicker)
-
-**Status**: Confirmed, not yet specced. Deferred 2026-10-01, raised by the modern-web-guidance
-frontend review (`.claude/modern-web-guidance/reviews/review-2026-10-01.md`, finding "Optional #2").
-`AssignActivityPicker.tsx` calls `activityApi.getAll()` then fans out one
-`subTaskApi.getAll(activityId)` call per activity (parallelized via `Promise.all`, so not a
-sequential waterfall, but still N+1 round trips). There is currently no bulk endpoint — only
-`GET /api/v1/activities/{activityId}/sub-tasks`, one activity at a time.
-
-A real fix needs a new backend endpoint (e.g. all sub-tasks for the authenticated user in one call,
-or eager-loading sub-tasks onto the existing activities response) plus the matching `API.md` update
-and frontend consumption change — a full backend+frontend spec pair, not a frontend-only tweak.
-Deferred rather than actioned now: this is a scale/performance concern, not an active problem at
-this app's current (personal-use) activity counts. Revisit if the activity list grows enough for the
-extra round trips to matter in practice.
 
 ## Filter the Weekly Planner by completed status and by category
 
