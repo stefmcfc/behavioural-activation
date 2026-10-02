@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-10-02
+
+### Added
+
+- A new "Today" tab shows just the current day's plan (grid + weekend bucket list) — a faster view
+  than the full weekly grid when you just want to know what's on today. Supports Add/Complete/Undo
+  and the full detail card, exactly like the Weekly Planner.
+- Today's "Browse activities" panel lets you drag an unplanned activity or sub-task straight onto
+  today's plan — the same idea the Weekly Planner tried and had removed, now with a visible drag
+  handle so it's actually clear items can be dragged.
+
 ## [0.25.1] - 2026-10-02
 
 ### Removed

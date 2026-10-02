@@ -30,6 +30,30 @@ describe('FRONTEND-005-AC-01/AC-03: TabNav renders labelled links, marks the act
   })
 })
 
+describe('FRONTEND-016-AC-01: TabNav gains a Today entry', () => {
+  it('renders a Today link routed to /today', () => {
+    render(
+      <MemoryRouter initialEntries={['/activities']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    const todayLink = screen.getByRole('link', { name: 'Today' })
+    expect(todayLink).toBeInTheDocument()
+    expect(todayLink).toHaveAttribute('href', '/today')
+  })
+
+  it('marks the Today link active when on /today', () => {
+    render(
+      <MemoryRouter initialEntries={['/today']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Today' })).toHaveAttribute('aria-current', 'page')
+  })
+})
+
 describe('FRONTEND-030-AC-02: TabNav no longer lists Settings', () => {
   it('does not render a Settings link', () => {
     render(

@@ -4,6 +4,7 @@ import styles from './TabNav.module.css'
 const TABS = [
   { to: '/activities', label: 'Activities' },
   { to: '/planner', label: 'Weekly Planner' },
+  { to: '/today', label: 'Today' },
 ] as const
 
 export function TabNav() {

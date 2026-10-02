@@ -1,0 +1,17 @@
+.toolbar {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+/* align-items: stretch (not flex-start) so the drawer matches .main's full height -- it grows
+   down to the bottom of the bucket list instead of stopping partway down a tall column. */
+.layout {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.main {
+  flex: 1 1 auto;
+  min-width: 0;
+}

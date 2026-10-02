@@ -279,6 +279,33 @@ describe('App', () => {
     })
   })
 
+  describe('FRONTEND-016-AC-01/AC-02: Today is a routed, protected top-level tab', () => {
+    it('navigates to /today and renders TodayView when the Today tab is clicked', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('link', { name: /today/i }))
+
+      expect(await screen.findByRole('heading', { name: /^today$/i })).toBeInTheDocument()
+    })
+
+    it('redirects an unauthenticated visit to /today to the login page', async () => {
+      vi.mocked(authApi.me).mockRejectedValue({ status: 401 })
+      render(
+        <MemoryRouter initialEntries={['/today']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-005-AC-04: root redirects to /activities', () => {
     it('renders the Activities tab as active when loaded at /', async () => {
       vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
