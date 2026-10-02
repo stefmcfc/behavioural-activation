@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-10-02
+
 ### Added
 
 - The session timeout (how long you can stay idle before being logged out) is now configurable via
@@ -14,8 +16,9 @@ All notable changes to this project are documented in this file, in
 ### Fixed
 
 - If your session expires while you're using the app, you're now returned to the login screen with
-  a clear "Your session has expired. Please log in again." message, instead of being stuck on a
-  page showing "Authentication required" with a "Retry" button that could never actually succeed.
+  a clear, prominently-styled "Your session has expired. Please log in again." message, instead of
+  being stuck on a page showing "Authentication required" with a "Retry" button that could never
+  actually succeed.
 
 ## [0.22.0] - 2026-10-02
 
