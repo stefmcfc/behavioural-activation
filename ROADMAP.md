@@ -69,6 +69,7 @@ header restructure and button-hierarchy candidates).
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
 | Activity drawer — drag an unplanned activity onto the grid/bucket | — (frontend-only) | [`frontend_spec_028_activity_drawer.md`](.claude/specs/frontend_spec_028_activity_drawer.md) | Not started. Toggle sidebar, drag-only, shares a new `ActivityPickerList` component with the existing "Add" modal. Final piece of the drag-and-drop idea split across `frontend_spec_025`/`026`/this. |
+| Graceful session expiry handling | [`planner_spec_016_configurable_session_timeout.md`](.claude/specs/planner_spec_016_configurable_session_timeout.md) | [`frontend_spec_029_session_expiry_handling.md`](.claude/specs/frontend_spec_029_session_expiry_handling.md) | Not started. A global 401 handler bounces an expired session to the login screen with a clear message, instead of a broken "Retry" loop; session timeout becomes configurable via `SESSION_TIMEOUT` (default unchanged, 30m). Found in real use. |
 
 ## Internal / maintenance specs
 
