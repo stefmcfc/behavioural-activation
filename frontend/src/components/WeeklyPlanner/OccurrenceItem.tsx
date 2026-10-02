@@ -6,6 +6,7 @@ import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import styles from './OccurrenceItem.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 interface OccurrenceItemProps {
   readonly occurrence: PlannedOccurrence
@@ -180,7 +181,7 @@ export function OccurrenceItem({
       {occurrence.completed ? (
         <button
           type="button"
-          className={styles.completeButton}
+          className={`${styles.completeButton} ${buttonStyles.primary}`}
           onClick={() => onUndo(occurrence.id)}
           disabled={isBusy}
         >
@@ -189,7 +190,7 @@ export function OccurrenceItem({
       ) : (
         <button
           type="button"
-          className={styles.completeButton}
+          className={`${styles.completeButton} ${buttonStyles.primary}`}
           onClick={() => onComplete(occurrence.id)}
           disabled={isBusy}
         >

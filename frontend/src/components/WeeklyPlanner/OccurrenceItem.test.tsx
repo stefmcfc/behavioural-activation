@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { OccurrenceItem } from './OccurrenceItem'
 import styles from './OccurrenceItem.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 import type { PlannedOccurrence } from '../../types/plan'
 
 const gridOccurrence: PlannedOccurrence = {
@@ -449,5 +450,67 @@ describe('FRONTEND-011-AC-04: the label never uses fault/lateness wording', () =
     expect(screen.queryByText(/overdue/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/missed/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/\blate\b/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-031-AC-12: Complete/Undo toggle is primary in both states', () => {
+  it('combines styles.completeButton with buttonVariants.primary when incomplete ("Complete")', () => {
+    render(<OccurrenceItem {...baseProps()} />)
+    const completeButton = screen.getByRole('button', { name: /^complete$/i })
+    expect(completeButton).toHaveClass(styles.completeButton)
+    expect(completeButton).toHaveClass(buttonStyles.primary)
+  })
+
+  it('combines styles.completeButton with buttonVariants.primary when completed ("Undo")', () => {
+    render(<OccurrenceItem {...baseProps({ occurrence: { ...gridOccurrence, completed: true } })} />)
+    const undoButton = screen.getByRole('button', { name: /^undo$/i })
+    expect(undoButton).toHaveClass(styles.completeButton)
+    expect(undoButton).toHaveClass(buttonStyles.primary)
+  })
+})
+
+describe('FRONTEND-031-AC-16: regression guard -- detail-card actions stay unstyled', () => {
+  it('leaves Rearrange, Remove, Carry forward, and Close with no variant class', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true, detailOpenId: 'o3' })}
+      />,
+    )
+
+    const buttons = [
+      screen.getByRole('button', { name: /^rearrange$/i }),
+      screen.getByRole('button', { name: /^remove$/i }),
+      screen.getByRole('button', { name: /carry forward/i }),
+      screen.getByRole('button', { name: /^close$/i }),
+    ]
+    for (const button of buttons) {
+      expect(button).not.toHaveClass(buttonStyles.primary)
+      expect(button).not.toHaveClass(buttonStyles.destructive)
+    }
+  })
+
+  it('leaves Confirm remove and Cancel (remove flow) with no variant class', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ detailOpenId: 'o1', confirmingRemoveId: 'o1' })}
+      />,
+    )
+    const confirmRemove = screen.getByRole('button', { name: /confirm remove/i })
+    const cancel = screen.getByRole('button', { name: /^cancel$/i })
+    for (const button of [confirmRemove, cancel]) {
+      expect(button).not.toHaveClass(buttonStyles.primary)
+      expect(button).not.toHaveClass(buttonStyles.destructive)
+    }
+  })
+
+  it('leaves Confirm rearrange, Send to bucket, and Cancel (rearrange flow) with no variant class', () => {
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', movingId: 'o1' })} />)
+    const confirmRearrange = screen.getByRole('button', { name: /confirm rearrange/i })
+    const sendToBucket = screen.getByRole('button', { name: /send to bucket/i })
+    const cancel = screen.getByRole('button', { name: /^cancel$/i })
+    for (const button of [confirmRearrange, sendToBucket, cancel]) {
+      expect(button).not.toHaveClass(buttonStyles.primary)
+      expect(button).not.toHaveClass(buttonStyles.destructive)
+    }
   })
 })

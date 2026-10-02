@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { BucketList } from './BucketList'
 import styles from './BucketList.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 import type { DragPayload } from './dragPayload'
 import type { PlannedOccurrence } from '../../types/plan'
 
@@ -85,6 +86,37 @@ describe('FRONTEND-007-AC-24: bucket list wrapper is a flat panel', () => {
     render(<BucketList {...baseBucketProps()} />)
 
     expect(screen.getByRole('region', { name: /weekend bucket list/i })).toHaveClass(styles.panel)
+  })
+})
+
+describe('FRONTEND-031-AC-08: "Add" (to weekend bucket list) button is primary', () => {
+  it('gains buttonVariants.primary', () => {
+    render(<BucketList {...baseBucketProps()} />)
+
+    expect(screen.getByRole('button', { name: /add to weekend bucket list/i })).toHaveClass(
+      buttonStyles.primary,
+    )
+  })
+})
+
+describe('FRONTEND-031-AC-16: regression guard -- Move up/down stay unstyled', () => {
+  it('leaves the move-up/move-down buttons with no variant class', () => {
+    const occurrences = [
+      bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 }),
+      bucketOccurrence({ id: 'b', name: 'Second', bucketPosition: 1 }),
+    ]
+    render(<BucketList {...baseBucketProps({ occurrences })} />)
+
+    const moveButtons = [
+      screen.getByRole('button', { name: /move first up/i }),
+      screen.getByRole('button', { name: /move first down/i }),
+      screen.getByRole('button', { name: /move second up/i }),
+      screen.getByRole('button', { name: /move second down/i }),
+    ]
+    for (const button of moveButtons) {
+      expect(button).not.toHaveClass(buttonStyles.primary)
+      expect(button).not.toHaveClass(buttonStyles.destructive)
+    }
   })
 })
 

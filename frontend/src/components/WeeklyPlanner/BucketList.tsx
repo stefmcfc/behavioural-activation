@@ -3,6 +3,7 @@ import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/pla
 import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
 import styles from './BucketList.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 const CATEGORY_LABELS: Record<ActivityCategory, string> = {
   ROUTINE: 'Routine',
@@ -159,7 +160,12 @@ export function BucketList({
     >
       <div className={styles.header}>
         <h3>Weekend bucket list</h3>
-        <button type="button" onClick={onAdd} aria-label="Add to weekend bucket list">
+        <button
+          type="button"
+          className={buttonStyles.primary}
+          onClick={onAdd}
+          aria-label="Add to weekend bucket list"
+        >
           Add
         </button>
       </div>

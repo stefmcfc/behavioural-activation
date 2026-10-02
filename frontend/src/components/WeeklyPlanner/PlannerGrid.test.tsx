@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
 import type { DragPayload } from './dragPayload'
 import type { PlanDayOfWeek, PlannedOccurrence } from '../../types/plan'
@@ -75,6 +76,16 @@ describe('FRONTEND-007-AC-23: planner grid cells are flat panels', () => {
     renderGrid()
 
     expect(screen.getByLabelText('Add to Monday Morning').closest(`.${styles.cell}`)).not.toBeNull()
+  })
+})
+
+describe('FRONTEND-031-AC-16: regression guard -- per-cell Add buttons stay unstyled', () => {
+  it('leaves the per-cell Add button with no variant class', () => {
+    renderGrid()
+
+    const addButton = screen.getByLabelText('Add to Monday Morning')
+    expect(addButton).not.toHaveClass(buttonStyles.primary)
+    expect(addButton).not.toHaveClass(buttonStyles.destructive)
   })
 })
 

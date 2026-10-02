@@ -5,6 +5,7 @@ import { LoginPage } from './LoginPage'
 import { authApi } from '../services/authApi'
 import type { User } from '../types/auth'
 import styles from './LoginPage.module.css'
+import buttonStyles from '../styles/buttonVariants.module.css'
 
 vi.mock('../services/authApi')
 
@@ -151,6 +152,13 @@ describe('LoginPage', () => {
       render(<LoginPage onLoginSuccess={vi.fn()} />)
       fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
       expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled()
+    })
+  })
+
+  describe('FRONTEND-031-AC-09: "Log in" submit button is primary', () => {
+    it('gains buttonVariants.primary', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      expect(screen.getByRole('button', { name: 'Log in' })).toHaveClass(buttonStyles.primary)
     })
   })
 })

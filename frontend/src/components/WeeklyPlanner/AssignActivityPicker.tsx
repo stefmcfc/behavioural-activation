@@ -4,6 +4,7 @@ import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/pla
 import { planApi } from '../../services/planApi'
 import { ActivityPickerList, type ActivityPickerSelection } from './ActivityPickerList'
 import styles from './AssignActivityPicker.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -81,7 +82,12 @@ export function AssignActivityPicker({
       </div>
 
       <div className={styles.footer}>
-        <button type="button" onClick={handleAssign} disabled={!selected || isSubmitting}>
+        <button
+          type="button"
+          className={buttonStyles.primary}
+          onClick={handleAssign}
+          disabled={!selected || isSubmitting}
+        >
           Assign
         </button>
         <button type="button" onClick={onCancel}>

@@ -1,0 +1,26 @@
+/* FRONTEND-031: shared button-variant classes (primary/destructive). No "secondary" export --
+   the existing global `button` rule in index.css already is that state. Neither variant defines
+   its own focus-ring override (AC-04) -- both keep inheriting index.css's focus-visible outline
+   rule, accent-coloured, unchanged. */
+
+.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.primary:hover {
+  box-shadow:
+    rgba(43, 42, 40, 0.1) 0 2px 4px, rgba(43, 42, 40, 0.28) 0 6px 14px -6px;
+}
+
+.destructive {
+  background: var(--error);
+  border-color: var(--error);
+  color: var(--error-ink);
+}
+
+.destructive:hover {
+  box-shadow:
+    rgba(43, 42, 40, 0.1) 0 2px 4px, rgba(43, 42, 40, 0.28) 0 6px 14px -6px;
+}

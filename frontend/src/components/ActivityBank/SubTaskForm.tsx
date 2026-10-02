@@ -3,6 +3,7 @@ import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
 import styles from './SubTaskForm.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 interface SubTaskFormProps {
   readonly mode: 'create' | 'edit'
@@ -104,7 +105,7 @@ export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: 
       </div>
 
       <div className={styles.actions}>
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" className={buttonStyles.primary} disabled={isSubmitting}>
           {mode === 'edit' ? 'Save changes' : 'Save sub-task'}
         </button>
         {onCancel && (

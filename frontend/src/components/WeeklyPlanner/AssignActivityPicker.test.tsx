@@ -6,6 +6,7 @@ import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import type { Activity } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/activityApi')
 vi.mock('../../services/subTaskApi')
@@ -348,6 +349,33 @@ describe('AssignActivityPicker', () => {
 
       await userEvent.click(within(group).getByRole('radio', { name: 'All' }))
       expect(screen.getByRole('button', { name: 'Apply for jobs' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-031-AC-15: regression guard -- selection-row buttons stay unstyled', () => {
+    it('leaves an activity selection-row button with no variant class', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
+      expect(activityButton).not.toHaveClass(buttonStyles.primary)
+      expect(activityButton).not.toHaveClass(buttonStyles.destructive)
+    })
+  })
+
+  describe('FRONTEND-031-AC-11: "Assign" button is primary; Cancel is not', () => {
+    it('applies primary to Assign and no variant to Cancel', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByText(/no activities yet/i)
+      const assignButton = screen.getByRole('button', { name: 'Assign' })
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      expect(assignButton).toHaveClass(buttonStyles.primary)
+      expect(cancelButton).not.toHaveClass(buttonStyles.primary)
+      expect(cancelButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
 })

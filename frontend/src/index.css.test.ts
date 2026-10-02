@@ -40,6 +40,13 @@ describe('FRONTEND-007-AC-10/AC-11/AC-12: global button base styles', () => {
   })
 })
 
+describe('FRONTEND-031-AC-05: disabled-state dimming', () => {
+  it('defines a generic button:disabled rule with reduced opacity and not-allowed cursor', () => {
+    expect(indexCss).toMatch(/button:disabled\s*\{[^}]*opacity:/s)
+    expect(indexCss).toMatch(/button:disabled\s*\{[^}]*cursor:\s*not-allowed/s)
+  })
+})
+
 describe('FRONTEND-007-AC-14: text input/textarea/select base styles', () => {
   it('defines the moderate-radius field rule', () => {
     expect(indexCss).toMatch(/input\[type="text"\],\s*textarea,\s*select\s*\{[^}]*border-radius:\s*6px/s)
