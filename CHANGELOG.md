@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-02
+
 ### Added
 
 - You can now drag an already-planned grid occurrence directly onto the weekend bucket list to
