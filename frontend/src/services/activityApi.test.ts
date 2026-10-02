@@ -36,6 +36,7 @@ describe('activityApi', () => {
       description: null,
       repeatable: true,
       archived: false,
+      favourite: false,
       createdAt: '2026-09-28T00:00:00Z',
     }
     get.mockResolvedValue({ data: { data: [activity], count: 1 } })
@@ -78,6 +79,7 @@ describe('activityApi', () => {
       description: null,
       repeatable: true,
       archived: false,
+      favourite: false,
       createdAt: '2026-09-28T00:00:00Z',
     }
     post.mockResolvedValue({ data: created })
@@ -106,6 +108,7 @@ describe('activityApi', () => {
       description: null,
       repeatable: true,
       archived: false,
+      favourite: false,
       createdAt: '2026-09-28T00:00:00Z',
     }
     put.mockResolvedValue({ data: updated })
@@ -172,5 +175,32 @@ describe('activityApi', () => {
     await activityApi.unarchive('1')
 
     expect(del).toHaveBeenCalledWith('/activities/1/archive')
+  })
+
+  it('FRONTEND-027: markFavourite() posts to the favourite endpoint and returns the updated activity', async () => {
+    const favourited = {
+      id: '1',
+      name: 'Walk',
+      category: 'ROUTINE',
+      description: null,
+      repeatable: true,
+      archived: false,
+      favourite: true,
+      createdAt: '2026-09-28T00:00:00Z',
+    }
+    post.mockResolvedValue({ data: favourited })
+
+    const result = await activityApi.markFavourite('1')
+
+    expect(result).toEqual(favourited)
+    expect(post).toHaveBeenCalledWith('/activities/1/favourite')
+  })
+
+  it('FRONTEND-027: unmarkFavourite() deletes the favourite endpoint and resolves with no value', async () => {
+    del.mockResolvedValue({ data: undefined })
+
+    await activityApi.unmarkFavourite('1')
+
+    expect(del).toHaveBeenCalledWith('/activities/1/favourite')
   })
 })

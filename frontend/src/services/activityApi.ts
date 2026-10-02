@@ -20,4 +20,10 @@ export const activityApi = {
 
   unarchive: (id: string): Promise<void> =>
     request<void>(() => client.delete(`/activities/${id}/archive`)),
+
+  markFavourite: (id: string): Promise<Activity> =>
+    request<Activity>(() => client.post(`/activities/${id}/favourite`)),
+
+  unmarkFavourite: (id: string): Promise<void> =>
+    request<void>(() => client.delete(`/activities/${id}/favourite`)),
 }

@@ -7,6 +7,7 @@ import { SubTaskList } from './SubTaskList'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './ActivityBank.module.css'
 
@@ -48,8 +49,11 @@ export function ActivityBank() {
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
+  const [favouriteFilter, setFavouriteFilter] = useState(false)
   const [unarchivingId, setUnarchivingId] = useState<string | null>(null)
   const [unarchiveError, setUnarchiveError] = useState<string | null>(null)
+  const [favouritingId, setFavouritingId] = useState<string | null>(null)
+  const [favouriteError, setFavouriteError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const fetchActivities = (includeArchived: boolean, onCancelled: () => boolean = () => false) => {
@@ -95,6 +99,31 @@ export function ActivityBank() {
       setUnarchiveError(getErrorMessage(error))
     } finally {
       setUnarchivingId(null)
+    }
+  }
+
+  const handleToggleFavourite = async (activity: Activity) => {
+    setFavouriteError(null)
+    setFavouritingId(activity.id)
+    try {
+      if (activity.favourite) {
+        await activityApi.unmarkFavourite(activity.id)
+        setActivities((previous) =>
+          previous?.map((existing) =>
+            existing.id === activity.id ? { ...existing, favourite: false } : existing,
+          ) ?? previous,
+        )
+      } else {
+        const updated = await activityApi.markFavourite(activity.id)
+        setActivities((previous) =>
+          previous?.map((existing) => (existing.id === activity.id ? updated : existing)) ??
+          previous,
+        )
+      }
+    } catch (error) {
+      setFavouriteError(getErrorMessage(error))
+    } finally {
+      setFavouritingId(null)
     }
   }
 
@@ -189,7 +218,9 @@ export function ActivityBank() {
   }
 
   const visibleActivities = (activities ?? []).filter(
-    (activity) => categoryFilter === 'ALL' || activity.category === categoryFilter,
+    (activity) =>
+      (categoryFilter === 'ALL' || activity.category === categoryFilter) &&
+      (!favouriteFilter || activity.favourite),
   )
 
   return (
@@ -230,14 +261,24 @@ export function ActivityBank() {
 
         <fieldset className={styles.filterFieldset}>
           <legend>Filter by status</legend>
-          <label className={styles.archivedToggle}>
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-            />{' '}
-            Show archived
-          </label>
+          <div className={styles.statusToggleGroup}>
+            <label className={styles.archivedToggle}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(event) => setShowArchived(event.target.checked)}
+              />{' '}
+              Show archived
+            </label>
+            <label className={styles.archivedToggle}>
+              <input
+                type="checkbox"
+                checked={favouriteFilter}
+                onChange={(event) => setFavouriteFilter(event.target.checked)}
+              />{' '}
+              Favourites only
+            </label>
+          </div>
         </fieldset>
 
         <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
@@ -255,6 +296,7 @@ export function ActivityBank() {
       )}
       {deleteError && <p role="alert">{deleteError}</p>}
       {unarchiveError && <p role="alert">{unarchiveError}</p>}
+      {favouriteError && <p role="alert">{favouriteError}</p>}
 
       {activities === null && !loadError && <output>Loading activities…</output>}
 
@@ -270,6 +312,16 @@ export function ActivityBank() {
         <ul className={styles.list}>
           {visibleActivities.map((activity) => (
             <li key={activity.id} className={styles.row}>
+              <button
+                type="button"
+                className={styles.favouriteToggle}
+                aria-pressed={activity.favourite}
+                aria-label={activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`}
+                onClick={() => handleToggleFavourite(activity)}
+                disabled={favouritingId === activity.id}
+              >
+                <FavouriteIcon filled={activity.favourite} />
+              </button>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
               {activity.repeatable && <RepeatableIcon />}
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}

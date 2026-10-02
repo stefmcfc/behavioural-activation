@@ -1,6 +1,7 @@
 # Favourite Activities (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 20 ACs green, including AC-05/AC-09 `[MANUAL]`, confirmed
+in a real browser; see "Post-implementation refinement" in Summary
 **Priority**: P3 — quality-of-life speed-up for finding commonly-used activities, no new domain
 capability
 **Depends on**: `planner_spec_015_favourite_activities.md` (the backend endpoints/field this
@@ -10,6 +11,97 @@ consumes — must land first), `frontend_spec_002_activity_bank.md` (the `Activi
 (the `RepeatableIcon` read-only-badge pattern this mirrors with a new `FavouriteIcon`)
 **Area**: Frontend only
 **Roadmap version**: V2-ish polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme
+
+## Summary
+
+Implemented as scoped. `Activity` gained `favourite: boolean`; `activityApi` gained
+`markFavourite(id)`/`unmarkFavourite(id)` (POST/DELETE `/activities/{id}/favourite`), mirroring
+`archive`/`unarchive` exactly. New shared `FavouriteIcon` component mirrors `RepeatableIcon` (simple
+`role="img"` `aria-label="Favourite"` SVG, no props, own CSS module, star path).
+
+`ActivityBank`: a favourite-toggle `<button>` (containing `<FavouriteIcon />`, `aria-pressed`,
+label text "Favourite"/"Unfavourite") was added to `renderRowActions`, present on both the archived
+and non-archived branches, with its own `favouritingId`/`favouriteError` state mirroring
+`handleUnarchive`'s structure exactly. A "Favourites only" checkbox (new `favouriteFilter` state,
+styled with the same `.archivedToggle` class as "Show archived") composes as an additional `AND`
+condition in `visibleActivities`, purely client-side, no re-fetch.
+
+`AssignActivityPicker`: a read-only `<FavouriteIcon />` renders next to a favourited activity's name
+alongside the existing `<CategoryChip>`/`<RepeatableIcon />` badges — no click handler, never
+rendered on sub-task rows. A "Favourites only" checkbox fieldset (new `favouriteFilter` state)
+composes as an additional `AND` condition alongside the existing category/repeatable filters;
+sub-task rendering is untouched, so a shown favourited activity's sub-tasks still render in full.
+
+No client-side `.sort()` was introduced in either component — both `visibleActivities` filters remain
+`Array.prototype.filter` only, confirmed by a dedicated regression-guard test in each component
+(AC-04/AC-08) asserting the backend's favourite-first order passes through unchanged.
+
+All 14 `[AUTO]` ACs (01–04, 06–08, 10–16) are covered by Vitest/RTL tests and pass. `npm test`
+(372/372 across 30 files) and `npm run lint` (oxlint, 0 findings) are green; `npm run build`
+(`tsc -b && vite build`) also passes cleanly. AC-05 and AC-09 (`[MANUAL]` real-browser visual checks)
+confirmed afterward (Claude in Chrome, against the local dev stack, logged in as the seeded user):
+in `ActivityBank`, the star toggle button (text "Favourite"/"Unfavourite") renders cleanly alongside
+the category chip and existing row actions with no overlap; toggling it round-trips through the real
+`POST`/`DELETE /api/v1/activities/{id}/favourite` endpoints and survives a page reload, with the
+favourited activity correctly pinned to the top of the list (`planner_spec_015`-AC-10 observed live).
+In `AssignActivityPicker`, the read-only star indicator is legible and clearly distinct from the
+category chip and repeatable icon at the picker's denser row size. The "Favourites only" checkbox
+filter was also exercised live in both surfaces, styled identically to the existing "Show archived"
+toggle as the user specifically asked for.
+
+**Real findings**:
+- Adding `favourite: boolean` to the `Activity` interface required updating every existing
+  `Activity`-typed object literal across `ActivityBank.test.tsx`, `AssignActivityPicker.test.tsx`,
+  `WeeklyPlanner.test.tsx`, `ActivityForm.test.tsx`, and `activityApi.test.ts` (the TypeScript
+  compiler, not Vitest/esbuild, is what caught these — `tsc -b` via `npm run build` was the
+  authoritative check since Vitest's esbuild transform doesn't type-check).
+- An extra (non-AC, but implied by "mirror `handleUnarchive`'s structure") test was added confirming
+  a failed `markFavourite` call surfaces an alert and leaves the toggle unchanged, matching the
+  existing unarchive-failure precedent.
+
+**Post-implementation refinement (2026-10-02)**: after the above shipped, the user raised four
+real-usage issues, addressed in the same change (ACs renumbered/added, not a separate spec, since
+this hadn't merged yet):
+1. **"Show archived"/"Favourites only" pills were colliding, especially with a visible border.** The
+   two `<label>`s sat directly inside the status `<fieldset>` with no flex container, so they had no
+   gap between them. Fixed by wrapping both in a new `.statusToggleGroup` (`display:flex;
+   flex-wrap:wrap; gap:0.5rem`) — pure CSS, no AC behavior change, not worth a new AC.
+2. **The favourite "CTA" (a text button reading "Favourite"/"Unfavourite" in the actions list) became
+   an icon-only toggle positioned before the activity name**, not in the actions list. `FavouriteIcon`
+   gained an optional `filled` prop (default `true`, so every existing read-only usage — the badge in
+   `AssignActivityPicker` — is unaffected) so the toggle can render a filled star when favourited and
+   an outline star (`var(--text)`, not `var(--accent)`) when not — a real toggle affordance, not a
+   static icon. Amends `FRONTEND-027-AC-01`'s statement (see Requirement 1) rather than adding a new
+   AC, since it's the same requirement with a different DOM shape — the ID is unchanged.
+3. **New Requirement 5**: the Add/Edit Activity modal (`ActivityForm`) gained its own favourite
+   toggle (`FRONTEND-027-AC-17` through `AC-20`) — a checkbox + `FavouriteIcon`, mirroring the
+   existing Repeatable field's shape exactly. `favourite` still can't be part of `ActivityRequest`
+   (`planner_spec_015`'s orthogonality rule, unchanged) — the form's toggle is local state until
+   submit, then applies via the same dedicated `markFavourite`/`unmarkFavourite` endpoints
+   immediately after create/update succeeds, only when the toggle actually changed the value (no
+   redundant call on a no-op edit).
+4. **`AssignActivityPicker`'s favourite filter became a two-option pill group ("All" / "Favourites
+   only"), not a checkbox**, to visually match the category/type filter pills. This could **not** be
+   done by just extending the existing checkbox-as-hidden-pill CSS trick — `moduleStyles.test.ts`'s
+   `FRONTEND-007-AC-26` explicitly guards `AssignActivityPicker.module.css` against hiding any
+   `input` type other than `radio` (a deliberate anti-bespoke-styling rule from the visual-refresh
+   spec), so a checkbox styled the same way would have violated an existing, tested architectural
+   rule. Converting to a real two-option radio group (`FavouriteFilter = 'ALL' | 'FAVOURITES_ONLY'`,
+   mirroring `RepeatableFilter`'s shape) reuses the already-blessed radio-pill idiom instead of
+   extending a forbidden one. Amends `FRONTEND-027-AC-10`/`AC-11`/`AC-13`/`AC-14`/`AC-16`'s statements
+   to reflect "select/not-select a pill option" instead of "check/uncheck a checkbox" — `AC-12`/`AC-15`
+   needed no wording change. IDs unchanged throughout.
+
+**Unrelated cosmetic fix bundled into the same pass**: while verifying refinement 4 above in a real
+browser, the user separately reported the leftmost filter pill's focus outline getting clipped at the
+left edge of the `AssignActivityPicker` modal. Root cause: `.scrollBody`'s `overflow-y: auto` with no
+explicit `overflow-x` computes `overflow-x: auto` too (per the CSS2.1 overflow interaction rule), so
+any focus outline extending past the content box — even by 2px — gets clipped by the scroll
+container, regardless of the dialog's own padding. `ActivityForm.module.css`'s `.scrollBody` already
+works around this (`padding: 0 6px; margin: 0 -6px;` — padding reserves room for the outline, the
+negative margin cancels the visual shift). Applied the identical fix to
+`AssignActivityPicker.module.css`. Not tied to any AC — jsdom doesn't lay out real focus rings, so
+there was never a test that could have caught this; confirmed visually in a real browser instead.
 
 ## Overview
 
@@ -60,30 +152,40 @@ archive) — adding favourite-toggle there is consistent, not a new pattern; (c)
 reflected read-only everywhere else it matters. **This is a judgment call, not a settled product
 decision** — redirect if toggling directly from the picker turns out to matter in practice.
 
-**Judgment call, flagged explicitly — a checkbox, not a three-state filter**: the new "Favourites
-only" filter (Requirements 3/4) is a single checkbox (favourite / not-filtered), not a three-state
-radio group like the existing repeatable filter (`ALL`/`REPEATABLE`/`ONE_OFF`). Reasoning: a
-"show only non-favourites" state has no obvious use case (unlike "show only one-off activities",
-which is a real planning question), so a third state would just be dead weight — mirrors the existing
-"Show archived" checkbox's shape, not the repeatable filter's. **This is a judgment call** — easy to
-widen to a three-state filter later if "hide my favourites" turns out to matter.
+**Judgment call, flagged explicitly — two states, not three**: the new "Favourites only" filter
+(Requirements 3/4) is binary (favourite / not-filtered), not a three-state group like the existing
+repeatable filter (`ALL`/`REPEATABLE`/`ONE_OFF`). Reasoning: a "show only non-favourites" state has no
+obvious use case (unlike "show only one-off activities", which is a real planning question), so a
+third state would just be dead weight. **This is a judgment call** — easy to widen to a three-state
+filter later if "hide my favourites" turns out to matter. (The *mechanism* for that binary choice
+differs between the two surfaces — `ActivityBank` uses a checkbox mirroring its existing "Show
+archived" toggle; `AssignActivityPicker` uses a two-option `All`/`Favourites only` radio-pill group,
+amended post-implementation — see Summary — to respect that component's existing
+`FRONTEND-007-AC-26` guard against styling any input type but `radio` as a hidden pill. Both still
+express the same two-state decision, not three.)
 
 ## Requirement 1: Activity Bank — toggle and display a favourite status
 
 **User story**: As a user with a long activity bank, I want to mark the activities I plan with often
 as favourites with one click, so they're easy to find at the top of my list.
 
-### FRONTEND-027-AC-01 [AUTO]: Each activity row has a favourite-toggle button
-**Statement**: The `ActivityBank` component shall render a favourite-toggle `<button>` for every
-activity row — archived or not — containing a `<FavouriteIcon />` and an `aria-pressed` attribute
-reflecting `activity.favourite`.
+### FRONTEND-027-AC-01 [AUTO]: Each activity row has a favourite-toggle icon button
+**Statement**: The `ActivityBank` component shall render a favourite-toggle `<button>` positioned
+before the activity's name on every row — archived or not — containing a `<FavouriteIcon
+filled={activity.favourite} />` and an `aria-pressed` attribute reflecting `activity.favourite`, with
+no separate text label in the row's actions list.
 
 **Rationale**: Available regardless of archived state (unlike Edit/Delete, which are hidden for
-archived rows) — there's no reason to block favouriting/unfavouriting an archived activity, and it's
-a new, independent action, not exclusive with "Show sub-tasks"/"Unarchive".
+archived rows) — there's no reason to block favouriting/unfavouriting an archived activity. **Amended
+2026-10-02** (ID unchanged): originally a text button ("Favourite"/"Unfavourite") living in the row's
+actions list alongside Edit/Delete; moved to an icon-only toggle before the name, with the icon itself
+switching between filled (favourited) and outline (not) via `FavouriteIcon`'s new `filled` prop — a
+real toggle affordance, not a static badge next to a text label. See Summary's "Post-implementation
+refinement" for why.
 
-**References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx`
-(`renderRowActions`, both the archived and non-archived branches)
+**References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx` (row rendering,
+before `<span>{activity.name}</span>`), `frontend/src/components/FavouriteIcon/FavouriteIcon.tsx`
+(new `filled` prop)
 
 ### FRONTEND-027-AC-02 [AUTO]: Clicking the toggle on a not-favourited activity marks it favourite
 **Statement**: When the favourite-toggle button is clicked for an activity with `favourite: false`,
@@ -213,15 +315,26 @@ view-state toggle over already-fetched data, not a re-fetch).
 just my favourites, so a long activity bank doesn't make finding a common one slower than it needs to
 be.
 
-### FRONTEND-027-AC-13 [AUTO]: AssignActivityPicker renders a "Favourites only" filter, unchecked by default
-**Statement**: `AssignActivityPicker` shall render a "Favourites only" checkbox filter, unchecked by
-default, alongside the existing category and repeatable-type filters.
+### FRONTEND-027-AC-13 [AUTO]: AssignActivityPicker renders a "Favourites only" filter as a two-option pill group, "All" selected by default
+**Statement**: `AssignActivityPicker` shall render a "Filter by favourite" fieldset containing a
+two-option radio-pill group (`All` / `Favourites only`, `All` selected by default), styled identically
+to the existing category and repeatable-type filter pills.
+
+**Rationale**: **Amended 2026-10-02** (ID unchanged): originally a plain checkbox. Changed to a
+two-option radio group — not a checkbox styled as a single pill — because `AssignActivityPicker.module.css`
+has an existing, separately-tested architectural guard (`moduleStyles.test.ts`'s
+`FRONTEND-007-AC-26`) forbidding the visually-hidden-input-plus-pill-label treatment on any
+`input` type other than `radio`. A two-option radio group reuses that already-blessed idiom instead
+of extending a forbidden one, and visually achieves exactly the "on/off pill" look the user asked for.
+See Summary's "Post-implementation refinement".
 
 **References**: Component: `frontend/src/components/WeeklyPlanner/AssignActivityPicker.tsx` (new
-`favouriteFilter` state, new checkbox fieldset alongside the existing two)
+`FavouriteFilter = 'ALL' | 'FAVOURITES_ONLY'` type and `FAVOURITE_FILTER_OPTIONS`, mirroring
+`RepeatableFilter`/`REPEATABLE_FILTER_OPTIONS`'s shape), `moduleStyles.test.ts` (the guard this design
+respects)
 
-### FRONTEND-027-AC-14 [AUTO]: Checking the filter hides non-favourited activities, composing with existing filters
-**Statement**: While the "Favourites only" filter is checked, `AssignActivityPicker`'s
+### FRONTEND-027-AC-14 [AUTO]: Selecting "Favourites only" hides non-favourited activities, composing with existing filters
+**Statement**: While the favourite filter is set to `FAVOURITES_ONLY`, `AssignActivityPicker`'s
 `visibleActivities` shall include only activities with `favourite: true` — applied as an additional
 `AND` condition alongside the existing category and repeatable filters.
 
@@ -229,10 +342,10 @@ default, alongside the existing category and repeatable-type filters.
 (`visibleActivities`)
 
 ### FRONTEND-027-AC-15 [AUTO]: A shown favourited activity's sub-tasks are unaffected by the filter
-**Statement**: While the "Favourites only" filter is checked and a favourited activity is shown, all
-of that activity's sub-tasks (subject only to the existing category filter, unchanged) shall still be
-rendered beneath it — the favourite filter operates at the activity level only, since sub-tasks are
-never individually favouritable.
+**Statement**: While the favourite filter is set to `FAVOURITES_ONLY` and a favourited activity is
+shown, all of that activity's sub-tasks (subject only to the existing category filter, unchanged)
+shall still be rendered beneath it — the favourite filter operates at the activity level only, since
+sub-tasks are never individually favouritable.
 
 **Rationale**: Mirrors exactly how the existing repeatable filter already behaves — it's an
 activity-level filter, and a shown activity's sub-tasks are never separately filtered by it either.
@@ -240,21 +353,67 @@ activity-level filter, and a shown activity's sub-tasks are never separately fil
 **References**: Component: `frontend/src/components/WeeklyPlanner/AssignActivityPicker.tsx` (sub-task
 rendering, unchanged)
 
-### FRONTEND-027-AC-16 [AUTO]: Unchecking the filter restores previously-hidden activities
-**Statement**: When the "Favourites only" checkbox is unchecked after being checked,
+### FRONTEND-027-AC-16 [AUTO]: Selecting "All" again restores previously-hidden activities
+**Statement**: When the favourite filter is set back to `ALL` after being `FAVOURITES_ONLY`,
 `AssignActivityPicker` shall restore all activities that satisfy the remaining active filters.
 
 **References**: Component: `frontend/src/components/WeeklyPlanner/AssignActivityPicker.tsx`
 
+## Requirement 5: Add/Edit Activity modal — a favourite toggle (added 2026-10-02)
+
+**User story**: As a user adding or editing an activity, I want to mark it as a favourite right there
+in the form, so I don't have to separately find it in the list afterward to star it.
+
+### FRONTEND-027-AC-17 [AUTO]: ActivityForm renders a favourite toggle, prefilled from the activity
+**Statement**: `ActivityForm` shall render a "Favourite" checkbox (with a `<FavouriteIcon
+filled={favourite} />` reflecting its live state, mirroring the existing Repeatable field's shape),
+initialized to `false` in create mode and to `activity.favourite` in edit mode.
+
+**References**: Component: `frontend/src/components/ActivityBank/ActivityForm.tsx` (new `favourite`
+state, new field below the existing Repeatable field)
+
+### FRONTEND-027-AC-18 [AUTO]: Turning the toggle on calls markFavourite after create/update succeeds
+**Statement**: When the form is submitted with the favourite toggle checked and the resulting
+activity's current `favourite` is `false`, `ActivityForm` shall call `activityApi.markFavourite(id)`
+immediately after the create/update call succeeds (using the newly created or just-updated activity's
+id), and shall pass the resulting favourited activity to `onSuccess`.
+
+**Rationale**: `favourite` is never part of `ActivityRequest` (`planner_spec_015`'s orthogonality
+rule) — on create there is no id to call `markFavourite` with until creation succeeds, so this is
+necessarily a second call sequenced after the first, not a single combined request.
+
+**References**:
+- Service: `frontend/src/services/activityApi.ts` (`markFavourite`)
+- Component: `frontend/src/components/ActivityBank/ActivityForm.tsx` (`handleSubmit`)
+
+### FRONTEND-027-AC-19 [AUTO]: Turning the toggle off calls unmarkFavourite after update succeeds
+**Statement**: When the form is submitted in edit mode with the favourite toggle unchecked and the
+activity's current `favourite` is `true`, `ActivityForm` shall call
+`activityApi.unmarkFavourite(id)` immediately after the update call succeeds.
+
+**References**: Service: `frontend/src/services/activityApi.ts` (`unmarkFavourite`)
+
+### FRONTEND-027-AC-20 [AUTO]: An unchanged favourite state calls neither endpoint
+**Statement**: When the form is submitted and the toggle's state matches the resulting activity's
+current `favourite` value, `ActivityForm` shall call neither `markFavourite` nor `unmarkFavourite`.
+
+**Rationale**: Avoids a redundant request on every ordinary edit that doesn't touch favourite status
+— mirrors this project's general idempotence-conscious design (e.g. `planner_spec_015`-AC-04/AC-07's
+idempotent mark/unmark endpoints), applied here at the call-site level too.
+
+**References**: Component: `frontend/src/components/ActivityBank/ActivityForm.tsx` (`handleSubmit`)
+
 ## Explicitly out of scope (do not implement as part of this spec)
 
 - Any toggle control inside `AssignActivityPicker` — favourite/unfavourite only happens in
-  `ActivityBank` (see Overview's judgment call).
+  `ActivityBank`'s row toggle or its Add/Edit modal (`ActivityForm`, Requirement 5), see Overview's
+  judgment call.
 - A favourite indicator, toggle, or filter on sub-task rows anywhere — sub-tasks are never
   favouritable (`planner_spec_015`'s scope decision); the "Favourites only" filter in Requirement 4
   operates at the activity level only (`FRONTEND-027-AC-15`).
-- A three-state favourite filter (e.g. an explicit "non-favourites only" state) — a single on/off
-  checkbox only (see Overview's judgment call).
+- A three-state favourite filter with an explicit "non-favourites only" state — either two states
+  (`ActivityBank`'s checkbox, `AssignActivityPicker`'s `All`/`Favourites only` pill pair), never three
+  (see Overview's judgment call).
 - Any client-side re-sorting logic — both surfaces trust the backend's ordering entirely; the new
   filters narrow the list, they don't reorder it.
 - The sidebar/drawer "assign an unplanned activity by dragging it onto the grid" idea — remains a
@@ -266,10 +425,14 @@ rendering, unchanged)
 |---|---|
 | `frontend/src/types/activity.ts` | `Activity` gains `favourite: boolean`; `ActivityInput` unchanged |
 | `frontend/src/services/activityApi.ts` | New `markFavourite`/`unmarkFavourite`, mirroring `archive`/`unarchive` |
-| `frontend/src/components/FavouriteIcon/FavouriteIcon.tsx` | New shared read-only icon (this spec), mirrors `RepeatableIcon` |
-| `frontend/src/components/ActivityBank/ActivityBank.tsx` | New favourite-toggle button per row; new "Favourites only" filter checkbox |
-| `frontend/src/components/WeeklyPlanner/AssignActivityPicker.tsx` | New read-only favourite indicator on activity rows; new "Favourites only" filter checkbox |
-| `frontend/src/components/RepeatableIcon/RepeatableIcon.tsx` | The read-only-badge pattern `FavouriteIcon` mirrors |
+| `frontend/src/components/FavouriteIcon/FavouriteIcon.tsx` | Shared icon with `filled` prop (default `true`) — filled/outline toggle states plus the read-only badge use |
+| `frontend/src/components/ActivityBank/ActivityBank.tsx` | Favourite-toggle icon button before each row's name; "Favourites only" filter checkbox; `.statusToggleGroup` flex wrapper (collision fix) |
+| `frontend/src/components/ActivityBank/ActivityForm.tsx` | New favourite checkbox field (Requirement 5), applied via `markFavourite`/`unmarkFavourite` after create/update |
+| `frontend/src/components/WeeklyPlanner/AssignActivityPicker.tsx` | Read-only favourite indicator on activity rows; "Favourites only" `All`/`Favourites only` radio-pill filter |
+| `frontend/src/components/WeeklyPlanner/AssignActivityPicker.module.css` | `.scrollBody` padding/margin fix for the clipped leftmost-pill focus outline (unrelated cosmetic fix, same change) |
+| `frontend/src/components/ActivityBank/ActivityForm.module.css` | The `.scrollBody` padding/margin pattern the `AssignActivityPicker` fix above copies |
+| `frontend/src/components/RepeatableIcon/RepeatableIcon.tsx` | The read-only-badge pattern `FavouriteIcon` mirrors; the Repeatable form field `ActivityForm`'s new Favourite field mirrors |
+| `frontend/src/components/WeeklyPlanner/moduleStyles.test.ts` | `FRONTEND-007-AC-26` — the existing guard that ruled out a checkbox-as-hidden-pill in `AssignActivityPicker.module.css` |
 | `planner_spec_015_favourite_activities.md` | The backend endpoints/field/ordering this spec consumes |
 | `.claude/ideas/future_ideas.md` | The sidebar/drawer entry this was split from — remains separate, unspecced |
 
@@ -371,49 +534,94 @@ describe('FRONTEND-027: Activity Bank "Favourites only" filter', () => {
 ### FRONTEND-027-AC-13 / AC-14 / AC-15 / AC-16
 ```typescript
 describe('FRONTEND-027: AssignActivityPicker "Favourites only" filter', () => {
-  it('AC-13: renders unchecked by default', () => {
+  it('AC-13: renders a two-option pill group with All selected by default', () => {
     render(<AssignActivityPicker {...baseProps} />)
-    expect(screen.getByRole('checkbox', { name: /favourites only/i })).not.toBeChecked()
+    const group = screen.getByRole('group', { name: 'Filter by favourite' })
+    expect(within(group).getByRole('radio', { name: 'All' })).toBeChecked()
+    expect(within(group).getByRole('radio', { name: 'Favourites only' })).not.toBeChecked()
   })
 
-  it('AC-14: checking it hides non-favourited activities', async () => {
+  it('AC-14: selecting Favourites only hides non-favourited activities', async () => {
     render(<AssignActivityPicker {...propsWithMixedFavourites} />)
-    await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+    const group = screen.getByRole('group', { name: 'Filter by favourite' })
+    await userEvent.click(within(group).getByRole('radio', { name: 'Favourites only' }))
     expect(screen.getByText(favouritedActivity.name)).toBeInTheDocument()
     expect(screen.queryByText(nonFavouritedActivity.name)).not.toBeInTheDocument()
   })
 
   it('AC-15: a shown favourited activity\'s sub-tasks are still rendered', async () => {
     render(<AssignActivityPicker {...propsWithFavouritedActivityAndSubTasks} />)
-    await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+    const group = screen.getByRole('group', { name: 'Filter by favourite' })
+    await userEvent.click(within(group).getByRole('radio', { name: 'Favourites only' }))
     expect(screen.getByText(subTask.name)).toBeInTheDocument()
   })
 
-  it('AC-16: unchecking restores previously-hidden activities', async () => {
+  it('AC-16: selecting All again restores previously-hidden activities', async () => {
     render(<AssignActivityPicker {...propsWithMixedFavourites} />)
-    const checkbox = screen.getByRole('checkbox', { name: /favourites only/i })
-    await userEvent.click(checkbox)
-    await userEvent.click(checkbox)
+    const group = screen.getByRole('group', { name: 'Filter by favourite' })
+    await userEvent.click(within(group).getByRole('radio', { name: 'Favourites only' }))
+    await userEvent.click(within(group).getByRole('radio', { name: 'All' }))
     expect(screen.getByText(nonFavouritedActivity.name)).toBeInTheDocument()
+  })
+})
+```
+
+### FRONTEND-027-AC-17 / AC-18 / AC-19 / AC-20
+```typescript
+describe('FRONTEND-027: ActivityForm favourite toggle', () => {
+  it('AC-17: prefilled from activity.favourite in edit mode, false on create', () => {
+    render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+    expect(screen.getByLabelText(/^favourite$/i, { selector: 'input' })).toBeChecked()
+  })
+
+  it('AC-18: turning it on calls markFavourite after create succeeds', async () => {
+    vi.mocked(activityApi.create).mockResolvedValue({ ...walk, favourite: false })
+    vi.mocked(activityApi.markFavourite).mockResolvedValue({ ...walk, favourite: true })
+    render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+    // ...fill required fields...
+    await userEvent.click(screen.getByLabelText(/^favourite$/i, { selector: 'input' }))
+    await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
+    await waitFor(() => expect(activityApi.markFavourite).toHaveBeenCalledWith('1'))
+  })
+
+  it('AC-19: turning it off calls unmarkFavourite after update succeeds', async () => {
+    vi.mocked(activityApi.update).mockResolvedValue({ ...walk, favourite: true })
+    render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+    await userEvent.click(screen.getByLabelText(/^favourite$/i, { selector: 'input' }))
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+    await waitFor(() => expect(activityApi.unmarkFavourite).toHaveBeenCalledWith('1'))
+  })
+
+  it('AC-20: an unchanged favourite state calls neither endpoint', async () => {
+    vi.mocked(activityApi.update).mockResolvedValue({ ...walk, favourite: true })
+    render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+    await waitFor(() => expect(activityApi.update).toHaveBeenCalled())
+    expect(activityApi.markFavourite).not.toHaveBeenCalled()
+    expect(activityApi.unmarkFavourite).not.toHaveBeenCalled()
   })
 })
 ```
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-027-AC-01 — each activity row has a favourite-toggle button
-- [ ] FRONTEND-027-AC-02 — clicking an unfavourited toggle marks it favourite
-- [ ] FRONTEND-027-AC-03 — clicking a favourited toggle unmarks it
-- [ ] FRONTEND-027-AC-04 — Activity Bank list preserves backend-provided order
-- [ ] FRONTEND-027-AC-05 — favourite toggle doesn't visually clash with existing row content (real-browser check)
-- [ ] FRONTEND-027-AC-06 — a favourited activity shows a read-only favourite indicator in the picker
-- [ ] FRONTEND-027-AC-07 — sub-task rows never show a favourite indicator
-- [ ] FRONTEND-027-AC-08 — the picker's activity list preserves backend-provided order
-- [ ] FRONTEND-027-AC-09 — favourite indicator reads clearly at the picker's row density (real-browser check)
-- [ ] FRONTEND-027-AC-10 — Activity Bank renders a "Favourites only" filter, unchecked by default
-- [ ] FRONTEND-027-AC-11 — checking it hides non-favourites, composes with the category filter
-- [ ] FRONTEND-027-AC-12 — unchecking it restores previously-hidden activities
-- [ ] FRONTEND-027-AC-13 — AssignActivityPicker renders a "Favourites only" filter, unchecked by default
-- [ ] FRONTEND-027-AC-14 — checking it hides non-favourited activities, composes with existing filters
-- [ ] FRONTEND-027-AC-15 — a shown favourited activity's sub-tasks are unaffected by the filter
-- [ ] FRONTEND-027-AC-16 — unchecking it restores previously-hidden activities
+- [x] FRONTEND-027-AC-01 — each activity row has a favourite-toggle icon button before its name
+- [x] FRONTEND-027-AC-02 — clicking an unfavourited toggle marks it favourite
+- [x] FRONTEND-027-AC-03 — clicking a favourited toggle unmarks it
+- [x] FRONTEND-027-AC-04 — Activity Bank list preserves backend-provided order
+- [x] FRONTEND-027-AC-05 — favourite toggle doesn't visually clash with existing row content (confirmed in a real browser)
+- [x] FRONTEND-027-AC-06 — a favourited activity shows a read-only favourite indicator in the picker
+- [x] FRONTEND-027-AC-07 — sub-task rows never show a favourite indicator
+- [x] FRONTEND-027-AC-08 — the picker's activity list preserves backend-provided order
+- [x] FRONTEND-027-AC-09 — favourite indicator reads clearly at the picker's row density (confirmed in a real browser)
+- [x] FRONTEND-027-AC-10 — Activity Bank renders a "Favourites only" filter, unchecked by default
+- [x] FRONTEND-027-AC-11 — checking it hides non-favourites, composes with the category filter
+- [x] FRONTEND-027-AC-12 — unchecking it restores previously-hidden activities
+- [x] FRONTEND-027-AC-13 — AssignActivityPicker renders a "Favourites only" All/pill filter, "All" selected by default
+- [x] FRONTEND-027-AC-14 — selecting "Favourites only" hides non-favourited activities, composes with existing filters
+- [x] FRONTEND-027-AC-15 — a shown favourited activity's sub-tasks are unaffected by the filter
+- [x] FRONTEND-027-AC-16 — selecting "All" again restores previously-hidden activities
+- [x] FRONTEND-027-AC-17 — ActivityForm renders a favourite toggle, prefilled from the activity
+- [x] FRONTEND-027-AC-18 — turning the toggle on calls markFavourite after create/update succeeds
+- [x] FRONTEND-027-AC-19 — turning the toggle off calls unmarkFavourite after update succeeds
+- [x] FRONTEND-027-AC-20 — an unchanged favourite state calls neither endpoint

@@ -33,6 +33,12 @@
   outline-offset: 2px;
 }
 
+.statusToggleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .archivedToggle input[type='checkbox'] {
   position: absolute;
   width: 1px;
@@ -142,5 +148,33 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text);
+}
+
+.favouriteToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.15rem;
+  margin: 0;
+  line-height: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.favouriteToggle:hover,
+.favouriteToggle:focus-visible {
+  background: var(--accent-bg);
+}
+
+.favouriteToggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.favouriteToggle:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 

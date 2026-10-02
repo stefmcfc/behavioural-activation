@@ -148,4 +148,104 @@ class ActivitySpec extends Specification {
             !activity.archived
             !activity.updatedAt.isBefore(originalUpdatedAt)
     }
+
+    def "PLANNER-015-AC-01: both constructors default favourite to false"() {
+        when: "an Activity is constructed via either constructor"
+            def viaFourArg = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            def viaFiveArg = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+
+        then: "favourite defaults to false in both cases"
+            !viaFourArg.favourite
+            !viaFiveArg.favourite
+    }
+
+    def "PLANNER-015-AC-01/AC-02: update(...) never sets favourite -- there is no parameter to even pass"() {
+        given: "an existing activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+
+        when: "update(...) is called, with no favourite parameter to even pass"
+            activity.update("Apply for jobs", ActivityCategory.NECESSARY, null, false)
+
+        then: "favourite is still false"
+            !activity.favourite
+
+        when: "markFavourite() is called explicitly"
+            activity.markFavourite()
+
+        then: "favourite becomes true"
+            activity.favourite
+
+        when: "update(...) is called again on a favourited activity"
+            activity.update("Apply for jobs (renamed)", ActivityCategory.NECESSARY, null, false)
+
+        then: "favourite is still true -- update(...) never touches it"
+            activity.favourite
+    }
+
+    def "PLANNER-015-AC-03/AC-04: markFavourite() sets favourite to true, idempotently, and bumps updatedAt"() {
+        given: "a non-favourited activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            def originalUpdatedAt = activity.updatedAt
+
+        when: "markFavourite() is called"
+            activity.markFavourite()
+
+        then: "favourite is true, and updatedAt is not before the original value"
+            activity.favourite
+            !activity.updatedAt.isBefore(originalUpdatedAt)
+
+        when: "markFavourite() is called again on an already-favourited activity"
+            activity.markFavourite()
+
+        then: "it remains favourited, without error"
+            activity.favourite
+    }
+
+    def "PLANNER-015-AC-06/AC-07: unmarkFavourite() sets favourite to false, idempotently, and bumps updatedAt"() {
+        given: "a favourited activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            activity.markFavourite()
+            def originalUpdatedAt = activity.updatedAt
+
+        when: "unmarkFavourite() is called"
+            activity.unmarkFavourite()
+
+        then: "favourite is false, and updatedAt is not before the original value"
+            !activity.favourite
+            !activity.updatedAt.isBefore(originalUpdatedAt)
+
+        when: "unmarkFavourite() is called again on an already-not-favourited activity"
+            activity.unmarkFavourite()
+
+        then: "it remains not favourited, without error"
+            !activity.favourite
+    }
+
+    def "PLANNER-015-AC-09: archive()/unarchive() never change favourite, and markFavourite()/unmarkFavourite() never change archived"() {
+        given: "a favourited activity"
+            def activity = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            activity.markFavourite()
+
+        when: "the activity is archived"
+            activity.archive()
+
+        then: "favourite is unchanged"
+            activity.favourite
+            activity.archived
+
+        when: "the activity is unarchived"
+            activity.unarchive()
+
+        then: "favourite is still unchanged"
+            activity.favourite
+            !activity.archived
+
+        when: "the activity is unmarked as favourite after being archived again"
+            activity.archive()
+            activity.unmarkFavourite()
+
+        then: "archived is unchanged"
+            activity.archived
+            !activity.favourite
+    }
 }

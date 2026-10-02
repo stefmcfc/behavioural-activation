@@ -11,6 +11,7 @@ public record ActivityResponse(
     String description,
     boolean repeatable,
     boolean archived,
+    boolean favourite,
     Instant createdAt,
     int subTaskCount
 ) {

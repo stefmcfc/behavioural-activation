@@ -8,6 +8,7 @@ import { planApi } from '../../services/planApi'
 import type { SubTask } from '../../types/subTask'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './AssignActivityPicker.module.css'
 
@@ -17,6 +18,13 @@ const REPEATABLE_FILTER_OPTIONS: readonly { value: RepeatableFilter; label: stri
   { value: 'ALL', label: 'All' },
   { value: 'REPEATABLE', label: 'Repeatable' },
   { value: 'ONE_OFF', label: 'One-off' },
+]
+
+type FavouriteFilter = 'ALL' | 'FAVOURITES_ONLY'
+
+const FAVOURITE_FILTER_OPTIONS: readonly { value: FavouriteFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'FAVOURITES_ONLY', label: 'Favourites only' },
 ]
 
 function getErrorMessage(error: unknown): string {
@@ -65,6 +73,7 @@ export function AssignActivityPicker({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
+  const [favouriteFilter, setFavouriteFilter] = useState<FavouriteFilter>('ALL')
 
   useEffect(() => {
     let cancelled = false
@@ -120,6 +129,8 @@ export function AssignActivityPicker({
   }
 
   const visibleActivities = (activities ?? []).filter((activity) => {
+    if (favouriteFilter === 'FAVOURITES_ONLY' && !activity.favourite) return false
+
     if (repeatableFilter !== 'ALL') {
       const matchesRepeatable =
         repeatableFilter === 'REPEATABLE' ? activity.repeatable : !activity.repeatable
@@ -178,6 +189,26 @@ export function AssignActivityPicker({
               ))}
             </ul>
           </fieldset>
+
+          <fieldset className={styles.filterFieldset}>
+            <legend>Filter by favourite</legend>
+            <ul className={styles.filterGroup}>
+              {FAVOURITE_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-favourite-filter"
+                      value={option.value}
+                      checked={favouriteFilter === option.value}
+                      onChange={() => setFavouriteFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
         </>
       )}
 
@@ -210,6 +241,7 @@ export function AssignActivityPicker({
                   </button>
                   <CategoryChip category={activity.category} />
                   {activity.repeatable && <RepeatableIcon />}
+                  {activity.favourite && <FavouriteIcon />}
                 </div>
 
                 {subTasks.length > 0 && (

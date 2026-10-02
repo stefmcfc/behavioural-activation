@@ -18,6 +18,7 @@ const walk: Activity = {
   description: 'Around the block',
   repeatable: true,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-28T00:00:00Z',
   subTaskCount: 0,
 }
@@ -29,6 +30,7 @@ const jobs: Activity = {
   description: null,
   repeatable: false,
   archived: true,
+  favourite: false,
   createdAt: '2026-09-28T00:00:00Z',
   subTaskCount: 0,
 }
@@ -40,6 +42,7 @@ const read: Activity = {
   description: null,
   repeatable: true,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-28T00:00:00Z',
   subTaskCount: 0,
 }
@@ -51,6 +54,8 @@ describe('ActivityBank', () => {
     vi.mocked(activityApi.update).mockReset()
     vi.mocked(activityApi.remove).mockReset()
     vi.mocked(activityApi.unarchive).mockReset()
+    vi.mocked(activityApi.markFavourite).mockReset()
+    vi.mocked(activityApi.unmarkFavourite).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
   })
 
@@ -141,6 +146,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: true,
         archived: false,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       })
@@ -476,6 +482,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: false,
         archived: false,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
@@ -499,6 +506,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: false,
         archived: true,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
@@ -509,6 +517,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: false,
         archived: true,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
@@ -560,6 +569,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: false,
         archived: false,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
@@ -590,6 +600,7 @@ describe('ActivityBank', () => {
         description: null,
         repeatable: true,
         archived: true,
+        favourite: false,
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
@@ -697,6 +708,146 @@ describe('ActivityBank', () => {
 
       await waitFor(() => expect(screen.getByText('Read a book')).toBeInTheDocument())
       expect(subTaskApi.getAll).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('FRONTEND-027-AC-01: each activity row has a favourite-toggle button', () => {
+    it('renders a favourite toggle reflecting favourite state via aria-pressed', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(
+        within(row).getByRole('button', { name: /favourite/i, pressed: false }),
+      ).toBeInTheDocument()
+    })
+
+    it('renders the toggle on an archived row too', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      const row = (await screen.findByText('Apply for jobs')).closest('li')!
+      expect(
+        within(row).getByRole('button', { name: /favourite/i, pressed: false }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-02: clicking an unfavourited toggle marks it favourite', () => {
+    it('calls activityApi.markFavourite and updates state on success', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.markFavourite).mockResolvedValue({ ...walk, favourite: true })
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      await userEvent.click(within(row).getByRole('button', { name: /favourite/i, pressed: false }))
+
+      expect(activityApi.markFavourite).toHaveBeenCalledWith('1')
+      expect(
+        await within(row).findByRole('button', { name: /favourite/i, pressed: true }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-03: clicking a favourited toggle unmarks it', () => {
+    it('calls activityApi.unmarkFavourite and updates state on success', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, favourite: true }])
+      vi.mocked(activityApi.unmarkFavourite).mockResolvedValue(undefined)
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      await userEvent.click(within(row).getByRole('button', { name: /favourite/i, pressed: true }))
+
+      expect(activityApi.unmarkFavourite).toHaveBeenCalledWith('1')
+      expect(
+        await within(row).findByRole('button', { name: /favourite/i, pressed: false }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027: favourite toggle failure shows an alert and leaves state unchanged', () => {
+    it('keeps the toggle unfavourited after a rejected markFavourite call', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.markFavourite).mockRejectedValue(
+        new ApiError(500, 'Something went wrong. Please try again.'),
+      )
+      render(<ActivityBank />)
+
+      const row = (await screen.findByText('Walk')).closest('li')!
+      await userEvent.click(within(row).getByRole('button', { name: /favourite/i, pressed: false }))
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      expect(
+        within(row).getByRole('button', { name: /favourite/i, pressed: false }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-04: Activity Bank list preserves backend-provided order', () => {
+    it('renders activities in the exact order activityApi.getAll returns', async () => {
+      const zebraFavourite: Activity = { ...walk, id: '10', name: 'Zebra', favourite: true }
+      const appleActivity: Activity = { ...walk, id: '11', name: 'Apple', favourite: false }
+      const mangoActivity: Activity = { ...walk, id: '12', name: 'Mango', favourite: false }
+      vi.mocked(activityApi.getAll).mockResolvedValue([zebraFavourite, appleActivity, mangoActivity])
+      render(<ActivityBank />)
+
+      await screen.findByText('Zebra')
+      const names = within(screen.getByRole('list'))
+        .getAllByRole('listitem')
+        .map((row) => row.textContent)
+      expect(names[0]).toContain('Zebra')
+      expect(names[1]).toContain('Apple')
+      expect(names[2]).toContain('Mango')
+    })
+  })
+
+  describe('FRONTEND-027-AC-10: renders a "Favourites only" filter, unchecked by default', () => {
+    it('renders an unchecked checkbox', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      expect(screen.getByRole('checkbox', { name: /favourites only/i })).not.toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-027-AC-11: checking the filter hides non-favourites, composes with the category filter', () => {
+    it('shows only favourited Routine activities when both filters are active', async () => {
+      const favouritedRoutine: Activity = { ...walk, id: '20', name: 'Favourited routine', category: 'ROUTINE', favourite: true }
+      const nonFavouritedRoutine: Activity = { ...walk, id: '21', name: 'Non-favourited routine', category: 'ROUTINE', favourite: false }
+      const favouritedPleasurable: Activity = { ...walk, id: '22', name: 'Favourited pleasurable', category: 'PLEASURABLE', favourite: true }
+      vi.mocked(activityApi.getAll).mockResolvedValue([
+        favouritedRoutine,
+        nonFavouritedRoutine,
+        favouritedPleasurable,
+      ])
+      render(<ActivityBank />)
+
+      await screen.findByText('Favourited routine')
+      await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+      await userEvent.click(screen.getByRole('radio', { name: /^routine$/i }))
+
+      expect(screen.getByText('Favourited routine')).toBeInTheDocument()
+      expect(screen.queryByText('Non-favourited routine')).not.toBeInTheDocument()
+      expect(screen.queryByText('Favourited pleasurable')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-12: unchecking the filter restores previously-hidden activities', () => {
+    it('restores non-favourited activities after unchecking', async () => {
+      const favouritedActivity: Activity = { ...walk, id: '30', name: 'Favourited one', favourite: true }
+      const nonFavouritedActivity: Activity = { ...walk, id: '31', name: 'Non-favourited one', favourite: false }
+      vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
+      render(<ActivityBank />)
+
+      await screen.findByText('Favourited one')
+      const checkbox = screen.getByRole('checkbox', { name: /favourites only/i })
+      await userEvent.click(checkbox)
+      expect(screen.queryByText('Non-favourited one')).not.toBeInTheDocument()
+
+      await userEvent.click(checkbox)
+      expect(screen.getByText('Non-favourited one')).toBeInTheDocument()
     })
   })
 })

@@ -1,6 +1,25 @@
 # Favourite Activities (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 12 ACs green. `Activity` gains a `favourite` field
+(entity, migration `V008`, repository ordering, DTO, controller/service endpoints), mirroring the
+`archived` flag pattern exactly as planned — no deviations from the spec's design. New
+`markFavourite()`/`unmarkFavourite()` entity methods (idempotent, bump `updatedAt`, structurally
+independent of `archive()`/`unarchive()`), new `ActivityService.markFavourite`/`unmarkFavourite`
+(owner-scoped via the existing `findByIdAndOwner`), new `POST`/`DELETE /api/v1/activities/{id}
+/favourite` controller endpoints mirroring the archive/unarchive pair including the `subTaskCount`
+enrichment on the `POST` response. `ActivityRepository`'s two list methods renamed to
+`findByOwnerOrderByFavouriteDescNameAsc`/`findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc` —
+confirmed against real Postgres (not just the mocked `ActivityServiceSpec`) in a new
+`ActivityServiceFavouriteOrderingIntegrationSpec`, since derived-query ordering correctness isn't
+something a mocked repository can verify. `ActivityRequest` left untouched, confirmed by an explicit
+`declaredFields` assertion in `ActivityControllerSpec` (AC-01/AC-02/AC-12). Orthogonality (AC-09)
+covered by dedicated tests at both the model (`ActivitySpec`) and service (`ActivityServiceSpec`)
+layers, each direction. Tests: `ActivitySpec` (+9 new cases, 17 total), `ActivityServiceSpec` (+6 new
+cases, 29 total), `ActivityControllerSpec` (+11 new cases, 41 total), new
+`ActivityServiceFavouriteOrderingIntegrationSpec` (2 cases, real Postgres via Docker Compose). Full
+suite: 266 tests, 0 failures (`gradlew.bat test` against real Postgres via Docker Compose). No real
+findings/surprises during implementation — the `archived` precedent carried over directly with no
+adaptation needed beyond the field/method renames.
 **Priority**: P3 — quality-of-life speed-up for finding commonly-used activities, no new domain
 capability
 **Depends on**: `planner_spec_002_activity_bank.md` (the `Activity` entity/endpoints this extends),
@@ -407,15 +426,15 @@ def "PLANNER-015-AC-12: ActivityResponse reflects favourite accurately across th
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-015-AC-01 — new activities default to not favourited
-- [ ] PLANNER-015-AC-02 — updating an activity leaves favourite unchanged
-- [ ] PLANNER-015-AC-03 — marking an activity favourite returns 200, favourite true
-- [ ] PLANNER-015-AC-04 — marking an already-favourited activity is idempotent
-- [ ] PLANNER-015-AC-05 — marking favourite on a not-owned activity is a 404
-- [ ] PLANNER-015-AC-06 — unmarking a favourited activity returns 204
-- [ ] PLANNER-015-AC-07 — unmarking an already-not-favourited activity is idempotent
-- [ ] PLANNER-015-AC-08 — unmarking favourite on a not-owned activity is a 404
-- [ ] PLANNER-015-AC-09 — favourite and archived are fully orthogonal, neither mutator touches the other
-- [ ] PLANNER-015-AC-10 — default list orders favourites first, alphabetical within group
-- [ ] PLANNER-015-AC-11 — includeArchived=true list still pins favourites (including archived ones) first
-- [ ] PLANNER-015-AC-12 — ActivityResponse carries an accurate favourite field throughout the lifecycle
+- [x] PLANNER-015-AC-01 — new activities default to not favourited
+- [x] PLANNER-015-AC-02 — updating an activity leaves favourite unchanged
+- [x] PLANNER-015-AC-03 — marking an activity favourite returns 200, favourite true
+- [x] PLANNER-015-AC-04 — marking an already-favourited activity is idempotent
+- [x] PLANNER-015-AC-05 — marking favourite on a not-owned activity is a 404
+- [x] PLANNER-015-AC-06 — unmarking a favourited activity returns 204
+- [x] PLANNER-015-AC-07 — unmarking an already-not-favourited activity is idempotent
+- [x] PLANNER-015-AC-08 — unmarking favourite on a not-owned activity is a 404
+- [x] PLANNER-015-AC-09 — favourite and archived are fully orthogonal, neither mutator touches the other
+- [x] PLANNER-015-AC-10 — default list orders favourites first, alphabetical within group
+- [x] PLANNER-015-AC-11 — includeArchived=true list still pins favourites (including archived ones) first
+- [x] PLANNER-015-AC-12 — ActivityResponse carries an accurate favourite field throughout the lifecycle
