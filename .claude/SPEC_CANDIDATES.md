@@ -14,7 +14,10 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-01 (added two candidates from the modern-web-guidance frontend review
+Last updated: 2026-10-02 (the header restructure candidate moved to a real spec —
+`frontend_spec_030_header_restructure.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
+this file.)
+Earlier note: 2026-10-01, added two candidates from the modern-web-guidance frontend review
 — `.claude/modern-web-guidance/reviews/review-2026-10-01.md` — touch-friendly bucket reordering
 and a bulk sub-task fetch endpoint; see entries below.)
 Earlier note: 2026-10-01, Activity Bank UX improvements batch fully resolved: category filter and
@@ -105,29 +108,6 @@ Whichever is chosen needs real backend aggregation work across `CompletionRecord
 `PlannedOccurrence` joined by `sub_task_id` — not a client-side computation over already-fetched
 data. Revisit once there's a concrete answer to the "done" question above, ideally prompted by this
 mattering in actual day-to-day use rather than decided speculatively now.
-
-## Header restructure: Settings + Account/Profile icons, tabs demoted to a second row
-
-**Status**: Confirmed, not yet specced. Raised 2026-09-29 while reviewing the visual refresh —
-"Logged in as steve" as static text plus a separate "Log out" button in the page body was flagged
-as not really adding anything. Proposed replacement: a top nav row of **Title | Settings icon |
-Account/profile icon**, with the Activities/Weekly planner tabs demoted to a second row beneath it.
-Settings and Account/Profile are two separate icons/menus, not combined — confirmed with the user
-2026-09-29: they're different categories (Settings = how the app looks/behaves; Account/Profile =
-who I am), and starting separated avoids re-splitting a combined menu later once Account/Profile
-grows past just a username.
-
-Account/Profile menu content, V1: just the username (replacing "Logged in as X") and the Log out
-action (replacing the standalone button). Explicitly designed with room to grow: notifications/email
-preferences, change password, etc. are plausible later additions to this same menu, not this
-candidate's scope — don't build those ahead of a concrete need, per this project's usual
-not-ahead-of-need rule.
-
-Touches `TabNav` (`frontend_spec_005_navigation_and_theme.md`), `App.tsx`'s header markup, and
-likely wants two new small icon-triggered menu/dropdown components (Settings, Account) — the
-existing `/settings` route's content (theme, category colours) would move into the Settings icon's
-menu rather than being its own tab. Needs its own real design pass (icon choice, menu/dropdown
-interaction pattern, keyboard/focus handling) before writing ACs, not just a markup reshuffle.
 
 ## Frontend button visual hierarchy (primary/secondary)
 
