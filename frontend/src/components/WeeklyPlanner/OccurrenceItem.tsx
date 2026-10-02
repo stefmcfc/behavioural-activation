@@ -123,7 +123,16 @@ export function OccurrenceItem({
       onDragStart={!isBucketItem ? () => onDragStart?.(occurrence.id) : undefined}
       onDragEnd={!isBucketItem ? onDragEnd : undefined}
       onDragOver={isBucketItem ? onDragOverItem : undefined}
-      onDrop={isBucketItem ? () => onDropOnItem?.(occurrence.id) : undefined}
+      onDrop={
+        isBucketItem
+          ? (event) => {
+              // FRONTEND-026: stop this from also bubbling to BucketList's new panel-level
+              // drop target, which would otherwise double-handle the same drop.
+              event.stopPropagation()
+              onDropOnItem?.(occurrence.id)
+            }
+          : undefined
+      }
     >
       {isBucketItem && (
         <span className={styles.reorderControls}>
@@ -131,6 +140,7 @@ export function OccurrenceItem({
             className={styles.dragHandle}
             draggable
             onDragStart={() => onDragStart?.(occurrence.id)}
+            onDragEnd={onDragEnd}
             aria-hidden="true"
           >
             <GripIcon />

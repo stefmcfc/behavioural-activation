@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
@@ -34,6 +33,9 @@ interface PlannerGridProps {
   readonly onMoveToBucket: (id: string) => void
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
+  readonly draggedId: string | null
+  readonly onDragStart: (id: string) => void
+  readonly onDragEnd: () => void
 }
 
 function cellClassName(isToday: boolean): string {
@@ -67,15 +69,17 @@ export function PlannerGrid({
   onMoveToBucket,
   onComplete,
   onUndo,
+  draggedId,
+  onDragStart,
+  onDragEnd,
 }: PlannerGridProps) {
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
   )
-  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   const handleDrop = (targetDay: PlanDayOfWeek, targetSlot: PlanSlot) => {
     const id = draggedId
-    setDraggedId(null)
+    onDragEnd()
     if (id === null || busyId !== null) return
     const dragged = occurrences.find((occurrence) => occurrence.id === id)
     if (!dragged) return
@@ -141,8 +145,8 @@ export function PlannerGrid({
                         onComplete={onComplete}
                         onUndo={onUndo}
                         onCarryForward={() => {}}
-                        onDragStart={setDraggedId}
-                        onDragEnd={() => setDraggedId(null)}
+                        onDragStart={onDragStart}
+                        onDragEnd={onDragEnd}
                       />
                     ))}
                   </ul>

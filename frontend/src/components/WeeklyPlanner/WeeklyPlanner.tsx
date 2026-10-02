@@ -103,6 +103,10 @@ export function WeeklyPlanner() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [gridTab, setGridTab] = useState<GridTab>(() => getDefaultGridTab())
   const [bucketReorderInFlight, setBucketReorderInFlight] = useState(false)
+  // FRONTEND-026-AC-01: a single shared drag state, lifted here so a drag starting in
+  // PlannerGrid is visible to BucketList's drop handlers, and vice versa.
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const handleDragEnd = () => setDraggedId(null)
 
   useEffect(() => {
     let cancelled = false
@@ -357,6 +361,9 @@ export function WeeklyPlanner() {
             onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
             onComplete={handleComplete}
             onUndo={handleUndo}
+            draggedId={draggedId}
+            onDragStart={setDraggedId}
+            onDragEnd={handleDragEnd}
           />
 
           <BucketList
@@ -375,10 +382,14 @@ export function WeeklyPlanner() {
             onStartMove={setMovingId}
             onCancelMove={() => setMovingId(null)}
             onConfirmMove={(id, dayOfWeek, slot) => handleMove(id, { dayOfWeek, slot })}
+            onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
             onComplete={handleComplete}
             onUndo={handleUndo}
             onCarryForward={handleCarryForward}
             onReorder={handleReorderBucket}
+            draggedId={draggedId}
+            onDragStart={setDraggedId}
+            onDragEnd={handleDragEnd}
           />
         </>
       )}

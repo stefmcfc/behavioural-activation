@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -47,12 +48,33 @@ function baseBucketProps(
     onStartMove: noop,
     onCancelMove: noop,
     onConfirmMove: noop,
+    onMoveToBucket: noop,
     onComplete: noop,
     onUndo: noop,
     onCarryForward: noop,
     onReorder: noop,
+    draggedId: null,
+    onDragStart: noop,
+    onDragEnd: noop,
     ...overrides,
   }
+}
+
+// FRONTEND-026-AC-01: draggedId is now a controlled prop, not local state. This harness
+// mirrors WeeklyPlanner's lifted state so existing drag tests keep exercising real drag
+// behaviour (dragstart -> controlled draggedId -> drop) instead of asserting internals.
+function DraggableBucketHarness(
+  props: Omit<Parameters<typeof BucketList>[0], 'draggedId' | 'onDragStart' | 'onDragEnd'>,
+) {
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  return (
+    <BucketList
+      {...props}
+      draggedId={draggedId}
+      onDragStart={setDraggedId}
+      onDragEnd={() => setDraggedId(null)}
+    />
+  )
 }
 
 describe('FRONTEND-007-AC-24: bucket list wrapper is a flat panel', () => {
@@ -144,7 +166,7 @@ describe('FRONTEND-010-AC-07: dropping onto another row computes the relocated f
       bucketOccurrence({ id: 'b', name: 'Second', bucketPosition: 1 }),
       bucketOccurrence({ id: 'c', name: 'Third', bucketPosition: 2 }),
     ]
-    render(<BucketList {...baseBucketProps({ occurrences, onReorder })} />)
+    render(<DraggableBucketHarness {...baseBucketProps({ occurrences, onReorder })} />)
 
     const firstRow = screen.getByText('First').closest('li')!
     const thirdRow = screen.getByText('Third').closest('li')!
@@ -152,6 +174,117 @@ describe('FRONTEND-010-AC-07: dropping onto another row computes the relocated f
     fireEvent.drop(thirdRow)
 
     expect(onReorder).toHaveBeenCalledWith(['b', 'c', 'a'])
+  })
+})
+
+describe('FRONTEND-026-AC-09: bucket-internal drag-to-reorder is unaffected by the draggedId state lift', () => {
+  it('still calls onReorder between two bucket items, and never calls onMoveToBucket', () => {
+    const onReorder = vi.fn()
+    const onMoveToBucket = vi.fn()
+    const occurrences = [
+      bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 }),
+      bucketOccurrence({ id: 'b', name: 'Second', bucketPosition: 1 }),
+    ]
+    render(
+      <DraggableBucketHarness
+        {...baseBucketProps({ occurrences, onReorder, onMoveToBucket })}
+      />,
+    )
+
+    const firstRow = screen.getByText('First').closest('li')!
+    const secondRow = screen.getByText('Second').closest('li')!
+    fireEvent.dragStart(firstRow.querySelector('[draggable]')!)
+    fireEvent.drop(secondRow)
+
+    expect(onReorder).toHaveBeenCalledWith(['b', 'a'])
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-026-AC-02: dropping a non-bucket-member occurrence on the panel calls onMoveToBucket', () => {
+  it('calls onMoveToBucket with the dragged id when dropped on empty panel space', () => {
+    const onMoveToBucket = vi.fn()
+    const onReorder = vi.fn()
+    render(
+      <BucketList
+        {...baseBucketProps({ draggedId: 'grid-origin', onMoveToBucket, onReorder })}
+      />,
+    )
+
+    const panel = screen.getByRole('region', { name: 'Weekend bucket list' })
+    fireEvent.dragOver(panel)
+    fireEvent.drop(panel)
+
+    expect(onMoveToBucket).toHaveBeenCalledWith('grid-origin')
+    expect(onReorder).not.toHaveBeenCalled()
+  })
+
+  it('also calls onMoveToBucket when the empty-list state is the drop target', () => {
+    const onMoveToBucket = vi.fn()
+    render(<BucketList {...baseBucketProps({ draggedId: 'grid-origin', onMoveToBucket })} />)
+
+    expect(screen.getByText(/bucket list is empty/i)).toBeInTheDocument()
+    fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
+
+    expect(onMoveToBucket).toHaveBeenCalledWith('grid-origin')
+  })
+})
+
+describe('FRONTEND-026-AC-03: dropping a non-bucket-member occurrence on an existing item also demotes it', () => {
+  it('calls onMoveToBucket, not onReorder, when the dragged id is not already a bucket member', () => {
+    const onMoveToBucket = vi.fn()
+    const onReorder = vi.fn()
+    const occurrences = [bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 })]
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences,
+          draggedId: 'grid-origin',
+          onMoveToBucket,
+          onReorder,
+        })}
+      />,
+    )
+
+    const firstRow = screen.getByText('First').closest('li')!
+    fireEvent.drop(firstRow)
+
+    expect(onMoveToBucket).toHaveBeenCalledWith('grid-origin')
+    expect(onReorder).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-026-AC-06: a move in flight blocks a new cross-section drop onto the bucket', () => {
+  it('does not call onMoveToBucket when busyId is set, on the panel', () => {
+    const onMoveToBucket = vi.fn()
+    render(
+      <BucketList
+        {...baseBucketProps({ draggedId: 'grid-origin', busyId: 'grid-origin', onMoveToBucket })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
+
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+
+  it('does not call onMoveToBucket when busyId is set, dropped on an existing item', () => {
+    const onMoveToBucket = vi.fn()
+    const occurrences = [bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 })]
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences,
+          draggedId: 'grid-origin',
+          busyId: 'grid-origin',
+          onMoveToBucket,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByText('First').closest('li')!)
+
+    expect(onMoveToBucket).not.toHaveBeenCalled()
   })
 })
 

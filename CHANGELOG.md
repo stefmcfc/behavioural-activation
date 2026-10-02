@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- You can now drag an already-planned grid occurrence directly onto the weekend bucket list to
+  move it there, or drag a bucket item directly onto a grid cell to assign it a day/slot — faster,
+  mouse-only alternatives to the existing "Send to bucket" and "Rearrange" actions, which still work
+  exactly as before.
+
 ## [0.19.0] - 2026-10-02
 
 ### Added
