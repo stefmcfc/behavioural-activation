@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-10-02
+
 ### Removed
 
 - The Weekly Planner's "Browse activities" drag-and-drop drawer has been removed. In real use it
