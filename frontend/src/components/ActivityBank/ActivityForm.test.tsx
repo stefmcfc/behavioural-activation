@@ -23,6 +23,8 @@ describe('ActivityForm', () => {
   beforeEach(() => {
     vi.mocked(activityApi.create).mockReset()
     vi.mocked(activityApi.update).mockReset()
+    vi.mocked(activityApi.markFavourite).mockReset()
+    vi.mocked(activityApi.unmarkFavourite).mockReset()
   })
 
   describe('FRONTEND-002-AC-12: valid create submit calls activityApi.create', () => {
@@ -286,6 +288,92 @@ describe('ActivityForm', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByLabelText(/name/i)).toHaveValue('Walk')
+    })
+  })
+
+  describe('FRONTEND-027-AC-17: favourite toggle is prefilled from the activity, unchecked on create', () => {
+    it('is unchecked by default on create', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+      expect(screen.getByLabelText(/^favourite$/i, { selector: 'input' })).not.toBeChecked()
+    })
+
+    it('is checked in edit mode when the activity is favourited', () => {
+      render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+      expect(screen.getByLabelText(/^favourite$/i, { selector: 'input' })).toBeChecked()
+    })
+
+    it('is unchecked in edit mode when the activity is not favourited', () => {
+      render(<ActivityForm mode="edit" activity={walk} onSuccess={vi.fn()} />)
+      expect(screen.getByLabelText(/^favourite$/i, { selector: 'input' })).not.toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-027-AC-18: turning the favourite toggle on calls markFavourite after create/update succeeds', () => {
+    it('calls markFavourite with the created activity\'s id on create', async () => {
+      vi.mocked(activityApi.create).mockResolvedValue({ ...walk, favourite: false })
+      vi.mocked(activityApi.markFavourite).mockResolvedValue({ ...walk, favourite: true })
+      const onSuccess = vi.fn()
+      render(<ActivityForm mode="create" onSuccess={onSuccess} />)
+
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
+      await userEvent.click(screen.getByLabelText(/routine/i))
+      await userEvent.click(screen.getByLabelText(/^favourite$/i, { selector: 'input' }))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
+
+      await waitFor(() => expect(activityApi.markFavourite).toHaveBeenCalledWith('1'))
+      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({ favourite: true }))
+    })
+
+    it('calls markFavourite with the edited activity\'s id on update', async () => {
+      vi.mocked(activityApi.update).mockResolvedValue({ ...walk, favourite: false })
+      vi.mocked(activityApi.markFavourite).mockResolvedValue({ ...walk, favourite: true })
+      render(<ActivityForm mode="edit" activity={walk} onSuccess={vi.fn()} />)
+
+      await userEvent.click(screen.getByLabelText(/^favourite$/i, { selector: 'input' }))
+      await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+      await waitFor(() => expect(activityApi.markFavourite).toHaveBeenCalledWith('1'))
+    })
+  })
+
+  describe('FRONTEND-027-AC-19: turning the favourite toggle off calls unmarkFavourite after update succeeds', () => {
+    it('calls unmarkFavourite with the edited activity\'s id', async () => {
+      vi.mocked(activityApi.update).mockResolvedValue({ ...walk, favourite: true })
+      vi.mocked(activityApi.unmarkFavourite).mockResolvedValue(undefined)
+      render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+
+      await userEvent.click(screen.getByLabelText(/^favourite$/i, { selector: 'input' }))
+      await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+      await waitFor(() => expect(activityApi.unmarkFavourite).toHaveBeenCalledWith('1'))
+    })
+  })
+
+  describe('FRONTEND-027-AC-20: an unchanged favourite state calls neither mark nor unmark endpoint', () => {
+    it('does not call markFavourite/unmarkFavourite when the toggle is left as-is on create', async () => {
+      vi.mocked(activityApi.create).mockResolvedValue({ ...walk, favourite: false })
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} />)
+
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk')
+      await userEvent.click(screen.getByLabelText(/routine/i))
+      await userEvent.click(screen.getByRole('button', { name: /save activity/i }))
+
+      await waitFor(() => expect(activityApi.create).toHaveBeenCalled())
+      expect(activityApi.markFavourite).not.toHaveBeenCalled()
+      expect(activityApi.unmarkFavourite).not.toHaveBeenCalled()
+    })
+
+    it('does not call markFavourite/unmarkFavourite when editing an already-favourited activity unchanged', async () => {
+      vi.mocked(activityApi.update).mockResolvedValue({ ...walk, favourite: true, name: 'Walk further' })
+      render(<ActivityForm mode="edit" activity={{ ...walk, favourite: true }} onSuccess={vi.fn()} />)
+
+      await userEvent.clear(screen.getByLabelText(/^name$/i))
+      await userEvent.type(screen.getByLabelText(/^name$/i), 'Walk further')
+      await userEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+      await waitFor(() => expect(activityApi.update).toHaveBeenCalled())
+      expect(activityApi.markFavourite).not.toHaveBeenCalled()
+      expect(activityApi.unmarkFavourite).not.toHaveBeenCalled()
     })
   })
 })

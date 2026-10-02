@@ -20,6 +20,13 @@ const REPEATABLE_FILTER_OPTIONS: readonly { value: RepeatableFilter; label: stri
   { value: 'ONE_OFF', label: 'One-off' },
 ]
 
+type FavouriteFilter = 'ALL' | 'FAVOURITES_ONLY'
+
+const FAVOURITE_FILTER_OPTIONS: readonly { value: FavouriteFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'FAVOURITES_ONLY', label: 'Favourites only' },
+]
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return error.message
@@ -66,7 +73,7 @@ export function AssignActivityPicker({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
-  const [favouriteFilter, setFavouriteFilter] = useState(false)
+  const [favouriteFilter, setFavouriteFilter] = useState<FavouriteFilter>('ALL')
 
   useEffect(() => {
     let cancelled = false
@@ -122,7 +129,7 @@ export function AssignActivityPicker({
   }
 
   const visibleActivities = (activities ?? []).filter((activity) => {
-    if (favouriteFilter && !activity.favourite) return false
+    if (favouriteFilter === 'FAVOURITES_ONLY' && !activity.favourite) return false
 
     if (repeatableFilter !== 'ALL') {
       const matchesRepeatable =
@@ -185,14 +192,22 @@ export function AssignActivityPicker({
 
           <fieldset className={styles.filterFieldset}>
             <legend>Filter by favourite</legend>
-            <label>
-              <input
-                type="checkbox"
-                checked={favouriteFilter}
-                onChange={(event) => setFavouriteFilter(event.target.checked)}
-              />{' '}
-              Favourites only
-            </label>
+            <ul className={styles.filterGroup}>
+              {FAVOURITE_FILTER_OPTIONS.map((option) => (
+                <li key={option.value}>
+                  <label>
+                    <input
+                      type="radio"
+                      name="assign-picker-favourite-filter"
+                      value={option.value}
+                      checked={favouriteFilter === option.value}
+                      onChange={() => setFavouriteFilter(option.value)}
+                    />
+                    {option.label}
+                  </label>
+                </li>
+              ))}
+            </ul>
           </fieldset>
         </>
       )}

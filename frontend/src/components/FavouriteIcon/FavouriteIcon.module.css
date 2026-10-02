@@ -2,3 +2,8 @@
   color: var(--accent);
   flex-shrink: 0;
 }
+
+.iconOutline {
+  color: var(--text);
+  flex-shrink: 0;
+}

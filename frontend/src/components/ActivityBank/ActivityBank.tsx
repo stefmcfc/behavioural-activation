@@ -164,24 +164,12 @@ export function ActivityBank() {
       setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
     const subTasksLabel = getSubTasksLabel(activity, expandedActivityId === activity.id)
 
-    const favouriteToggle = (
-      <button
-        type="button"
-        aria-pressed={activity.favourite}
-        onClick={() => handleToggleFavourite(activity)}
-        disabled={favouritingId === activity.id}
-      >
-        <FavouriteIcon /> {activity.favourite ? 'Unfavourite' : 'Favourite'}
-      </button>
-    )
-
     if (activity.archived) {
       return (
         <>
           <button type="button" onClick={toggleSubTasks}>
             {subTasksLabel}
           </button>
-          {favouriteToggle}
           <button
             type="button"
             onClick={() => handleUnarchive(activity.id)}
@@ -219,7 +207,6 @@ export function ActivityBank() {
         <button type="button" onClick={toggleSubTasks}>
           {subTasksLabel}
         </button>
-        {favouriteToggle}
         <button type="button" onClick={() => setFormTarget(activity)}>
           Edit
         </button>
@@ -274,22 +261,24 @@ export function ActivityBank() {
 
         <fieldset className={styles.filterFieldset}>
           <legend>Filter by status</legend>
-          <label className={styles.archivedToggle}>
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-            />{' '}
-            Show archived
-          </label>
-          <label className={styles.archivedToggle}>
-            <input
-              type="checkbox"
-              checked={favouriteFilter}
-              onChange={(event) => setFavouriteFilter(event.target.checked)}
-            />{' '}
-            Favourites only
-          </label>
+          <div className={styles.statusToggleGroup}>
+            <label className={styles.archivedToggle}>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(event) => setShowArchived(event.target.checked)}
+              />{' '}
+              Show archived
+            </label>
+            <label className={styles.archivedToggle}>
+              <input
+                type="checkbox"
+                checked={favouriteFilter}
+                onChange={(event) => setFavouriteFilter(event.target.checked)}
+              />{' '}
+              Favourites only
+            </label>
+          </div>
         </fieldset>
 
         <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
@@ -323,6 +312,16 @@ export function ActivityBank() {
         <ul className={styles.list}>
           {visibleActivities.map((activity) => (
             <li key={activity.id} className={styles.row}>
+              <button
+                type="button"
+                className={styles.favouriteToggle}
+                aria-pressed={activity.favourite}
+                aria-label={activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`}
+                onClick={() => handleToggleFavourite(activity)}
+                disabled={favouritingId === activity.id}
+              >
+                <FavouriteIcon filled={activity.favourite} />
+              </button>
               <span>{activity.name}</span> <CategoryChip category={activity.category} />
               {activity.repeatable && <RepeatableIcon />}
               {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}

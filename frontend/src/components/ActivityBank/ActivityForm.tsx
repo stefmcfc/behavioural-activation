@@ -5,6 +5,7 @@ import type { Activity, ActivityCategory } from '../../types/activity'
 import { CategoryPicker } from './CategoryPicker'
 import { CategoryGuidance } from './CategoryGuidance'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import styles from './ActivityForm.module.css'
 
 interface ActivityFormProps {
@@ -34,6 +35,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const [category, setCategory] = useState<ActivityCategory | null>(activity?.category ?? null)
   const [description, setDescription] = useState(activity?.description ?? '')
   const [repeatable, setRepeatable] = useState(activity?.repeatable ?? true)
+  const [favourite, setFavourite] = useState(activity?.favourite ?? false)
   const [nameTouchedEmpty, setNameTouchedEmpty] = useState(false)
   const [categorySubmitAttempted, setCategorySubmitAttempted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -65,13 +67,24 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
           ? await activityApi.update(activity.id, input)
           : await activityApi.create(input)
 
-      onSuccess(result)
+      // favourite is never part of ActivityRequest (mirrors archived) -- applied via its own
+      // dedicated endpoint after create/update succeeds, only when the form's toggle actually
+      // changed it, so a no-op edit doesn't fire an extra request.
+      let finalResult = result
+      if (favourite !== result.favourite) {
+        finalResult = favourite
+          ? await activityApi.markFavourite(result.id)
+          : await activityApi.unmarkFavourite(result.id).then(() => ({ ...result, favourite: false }))
+      }
+
+      onSuccess(finalResult)
 
       if (mode === 'create') {
         setName('')
         setCategory(null)
         setDescription('')
         setRepeatable(true)
+        setFavourite(false)
       }
     } catch (error) {
       setSubmitError(getErrorMessage(error))
@@ -85,6 +98,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
   const categoryErrorId = `activity-category-${mode}-error`
   const descriptionId = `activity-description-${mode}`
   const repeatableId = `activity-repeatable-${mode}`
+  const favouriteId = `activity-favourite-${mode}`
   const headingId = `activity-form-title-${mode}`
 
   return (
@@ -164,6 +178,23 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
             walk" — they stay in your Activity Bank indefinitely. Turn this off for a one-off, like
             "Apply for jobs": once every planned occurrence of it is completed, it's automatically
             archived out of your everyday list (you can still view and unarchive it later).
+          </p>
+        </div>
+
+        <div className={styles.repeatableField}>
+          <label htmlFor={favouriteId}>
+            <input
+              id={favouriteId}
+              name="favourite"
+              type="checkbox"
+              checked={favourite}
+              onChange={(event) => setFavourite(event.target.checked)}
+            />{' '}
+            Favourite <FavouriteIcon filled={favourite} />
+          </label>
+          <p className={styles.repeatableHint}>
+            Favourited activities are pinned to the top of your Activity Bank and the Weekly
+            Planner's "Add" picker.
           </p>
         </div>
 

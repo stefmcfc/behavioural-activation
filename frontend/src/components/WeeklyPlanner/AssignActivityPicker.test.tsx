@@ -291,19 +291,21 @@ describe('AssignActivityPicker', () => {
     })
   })
 
-  describe('FRONTEND-027-AC-13: renders a "Favourites only" filter, unchecked by default', () => {
-    it('renders an unchecked checkbox', async () => {
+  describe('FRONTEND-027-AC-13: renders a "Favourites only" filter, "All" selected by default', () => {
+    it('renders a two-option pill group with "All" selected', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       vi.mocked(subTaskApi.getAll).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
-      expect(screen.getByRole('checkbox', { name: /favourites only/i })).not.toBeChecked()
+      const group = screen.getByRole('group', { name: 'Filter by favourite' })
+      expect(within(group).getByRole('radio', { name: 'All' })).toBeChecked()
+      expect(within(group).getByRole('radio', { name: 'Favourites only' })).not.toBeChecked()
     })
   })
 
-  describe('FRONTEND-027-AC-14: checking the filter hides non-favourited activities, composing with existing filters', () => {
-    it('shows only the favourited activity when checked', async () => {
+  describe('FRONTEND-027-AC-14: selecting "Favourites only" hides non-favourited activities, composing with existing filters', () => {
+    it('shows only the favourited activity when selected', async () => {
       const favouritedActivity: Activity = { ...walk, favourite: true }
       const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
@@ -311,7 +313,7 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
-      await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+      await userEvent.click(screen.getByRole('radio', { name: 'Favourites only' }))
 
       expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
@@ -325,14 +327,14 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Organise a leaving party' })
-      await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+      await userEvent.click(screen.getByRole('radio', { name: 'Favourites only' }))
 
       expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-027-AC-16: unchecking the filter restores previously-hidden activities', () => {
-    it('restores the non-favourited activity after unchecking', async () => {
+  describe('FRONTEND-027-AC-16: selecting "All" again restores previously-hidden activities', () => {
+    it('restores the non-favourited activity after selecting "All" again', async () => {
       const favouritedActivity: Activity = { ...walk, favourite: true }
       const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
@@ -340,11 +342,11 @@ describe('AssignActivityPicker', () => {
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
-      const checkbox = screen.getByRole('checkbox', { name: /favourites only/i })
-      await userEvent.click(checkbox)
+      const group = screen.getByRole('group', { name: 'Filter by favourite' })
+      await userEvent.click(within(group).getByRole('radio', { name: 'Favourites only' }))
       expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
 
-      await userEvent.click(checkbox)
+      await userEvent.click(within(group).getByRole('radio', { name: 'All' }))
       expect(screen.getByRole('button', { name: 'Apply for jobs' })).toBeInTheDocument()
     })
   })
