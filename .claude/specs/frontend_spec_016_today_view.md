@@ -8,7 +8,10 @@ grid-tabs bug fix (`frontend_spec_015_weekday_weekend_grid_tabs.md`) can ship in
 spec's single-day view reuses `PlannerGrid`'s `days` prop, generalized there), `frontend_spec_005_navigation_and_theme.md`
 (origin of `TabNav`/`App.tsx`'s route table this spec extends), `frontend_spec_004_week_planning.md`
 (origin of `WeeklyPlanner`'s action/state logic this spec reuses), `frontend_spec_009_add_picker_modal.md`
-(the `Modal`-wrapped `AssignActivityPicker` this spec reuses unmodified)
+(the `Modal`-wrapped `AssignActivityPicker` this spec reuses unmodified), `frontend_spec_028_activity_drawer.md`
+(Requirement 5 reuses its `ActivityPickerList`/`DragPayload`/`PlannerGrid`/`BucketList` drag-mode
+plumbing, kept intact when its Weekly Planner drawer trigger was removed — see that spec's "Post-ship
+correction" section for why)
 **Area**: Frontend-only, no backend pair — reuses `GET /api/v1/plan?weekStart=...` exactly as
 `WeeklyPlanner` already does, just always for the real current week.
 **Roadmap version**: V1 (extends `product.md`'s V1 planner row / US-003 "View a weekly plan" — a
@@ -100,6 +103,57 @@ As a user, I want the Today tab and its single-day grid to actually look right i
 - **FRONTEND-016-AC-09** [MANUAL]: The Today nav tab, its single-day grid, and the bucket list
   render correctly in both Light and Dark themes. Verified by a real-browser check, since jsdom does
   not render CSS (`frontend_conventions.md`'s Testing Strategy note).
+
+### Requirement 5 — Today reintroduces a drag-based activity drawer, fixed
+
+As a user, I want to drag an unplanned activity straight onto today's plan without opening a separate
+modal — the same idea `frontend_spec_028`'s Weekly Planner drawer tried, but fixed for the problems
+real use surfaced there.
+
+**Added 2026-10-02**, after `frontend_spec_028`'s drawer was removed from the Weekly Planner — see
+that spec's "Post-ship correction" section for the full investigation. Three concrete problems were
+found: no visual drag affordance, the drawer squeezing the 5-day grid down to an illegible ~560px, and
+the weekend bucket list sitting too far below the fold to reach mid-drag (native HTML5 drag-and-drop
+has no auto-scroll). The first doesn't depend on which page the drawer lives on. The second is
+specific to the Weekly Planner's 5-column grid — `TodayView`'s single-day grid (one column, three
+slots) has much more spare horizontal room for a 320px drawer beside it, so this problem may simply
+not recur here, but that's a real thing to check once built, not an assumption to build on. The third
+is genuinely unresolved — `TodayView`'s shorter page (one day instead of five, per AC-04/AC-05 above)
+*might* keep the bucket list above the fold where the Weekly Planner's couldn't, but this needs an
+actual measurement against the real rendered page before relying on it, exactly as `frontend_spec_028`
+should have done the first time.
+
+**Reuses, unmodified**: `ActivityPickerList.tsx`'s `mode="drag"` support, `dragPayload.ts`'s
+`DragPayload` union, and `PlannerGrid`/`BucketList`'s `dragPayload`/`onAssignFromDrawer` props —
+`frontend_spec_028` kept all of this intact specifically for this reuse. `usePlanActions` (this spec's
+own new hook, Requirement 3 above) needs its own `handleAssignFromDrawer`-equivalent handler, mirroring
+`frontend_spec_028`'s now-removed `WeeklyPlanner.tsx` implementation (same body: `planApi.create` with
+`dayOfWeek`/`slot` from the drop target, gated by its own in-flight boolean, not `busyId`).
+
+- **FRONTEND-016-AC-10** [AUTO]: `TodayView` shall render a "Browse activities" toggle button and,
+  when open, a drawer panel rendering `<ActivityPickerList mode="drag" .../>` beside the single-day
+  grid — the same `ActivityDrawer`-shaped component `frontend_spec_028` built, reintroduced here (a
+  new component, or `ActivityDrawer.tsx` restored and pointed at `TodayView` instead of
+  `WeeklyPlanner.tsx` — implementer's call, since the component itself needs no behavior change from
+  what `frontend_spec_028` already specified for it).
+- **FRONTEND-016-AC-11** [AUTO]: Drawer rows shall render with a visible drag affordance —
+  `cursor: grab` at minimum, and a drag-handle icon matching the visual pattern `OccurrenceItem`'s
+  existing reorder handles already establish — fixing `frontend_spec_028`'s confirmed finding that
+  rows gave no indication they were draggable (computed `cursor: auto`, no icon).
+- **FRONTEND-016-AC-12** [MANUAL]: With the drawer open, in a real browser at a typical viewport
+  width, `TodayView`'s single-day grid cells remain legible and individually usable as drop targets —
+  measured directly (`getBoundingClientRect`), not assumed from "it's just one column so it should be
+  fine."
+- **FRONTEND-016-AC-13** [MANUAL]: With the drawer open, in a real browser at a typical viewport
+  height, the bucket list's position is measured against the viewport. If it renders above the fold
+  (reachable without scrolling), this AC passes as-is. If it doesn't, this AC fails and the drawer's
+  bucket-drop affordance must be explicitly scoped out of `TodayView` (or the page restructured) rather
+  than shipped with the same unreachable-drop problem `frontend_spec_028` had — do not mark this done
+  without an actual measurement.
+- **FRONTEND-016-AC-14** [AUTO]: Dropping a drawer item onto `TodayView`'s grid or bucket list shall
+  call `PlannerGrid`/`BucketList`'s existing `onAssignFromDrawer` prop exactly as `frontend_spec_028`
+  specified, wired to a new handler in `usePlanActions` that creates the occurrence via `planApi.create`
+  and appends it to `usePlanActions`' own `occurrences` state.
 
 ## Component/type changes
 
@@ -213,6 +267,7 @@ const TABS = [
 | `TodayView.tsx` (new) | No prior art — new file this spec introduces |
 | `TabNav.tsx`/`App.tsx` (`frontend_spec_005_navigation_and_theme.md`) | Extended — new "Today" tab + `/today` route |
 | `GET /api/v1/plan` (`planner_spec_004_week_planning.md`) | Unchanged — same endpoint, called with the real current week's Monday |
+| `ActivityPickerList.tsx`/`dragPayload.ts`/`PlannerGrid`/`BucketList`'s drag props (`frontend_spec_028_activity_drawer.md`) | Reused unmodified for Requirement 5 — kept intact specifically for this reuse when the Weekly Planner drawer trigger was removed |
 
 `WeeklyPlanner.test.tsx`'s existing tests exercise state/handlers that move into `usePlanActions` —
 they'll continue passing unchanged against `WeeklyPlanner`'s public behaviour (same rendered output,
@@ -284,12 +339,57 @@ describe('FRONTEND-016-AC-07: supports the same actions as the Weekly Planner', 
     expect(await screen.findByRole('dialog', { name: new RegExp(`${todayOccurrence.name} actions`, 'i') })).toBeInTheDocument()
   })
 })
+
+describe('FRONTEND-016-AC-10/AC-14: the drawer reintroduced for Today', () => {
+  it('AC-10: "Browse activities" opens a drag-mode ActivityPickerList panel', async () => {
+    vi.mocked(planApi.getWeek).mockResolvedValue([])
+    vi.mocked(activityApi.getAll).mockResolvedValue([])
+    render(<TodayView />)
+
+    await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
+
+    expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
+  })
+
+  it('AC-14: dropping a drawer item on today\'s grid calls planApi.create via usePlanActions', async () => {
+    vi.mocked(planApi.getWeek).mockResolvedValue([])
+    vi.mocked(activityApi.getAll).mockResolvedValue([drawerActivity])
+    vi.mocked(planApi.create).mockResolvedValue({ ...todayOccurrence, activityId: drawerActivity.id })
+    render(<TodayView />)
+
+    await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
+    const row = (await screen.findByText(drawerActivity.name)).closest('li')!
+    const targetCell = screen.getByLabelText(/add to/i).closest('div')!
+
+    fireEvent.dragStart(row)
+    fireEvent.drop(targetCell)
+
+    await waitFor(() =>
+      expect(planApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ activityId: drawerActivity.id, subTaskId: null }),
+      ),
+    )
+  })
+})
 ```
+
+### FRONTEND-016-AC-11 / AC-12 / AC-13 (manual — no automated sketch for the layout/affordance checks)
+AC-11's `cursor: grab` and handle-icon styling is CSS, not state — follow `frontend_conventions.md`'s
+established pattern (CSS Module class + source-file content assertions, no `getComputedStyle`) for
+whatever automated coverage is feasible, same as `frontend_spec_031`'s precedent. AC-12/AC-13 are
+rendered-layout measurements — verify manually in a real browser:
+1. Open the drawer in `TodayView`; confirm the single-day grid's cells are still comfortably legible
+   and individually clickable/droppable (not squeezed), at a typical laptop viewport width.
+2. With the drawer open, check the bucket list's `getBoundingClientRect()` against
+   `window.innerHeight` — note whether it's reachable without scrolling. If not, treat AC-13 as not met
+   and raise it as a blocker before shipping Requirement 5, not an acceptable known gap to carry
+   forward silently (that's exactly how `frontend_spec_028` shipped with this same problem unflagged).
 
 **Test Case (Green)**: implement `usePlanActions.ts`, refactor `WeeklyPlanner.tsx` to use it, add
 `TodayView.tsx`, and extend `TabNav.tsx`/`App.tsx` as specified above until every sketch above (and
-the remaining ACs not sketched: AC-06, AC-08, AC-09) passes. AC-09 is verified by a real-browser pass
-in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy note.
+the remaining ACs not sketched: AC-06, AC-08, AC-09, AC-11–AC-13) passes. AC-09/AC-12/AC-13 are
+verified by a real-browser pass in both Light and Dark, per `frontend_conventions.md`'s Testing
+Strategy note.
 
 ## Acceptance Criteria Summary
 
@@ -302,3 +402,8 @@ in both Light and Dark, per `frontend_conventions.md`'s Testing Strategy note.
 - [ ] FRONTEND-016-AC-07 — full Add/Complete/Undo/detail-card parity via the shared `usePlanActions` hook
 - [ ] FRONTEND-016-AC-08 — `TodayView` and `WeeklyPlanner` state are fully independent across routes
 - [ ] FRONTEND-016-AC-09 — Today tab + grid + bucket list render correctly in Light and Dark (real-browser check)
+- [ ] FRONTEND-016-AC-10 — "Browse activities" opens a drag-mode drawer panel beside today's grid
+- [ ] FRONTEND-016-AC-11 — drawer rows have a visible drag affordance (cursor + handle icon)
+- [ ] FRONTEND-016-AC-12 — the single-day grid stays legible/usable with the drawer open (real-browser check)
+- [ ] FRONTEND-016-AC-13 — the bucket list is reachable without scrolling with the drawer open, or this is explicitly flagged as not met (real-browser check)
+- [ ] FRONTEND-016-AC-14 — dropping a drawer item calls `onAssignFromDrawer` via `usePlanActions`

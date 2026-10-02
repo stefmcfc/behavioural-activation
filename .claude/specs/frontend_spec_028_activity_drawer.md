@@ -1,7 +1,10 @@
 # Activity Drawer — Drag an Unplanned Activity onto the Grid or Bucket
 
-**Status**: Implemented (2026-10-02) — all 18 ACs implemented and test-covered, including `AC-05`
-(`[MANUAL]`), confirmed in a real browser
+**Status**: Partially reverted (2026-10-02) — the Weekly Planner drawer trigger (`AC-03`/`AC-04`) was
+removed after real-use feedback found it unusable, and `AC-05` is now known to have been wrongly
+marked passing (see "Post-ship correction" below). The reusable plumbing it introduced
+(`ActivityPickerList`'s drag mode, `DragPayload`, `PlannerGrid`/`BucketList`'s drop handling) remains
+and is intended for reuse by `frontend_spec_016_today_view.md`
 **Priority**: P3 — interaction speed-up, no new capability (assigning an activity already exists via
 the "Add" button + `AssignActivityPicker` modal)
 **Depends on**: `frontend_spec_025_grid_drag_to_move.md`, `frontend_spec_026_grid_bucket_cross_drag.md`
@@ -80,6 +83,62 @@ the drawer onto an empty grid cell (Thursday Morning) produced a real `POST /api
 (201) and the occurrence appeared there on reload; a sub-task row dragged onto the bucket panel
 produced a second real `POST` (201) with `subTaskId` set and `activityId` null, landing correctly in
 the bucket. Both test occurrences were deleted afterward via the API to leave no residue.
+
+## Post-ship correction (2026-10-02): drawer trigger removed from the Weekly Planner
+
+The user reported, after living with this feature, that it was "not very functional" — unclear that
+items could be dragged, the drawer effectively covered the area being dragged to, dropping onto the
+weekend bucket was impossible without scrolling, and overall it was slower than just using the
+existing "Add" button. Investigated hands-on in a real browser (not assumed) before deciding anything,
+per this project's reproduce-before-fixing convention:
+
+1. **No drag affordance, confirmed**: drawer rows are plain `<li draggable="true">` with computed
+   `cursor: auto` — nothing visually distinguishes them from static text. No drag-handle icon either,
+   unlike the grip-icon pattern `OccurrenceItem`'s own reorder handles already establish elsewhere in
+   this app.
+2. **AC-05 was wrongly marked passing.** Re-verified at a typical 1384×749 laptop viewport (not the
+   narrower cell-by-cell functional check the original verification used — see the Summary above,
+   which confirmed individual drops succeeded via raw `DragEvent` dispatch but never checked whether
+   the *whole grid* stayed legible with the drawer open). It doesn't: `.main` shrinks to ~560px to make
+   room for the drawer's fixed `320px`, and five day columns can't fit in that space — Thursday and
+   Friday render as illegible slivers (confirmed via `getBoundingClientRect`/zoomed screenshot, not a
+   z-index overlay in the literal sense, but functionally identical to one — the columns are
+   technically present but unusable as drop targets).
+3. **Off-screen drop confirmed structurally impossible, not just awkward**: the weekend bucket list
+   sits 1000px+ below the fold on a typical viewport once the grid above it renders its usual content.
+   Native HTML5 drag-and-drop has no auto-scroll-while-dragging — there is no way to reach it mid-drag
+   without first scrolling, which native DnD doesn't support while a drag is in progress. This is a
+   platform limitation, not a CSS bug — the same category of accepted limitation already noted
+   elsewhere for native DnD (no touch support, per `frontend_spec_025`/`026`).
+
+**Decision**: remove the drawer's trigger and UI chrome from the Weekly Planner entirely — `Browse
+activities` button, `drawerOpen` state, and `ActivityDrawer.tsx`/`.module.css`/`.test.tsx` are deleted.
+**Kept, unchanged**: `ActivityPickerList.tsx`'s `mode="drag"` support, `dragPayload.ts`'s `DragPayload`
+union, and `PlannerGrid`/`BucketList`'s drop-handling branches for `kind: 'activity' | 'subtask'`
+(their `onAssignFromDrawer` prop becomes optional, since `WeeklyPlanner.tsx` no longer has a drag
+source to wire it to, but the components' own contract is untouched). `AC-06`–`AC-09`'s test coverage
+moved to a new standalone `ActivityPickerList.test.tsx` (previously only reachable through
+`ActivityDrawer.test.tsx`); `AC-10`–`AC-14`'s coverage moved to direct component-level tests in
+`PlannerGrid.test.tsx`/`BucketList.test.tsx` (previously only reachable by simulating a full drawer
+drag through `WeeklyPlanner.test.tsx`, which no longer has a UI path to trigger one).
+
+**Why not just fix it in place**: #1 and #2 are real fixes (affordance styling, layout). #3 has no
+clean fix short of replacing native HTML5 DnD with a pointer-events-based custom implementation — a
+disproportionate rewrite for a feature whose whole value proposition was "faster than the existing
+modal," which it no longer was once all three issues were accounted for.
+
+**Where this goes next**: `frontend_spec_016_today_view.md` gained new ACs (Requirement 5) to
+reintroduce a drawer there instead. A single-day grid doesn't have problem #2 — a 320px drawer beside
+one day/three slots doesn't force the same squeeze five columns do — and #1 is a straightforward fix
+regardless of where the drawer lives. #3 is still an open question there (the Today page may or may
+not keep the bucket list above the fold — genuinely unknown until built), flagged explicitly as such
+rather than assumed solved.
+
+**Acceptance Criteria Summary corrections** (see bottom of this file): `AC-03`/`AC-04` unchecked (the
+Weekly-Planner-specific toggle/UI they describe no longer exists); `AC-05` unchecked and corrected (it
+was never actually true at a realistic viewport, the original check just didn't catch it); `AC-06`–
+`AC-14` stay checked (the underlying components they describe are unchanged and still correct) but
+with a note on where their coverage now lives.
 
 ## Overview
 
@@ -554,18 +613,34 @@ describe('FRONTEND-028: existing behaviors unaffected', () => {
 
 - [x] FRONTEND-028-AC-01 — `ActivityPickerList` extracted, `AssignActivityPicker` renders it in `select` mode
 - [x] FRONTEND-028-AC-02 — every existing `AssignActivityPicker` behavior unchanged after extraction
-- [x] FRONTEND-028-AC-03 — toggle button opens/closes the drawer, closed by default
-- [x] FRONTEND-028-AC-04 — the existing Add button/modal fully unaffected by drawer state
-- [x] FRONTEND-028-AC-05 — open drawer sits beside the grid without breaking layout or obscuring drop targets (confirmed in a real browser)
-- [x] FRONTEND-028-AC-06 — drawer renders the list in drag mode, no click-select
+- [ ] ~~FRONTEND-028-AC-03~~ — toggle button opens/closes the drawer, closed by default — **removed
+  2026-10-02**, no longer applicable (Weekly Planner no longer has a drawer trigger)
+- [ ] ~~FRONTEND-028-AC-04~~ — the existing Add button/modal fully unaffected by drawer state — **no
+  longer applicable 2026-10-02** (no drawer state exists to be unaffected by; the Add button/modal
+  themselves are of course still fine, unrelated to this AC's premise)
+- [ ] ~~FRONTEND-028-AC-05~~ — open drawer sits beside the grid without breaking layout or obscuring
+  drop targets — **corrected 2026-10-02: this was never actually true** at a realistic viewport width
+  (see "Post-ship correction" above); the original `[MANUAL]` check didn't catch it
+- [x] FRONTEND-028-AC-06 — drawer renders the list in drag mode, no click-select (component-level,
+  unchanged; coverage moved to `ActivityPickerList.test.tsx` 2026-10-02)
 - [x] FRONTEND-028-AC-07 — starting a drag identifies the activity or sub-task being dragged
-- [x] FRONTEND-028-AC-08 — a drag ending with no drop resets cleanly
-- [x] FRONTEND-028-AC-09 — the drawer's filters behave identically to the modal's
-- [x] FRONTEND-028-AC-10 — dropping a drawer item on a grid cell calls `onAssignFromDrawer`, not `onConfirmMove`
+  (component-level, unchanged; coverage moved to `ActivityPickerList.test.tsx` 2026-10-02)
+- [x] FRONTEND-028-AC-08 — a drag ending with no drop resets cleanly (component-level, unchanged;
+  coverage moved to `ActivityPickerList.test.tsx` 2026-10-02)
+- [x] FRONTEND-028-AC-09 — the drawer's filters behave identically to the modal's (component-level,
+  unchanged; coverage moved to `ActivityPickerList.test.tsx` 2026-10-02)
+- [x] FRONTEND-028-AC-10 — dropping a drawer item on a grid cell calls `onAssignFromDrawer`, not
+  `onConfirmMove` (component-level, unchanged, now an optional prop; coverage moved to
+  `PlannerGrid.test.tsx` 2026-10-02)
 - [x] FRONTEND-028-AC-11 — the new-assignment handler calls `planApi.create` and appends the result
-- [x] FRONTEND-028-AC-12 — a second drawer-drop in flight is ignored
+  (component-level contract, unchanged; `WeeklyPlanner.tsx` no longer has a drag source to exercise it,
+  but `usePlanActions` will need an equivalent handler when `frontend_spec_016` reintroduces one)
+- [x] FRONTEND-028-AC-12 — a second drawer-drop in flight is ignored (same note as AC-11)
 - [x] FRONTEND-028-AC-13 — dropping on the bucket panel calls `onAssignFromDrawer` with null day/slot
-- [x] FRONTEND-028-AC-14 — dropping on an existing bucket item also assigns to the bucket, not a reorder
+  (component-level, unchanged, now an optional prop; coverage moved to `BucketList.test.tsx`
+  2026-10-02)
+- [x] FRONTEND-028-AC-14 — dropping on an existing bucket item also assigns to the bucket, not a
+  reorder (component-level, unchanged; coverage moved to `BucketList.test.tsx` 2026-10-02)
 - [x] FRONTEND-028-AC-15 — grid-internal drag-to-move (`frontend_spec_025`) unaffected
 - [x] FRONTEND-028-AC-16 — bucket-internal drag-to-reorder (`frontend_spec_010`) unaffected
 - [x] FRONTEND-028-AC-17 — grid/bucket cross-drag (`frontend_spec_026`) unaffected
