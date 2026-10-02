@@ -14,9 +14,11 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-02 (the header restructure candidate moved to a real spec —
-`frontend_spec_030_header_restructure.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
+Last updated: 2026-10-02 (the button-hierarchy candidate moved to a real spec —
+`frontend_spec_031_button_hierarchy.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
 this file.)
+Earlier note: 2026-10-02, the header restructure candidate moved to a real spec —
+`frontend_spec_030_header_restructure.md`.
 Earlier note: 2026-10-01, added two candidates from the modern-web-guidance frontend review
 — `.claude/modern-web-guidance/reviews/review-2026-10-01.md` — touch-friendly bucket reordering
 and a bulk sub-task fetch endpoint; see entries below.)
@@ -108,15 +110,6 @@ Whichever is chosen needs real backend aggregation work across `CompletionRecord
 `PlannedOccurrence` joined by `sub_task_id` — not a client-side computation over already-fetched
 data. Revisit once there's a concrete answer to the "done" question above, ideally prompted by this
 mattering in actual day-to-day use rather than decided speculatively now.
-
-## Frontend button visual hierarchy (primary/secondary)
-
-**Status**: Confirmed, not yet specced. Deferred scope from `frontend_spec_007_visual_refresh.md`'s
-Requirement 3 (documented in that spec's Out-of-scope section): every button currently gets an
-identical pill+shadow treatment, with no visual distinction between a primary action (e.g. "Add
-activity", "Log in") and a secondary one (e.g. "Delete", "Cancel"). Fixing this means adding
-`className`/variant props across every component that renders a button, not just a CSS change —
-real scope, deliberately not bundled into the visual-refresh pass.
 
 The V1–V5 roadmap in `.claude/HIGH_LEVEL_DESIGN.md` §3 already lists the major themes and user
 stories (US-001 through US-018) with acceptance criteria at the epic level — those are the initial

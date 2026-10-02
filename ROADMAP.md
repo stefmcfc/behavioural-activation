@@ -64,13 +64,14 @@ spec-tidying effort this came out of).
 
 ## Specced, coming soon
 
-Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but not yet written (the
-button-hierarchy candidate).
+Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but not yet written.
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
+| Frontend button visual hierarchy (primary/destructive) | — (frontend-only) | [`frontend_spec_031_button_hierarchy.md`](.claude/specs/frontend_spec_031_button_hierarchy.md) | Not started. New `primary`/`destructive` CSS Module variant classes; everything else keeps today's uniform treatment. |
+
 ## Internal / maintenance specs
 
 Pure-refactor or tooling specs with no user-facing feature name — don't force these into the
