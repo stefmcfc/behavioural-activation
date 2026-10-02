@@ -1,6 +1,8 @@
 # Header Restructure — Settings/Account Icons, Tabs Demoted to a Second Row
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 12 ACs green, including AC-06 and the post-implementation
+AC-12, confirmed in a real browser after fixing a real positioning bug the real-browser pass caught
+(see Summary)
 **Priority**: P3 — visual/UX cleanup, no new capability (Settings and account info/log out already
 exist; this relocates them)
 **Depends on**: `frontend_spec_005_navigation_and_theme.md` (`TabNav`, `Settings`, the theme/colour
@@ -8,6 +10,102 @@ preferences this relocates but does not change), `frontend_spec_001_login.md` (`
 gate and `handleLogout`, unchanged)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme
+
+## Summary
+
+All 12 ACs implemented and tested (10 new automated tests across `SettingsMenu.test.tsx`,
+`AccountMenu.test.tsx`, `App.test.tsx`, plus `TabNav.test.tsx` updated for the two-tab shape — full
+suite now 421 tests across 34 files, up from the 411/32 baseline, 0 regressions). AC-06 required two
+rounds of real-browser investigation before it actually passed — see the two positioning findings
+below, both caught and fixed only because of the real-browser verification pass, not by the test
+suite (jsdom's lack of Popover API support meant no automated test could have caught either one).
+AC-12 (added post-implementation, see below) is `[MANUAL]` for the same underlying reason — verified
+in a real browser, not by the test suite.
+
+**Real findings — jsdom has zero Popover API support, not just a light-dismiss gap**: the Overview
+anticipated jsdom possibly not modeling *outside-click/Escape* dismissal (why AC-06 was marked
+`[MANUAL]` up front). Direct inspection this session found the gap is much larger: jsdom v30 doesn't
+implement `showPopover()`/`hidePopover()`/`togglePopover()` on `HTMLElement` at all (none of the
+three methods exist), and its built-in stylesheet applies `display: none` to any `[popover]` element
+unconditionally — there's no `:popover-open` pseudo-class support to ever flip it back. Clicking a
+`popovertarget` button natively did nothing (no error, no visible change) since the click-activation
+algorithm that wires a `popovertarget` button to its target isn't implemented either. Confirmed by
+direct Node/jsdom probing, not assumed, before writing any workaround (per this project's
+reproduce-before-fixing debugging convention).
+
+Fixed with a test-only polyfill in `src/test-setup.ts`, mirroring the existing `<dialog>`
+`showModal()`/`close()` polyfill already in that file for the same kind of jsdom gap: adds
+`showPopover`/`hidePopover`/`togglePopover` (toggling an inline `style.display` override, since
+CSS Modules files aren't actually injected into jsdom during Vitest runs — confirmed separately —
+so the only thing that needed overriding was jsdom's own built-in `display: none` default), a
+document-level click listener that reproduces the native `popovertarget`/`popovertargetaction`
+click-activation behaviour, and `popover="auto"` mutual exclusivity (opening one closes any other
+open auto popover), which is what AC-09's test actually exercises. Native light-dismiss
+(click-outside/Escape) is deliberately *not* polyfilled — that's exactly the part AC-06 defers to a
+real browser.
+
+**Real finding — the Overview's "plain CSS, not anchor positioning" call was wrong, caught only by
+the real-browser pass**: the Overview originally argued for a `position: relative` wrapper +
+`position: absolute` panel, reasoning that CSS anchor positioning (`position-area`) had "limited
+availability... unsupported in Chrome, Edge, and Firefox" per the `modern-web-guidance` lookup done
+before drafting. **That browser-support data was stale.** The real browser used for verification
+(Chrome 154) fully supports `anchor-name`/`position-anchor`/`anchor()`/`position-area` — confirmed
+directly via `CSS.supports(...)` before changing anything, not assumed. More importantly, the
+"plain CSS" approach the Overview called "simpler and fully supported" doesn't actually work for a
+real `popover` element regardless of anchor-positioning support: once a popover is shown, the browser
+promotes it to the top layer, which changes its containing block to the viewport — a
+`position: relative` ancestor in the DOM tree has no effect on a top-layer element's `position:
+absolute`/`fixed` offsets. The real-browser pass caught this immediately (the panel rendered off the
+bottom of the viewport, `top: 758px` on a 749px-tall viewport) in a way no amount of jsdom testing
+could have, since jsdom doesn't implement the Popover API at all (see above). Fixed by switching to
+CSS anchor positioning: `anchor-name` on each trigger, `position-anchor` + `anchor()` on each panel.
+
+**Second real finding, same session, same real-browser pass**: the first anchor-positioning fix
+*still* rendered the panel pinned to the viewport's top-left corner instead of under the trigger —
+caught by comparing the actual screenshot against the intended design rather than trusting a
+superficially-plausible first fix. Root cause: the browser's own `[popover]` UA stylesheet sets
+`inset: 0` (all four sides) by default, to center an un-styled popover via `margin: auto`. The first
+fix's CSS only overrode `top`/`right`/`margin` — `left: 0` and `bottom: 0` from that UA default were
+never overridden, so the box was over-constrained and `left: 0` silently won over the new `right:
+anchor(right)` (confirmed via `getComputedStyle` before and after, not guessed). Fixed by adding
+explicit `left: auto; bottom: auto;` to each panel's CSS, which fully overrides the UA default and
+lets the `anchor()` values actually take effect. **Lesson for any future popover-positioning work in
+this codebase**: always explicitly reset all four insets your author CSS doesn't intentionally set,
+rather than relying on an un-set property falling back to the CSS initial value — `[popover]`'s UA
+default means "un-set" and "explicitly 0" are not the same thing here.
+
+**Post-implementation refinement (2026-10-02)**: the user asked, after reviewing the real-browser
+verification, for the trigger icon to visually highlight (the same treatment as its existing `:hover`
+state) while its popover is open, reverting when closed. Added `FRONTEND-030-AC-12` for this (new,
+not in the original spec). Implemented with pure CSS — no new JS/React state — using the `:has()`
+relational selector: each trigger button is now wrapped in a `display: contents` `<div>` (adds no
+layout box, purely a `:has()` scoping container) alongside its panel, and
+`.wrapper:has(.panel:popover-open) .trigger` is added to the existing `:hover`/`:focus-visible` rule.
+Verified in a real browser with the mouse moved away from the trigger (to rule out `:hover` itself
+being the actual cause of the highlight) and via a real click-to-dismiss (not a programmatic
+`hidePopover()` call, which was tried first and produced a misleading stale-`background-color`
+reading — a `getComputedStyle` timing artifact specific to the imperative API, not present when
+closing via an actual user click).
+
+**Secondary finding from the same polyfill work**: `screen.getByText(...)` does not filter on CSS
+visibility in RTL (only `getByRole` does, via its accessibility-tree/`isInaccessible` check), so a
+few test assertions that would have *looked* like they were asserting "the popover is closed" via
+`queryByText(...).not.toBeInTheDocument()` were actually not exercising anything meaningful (the
+text is always present in the DOM, just hidden by CSS) — avoided in the tests actually written here
+by asserting closed/open state via `getByRole` queries instead (which do correctly reflect the
+polyfilled `display` toggle), with a comment at the one spot (`AccountMenu.test.tsx`) where this was
+caught and the invalid assertion removed rather than left in place silently passing for the wrong
+reason.
+
+**Deviation from the spec's `aria-labelledby` guidance, flagged explicitly**: `AccountMenu`'s panel
+uses `aria-labelledby` pointing at its own visible `<h2>Account</h2>` exactly as described. But
+`SettingsMenu`'s panel uses `aria-label="Settings"` instead of `aria-labelledby` — `Settings.tsx`
+already renders its own `<h2>Settings</h2>` with no `id`, and AC-04 requires that component's markup
+stay *unchanged*, so there was no existing heading `id` to point `aria-labelledby` at without editing
+`Settings.tsx`. Adding a second, separate wrapper heading purely to carry an `id` would have produced
+a visually duplicated "Settings" heading, which seemed worse than the small `aria-labelledby` →
+`aria-label` substitution made here. Flagged in case a different fix (e.g. relaxing the "unchanged
+markup" constraint by exactly one `id` attribute) is preferred instead.
 
 ## Overview
 
@@ -190,13 +288,39 @@ system-theme display, live colour updates, reset-to-default).
 
 **References**: Component: `frontend/src/components/Settings/Settings.tsx` (unchanged)
 
+## Requirement 5: A trigger icon highlights while its own popover is open
+
+**User story**: As a user, I want the Settings or Account icon to visually show which menu is
+currently open, the same way it already highlights on hover, so the open panel still reads as
+connected to its trigger once my pointer has moved away (e.g. onto the panel's own contents).
+
+### FRONTEND-030-AC-12 [MANUAL]: A trigger icon shows its hover styling while its popover is open, and reverts when it closes
+**Statement**: In a real browser, while the Settings (or Account) popover is open, the corresponding
+trigger icon button shall render with the same visual treatment (border and background) as its own
+`:hover` state, regardless of actual pointer position; once the popover closes, the trigger shall
+revert to its normal (non-hovered, non-open) appearance.
+
+**Rationale**: Added post-implementation at the user's request, during the real-browser
+verification pass for AC-04–AC-09. Implemented with zero new JS/React state — a `display: contents`
+wrapper around each trigger+panel pair lets `:has()` select the trigger when its sibling panel
+matches `:popover-open`, reusing the existing `:hover`/`:focus-visible` style rule rather than
+adding a parallel one. `[MANUAL]`: the test-only Popover API polyfill in `test-setup.ts` toggles
+visibility by setting `style.display` directly — it doesn't implement the actual `:popover-open`
+CSS pseudo-class, which jsdom's selector engine has no notion of at all, so `:has(.panel:popover-
+open)` can never match under jsdom regardless of open/closed state. Verified instead in a real
+browser via precise `getComputedStyle` checks before/after open and close (confirmed independent of
+`:hover` by moving the pointer away first), consistent with AC-06's native-platform-behavior
+pattern.
+
+**References**: Components: `frontend/src/components/Navigation/SettingsMenu.tsx`/`.module.css`,
+`frontend/src/components/Navigation/AccountMenu.tsx`/`.module.css` (`.wrapper { display: contents }`,
+`.wrapper:has(.panel:popover-open) .trigger` added to the existing `:hover`/`:focus-visible` rule)
+
 ## Explicitly out of scope (do not implement as part of this spec)
 
 - Any Account/Profile menu content beyond username + Log out (notifications/email preferences,
   change password, etc.) — explicitly deferred per the candidate's own scope note.
 - Combining Settings and Account into one menu — confirmed separate, see Overview.
-- CSS anchor positioning (`position-area`) — not yet broadly supported; plain CSS positioning is used
-  instead (see Overview).
 - A true ARIA `role="menu"` widget with arrow-key navigation — neither panel's content needs it (see
   Overview's accessibility-shape rationale).
 - Any mobile/narrow-viewport-specific redesign of the header — this project has no established
@@ -314,16 +438,28 @@ describe('FRONTEND-030: existing navigation/Settings behavior unaffected', () =>
 })
 ```
 
+### FRONTEND-030-AC-12 (manual — no automated sketch)
+No Vitest/jsdom sketch: the test-only Popover API polyfill (`test-setup.ts`) toggles open/closed via
+`style.display`, not the real `:popover-open` pseudo-class, and jsdom's selector engine doesn't
+implement that pseudo-class at all — so `:has(.panel:popover-open)` can never match under jsdom
+regardless of state. Verified manually in a real browser instead:
+1. Open the Settings popover; move the pointer off the trigger entirely; confirm via
+   `getComputedStyle` that the trigger's border/background match its `:hover` rule's values.
+2. Close the popover (click elsewhere); confirm the trigger's border/background revert to the
+   un-highlighted base values.
+3. Repeat for the Account trigger/popover.
+
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-030-AC-01 — Title, Settings icon, Account icon render as one header row
-- [ ] FRONTEND-030-AC-02 — TabNav renders as a second row with only two tabs
-- [ ] FRONTEND-030-AC-03 — `/settings` redirects to `/activities`
-- [ ] FRONTEND-030-AC-04 — Settings icon opens a popover with the existing Settings content
-- [ ] FRONTEND-030-AC-05 — Settings icon toggles the popover closed on a second click
-- [ ] FRONTEND-030-AC-06 — clicking outside or Escape closes the Settings popover (real-browser check)
-- [ ] FRONTEND-030-AC-07 — Account icon opens a popover with username + Log out
-- [ ] FRONTEND-030-AC-08 — Log out from the popover behaves exactly as the existing action
-- [ ] FRONTEND-030-AC-09 — opening one popover closes the other
-- [ ] FRONTEND-030-AC-10 — Activities/Weekly Planner tab navigation unaffected
-- [ ] FRONTEND-030-AC-11 — theme/category colour behavior unaffected, now inside the popover
+- [x] FRONTEND-030-AC-01 — Title, Settings icon, Account icon render as one header row
+- [x] FRONTEND-030-AC-02 — TabNav renders as a second row with only two tabs
+- [x] FRONTEND-030-AC-03 — `/settings` redirects to `/activities`
+- [x] FRONTEND-030-AC-04 — Settings icon opens a popover with the existing Settings content
+- [x] FRONTEND-030-AC-05 — Settings icon toggles the popover closed on a second click
+- [x] FRONTEND-030-AC-06 — clicking outside or Escape closes the Settings popover (real-browser check)
+- [x] FRONTEND-030-AC-07 — Account icon opens a popover with username + Log out
+- [x] FRONTEND-030-AC-08 — Log out from the popover behaves exactly as the existing action
+- [x] FRONTEND-030-AC-09 — opening one popover closes the other
+- [x] FRONTEND-030-AC-10 — Activities/Weekly Planner tab navigation unaffected
+- [x] FRONTEND-030-AC-11 — theme/category colour behavior unaffected, now inside the popover
+- [x] FRONTEND-030-AC-12 — trigger icon shows hover styling while its popover is open, reverts on close (real-browser check)

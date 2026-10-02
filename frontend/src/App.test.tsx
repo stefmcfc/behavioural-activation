@@ -86,6 +86,7 @@ describe('App', () => {
       )
 
       await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
       await userEvent.click(screen.getByRole('button', { name: /log out/i }))
 
       await waitFor(() => expect(authApi.logout).toHaveBeenCalled())
@@ -209,6 +210,7 @@ describe('App', () => {
       )
 
       await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
       await userEvent.click(screen.getByRole('button', { name: /log out/i }))
 
       expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
@@ -298,7 +300,7 @@ describe('App', () => {
   })
 
   describe('FRONTEND-005-AC-05: shared header persists across tab switches', () => {
-    it('keeps "Logged in as" visible after switching tabs', async () => {
+    it('keeps the Settings and Account icons visible after switching tabs', async () => {
       vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
       render(
         <MemoryRouter initialEntries={['/activities']}>
@@ -307,9 +309,10 @@ describe('App', () => {
       )
 
       await screen.findByText(/steve/i)
-      await userEvent.click(screen.getByRole('link', { name: /settings/i }))
+      await userEvent.click(screen.getByRole('link', { name: /weekly planner/i }))
 
-      expect(screen.getByText(/logged in as/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument()
     })
   })
 
@@ -365,10 +368,77 @@ describe('App', () => {
       )
 
       const shellBefore = await screen.findByTestId('app-shell')
-      await userEvent.click(screen.getByRole('link', { name: /settings/i }))
+      await userEvent.click(screen.getByRole('link', { name: /weekly planner/i }))
       const shellAfter = await screen.findByTestId('app-shell')
 
       expect(shellAfter).toBe(shellBefore)
+    })
+  })
+
+  describe('FRONTEND-030-AC-01: header row has Title, Settings icon, Account icon, no "Logged in as" text', () => {
+    it('renders the Settings and Account trigger buttons and drops the old "Logged in as" paragraph', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText('Behavioural Activation Planner')
+      expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument()
+      expect(screen.queryByText(/logged in as/i)).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-030-AC-03: /settings redirects to /activities', () => {
+    it('renders the Activity Bank when navigating to /settings', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/settings']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      expect(await screen.findByRole('heading', { name: 'Activity Bank' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-030-AC-08: logging out from the Account popover behaves exactly as the old standalone button', () => {
+    it('calls authApi.logout and returns to LoginPage', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      vi.mocked(authApi.logout).mockResolvedValue(undefined)
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Log out' }))
+
+      await waitFor(() => expect(authApi.logout).toHaveBeenCalled())
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-030-AC-09: opening Account closes an already-open Settings popover', () => {
+    it('closes the Settings popover when the Account icon is clicked', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('button', { name: 'Settings' }))
+      expect(screen.getByRole('group', { name: 'Appearance' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      expect(screen.queryByRole('group', { name: 'Appearance' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
     })
   })
 })

@@ -60,6 +60,7 @@ spec-tidying effort this came out of).
 | Favourite activities | [`planner_spec_015_favourite_activities.md`](.claude/specs/planner_spec_015_favourite_activities.md) | [`frontend_spec_027_favourite_activities.md`](.claude/specs/frontend_spec_027_favourite_activities.md) | ✅ Implemented (2026-10-02). Manual star toggle mirroring the existing `archived` pattern; favourites pinned to the top plus a "Favourites only" filter (styled like "Show archived") in both the Activity Bank and AssignActivityPicker. |
 | Graceful session expiry handling | [`planner_spec_016_configurable_session_timeout.md`](.claude/specs/planner_spec_016_configurable_session_timeout.md) | [`frontend_spec_029_session_expiry_handling.md`](.claude/specs/frontend_spec_029_session_expiry_handling.md) | ✅ Implemented (2026-10-02). A global 401 handler bounces an expired session to the login screen with a clear message, instead of a broken "Retry" loop; session timeout now configurable via `SESSION_TIMEOUT` (default unchanged, 30m). Found in real use; verified end-to-end in a real browser. |
 | Activity drawer — drag an unplanned activity onto the grid/bucket | — (frontend-only) | [`frontend_spec_028_activity_drawer.md`](.claude/specs/frontend_spec_028_activity_drawer.md) | ✅ Implemented (2026-10-02). Toggle sidebar, drag-only, shares a new `ActivityPickerList` component with the existing "Add" modal; widened the lifted drag state from `frontend_spec_026` into a discriminated union. Final piece of the drag-and-drop idea split across `frontend_spec_025`/`026`/this; verified end-to-end in a real browser. |
+| Header restructure — Settings/Account icons, tabs demoted to a second row | — (frontend-only) | [`frontend_spec_030_header_restructure.md`](.claude/specs/frontend_spec_030_header_restructure.md) | ✅ Implemented (2026-10-02). Native Popover API + CSS anchor positioning for both menus, no custom JS; trigger icon highlights while its own popover is open; verified end-to-end in a real browser. |
 
 ## Specced, coming soon
 
@@ -70,8 +71,6 @@ button-hierarchy candidate).
 |---|---|---|---|
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
 | Today view (top-level nav tab) | — (frontend-only) | [`frontend_spec_016_today_view.md`](.claude/specs/frontend_spec_016_today_view.md) | Not started. New "Today" tab always showing the real current day. Depends on `frontend_spec_015`. |
-| Header restructure — Settings/Account icons, tabs demoted to a second row | — (frontend-only) | [`frontend_spec_030_header_restructure.md`](.claude/specs/frontend_spec_030_header_restructure.md) | Not started. Native Popover API for both menus, no custom JS or polyfill. |
-
 ## Internal / maintenance specs
 
 Pure-refactor or tooling specs with no user-facing feature name — don't force these into the
