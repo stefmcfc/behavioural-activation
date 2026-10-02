@@ -39,6 +39,11 @@ Later the same day: added "Should a completed occurrence be movable?", raised wh
 same spec. Later the same day: the grid/bucket cross-drag idea moved straight to a real spec
 (`frontend_spec_026_grid_bucket_cross_drag.md`, see `ROADMAP.md`'s "Specced, coming soon") without
 passing through `SPEC_CANDIDATES.md` — removed from this file.
+2026-10-02: the "favourite activities" aside mentioned inside the sidebar/drawer entry moved straight
+to its own real spec pair (`planner_spec_015_favourite_activities.md`/
+`frontend_spec_027_favourite_activities.md`, see `ROADMAP.md`'s "Specced, coming soon"), decoupled
+from the sidebar/drawer idea it was raised alongside — the sidebar/drawer entry itself remains here,
+trimmed to remove the now-specced favourites mention.
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -66,14 +71,16 @@ modal). There is currently no persistent, always-visible list of activities with
 Planner view to drag *from* — the Activity Bank is a separate tab/page — so this needs a new UI
 surface: most likely a collapsible sidebar/drawer panel that slides in from the side, listing
 activities/sub-tasks (filterable, same filters `AssignActivityPicker` already has), that the user
-drags items out of onto grid cells. Raised alongside this idea: a possible new "favourite
-activities" concept (doesn't exist yet) to make common repeatable activities faster to find/drag
-from such a panel — genuinely new scope beyond drag-and-drop itself, not assumed necessary, just
-noted as a plausible pairing if this gets built.
+drags items out of onto grid cells.
 
 Needs a real design pass before writing ACs (panel placement/interaction, filter UI reuse vs.
-duplication, whether "favourites" is in scope for v1 of this or a separate later idea) — not just a
-markup reshuffle, similar to other open UI candidates in `.claude/SPEC_CANDIDATES.md`.
+duplication) — not just a markup reshuffle, similar to other open UI candidates in
+`.claude/SPEC_CANDIDATES.md`. The "favourite activities" concept once mooted alongside this idea (to
+make common activities faster to find/drag from such a panel) has been split out and specced
+separately — see `planner_spec_015_favourite_activities.md`/`frontend_spec_027_favourite_activities.md`
+in `ROADMAP.md`'s "Specced, coming soon" — this entry no longer depends on it; a future drawer could
+reasonably lean on favourites once both exist, but doesn't need to wait for this entry to be
+specced.
 
 ## Should a completed occurrence be movable?
 
