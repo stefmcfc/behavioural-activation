@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-10-02
+
 ### Added
 
 - You can now mark an activity as a favourite — a star toggle next to each Activity Bank row, or a
