@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-10-02
+
+### Changed
+
+- The Weekly Planner and Today view now load faster, especially with more planned activities — an
+  internal fix to how the plan is fetched from the database, no visible behavior change.
+
 ## [0.27.0] - 2026-10-02
 
 ### Changed
