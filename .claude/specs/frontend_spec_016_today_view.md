@@ -1,9 +1,8 @@
 # Today View (Frontend)
 
-**Status**: Implemented (2026-10-02) — every `[AUTO]` AC green plus AC-09/AC-12 (`[MANUAL]`,
-confirmed in a real browser); AC-13 (`[MANUAL]`) left unchecked — a 1.5px near-miss on the bucket
-list's fold-reachability, not the severe failure `frontend_spec_028` had, but not a clean pass either
-(see Summary)
+**Status**: Implemented (2026-10-02) — all 14 ACs green, including AC-09/AC-12/AC-13 (`[MANUAL]`,
+confirmed in a real browser). AC-13 initially measured as a 1.5px near-miss; fixed per explicit user
+request (see Summary) rather than shipped as a known gap.
 **Priority**: P2 — same tier as the sibling Weekly Planner UX specs. Split off `SPEC_CANDIDATES.md`'s
 "Weekday/Weekend grid tabs + a 'Today' view" candidate into its own spec, confirmed 2026-09-30, so the
 grid-tabs bug fix (`frontend_spec_015_weekday_weekend_grid_tabs.md`) can ship independently first.
@@ -98,15 +97,26 @@ components' `onDragStart` wiring and the drawer's two drag-start callbacks).
 - **AC-12** [MANUAL] — pass. With the drawer open, the single-day grid stays fully legible (Morning/
   Afternoon/Evening slots, full-width "Add" buttons) — the Weekly Planner's 5-column squeeze problem
   doesn't recur here, as the Overview predicted.
-- **AC-13** [MANUAL] — **does not cleanly pass, left unchecked**. Measured directly
-  (`getBoundingClientRect()` against `window.innerHeight`, not assumed): with the drawer open and one
-  occurrence scheduled today, the bucket list's top edge sits at 806px against an 805px-tall viewport —
-  1.5px below the fold. This is a near-miss, not a repeat of `frontend_spec_028`'s severity (there, the
-  gap was 1000px+, structurally unreachable regardless of content or viewport); here it's essentially
-  at the boundary, and would likely sit comfortably above the fold on a taller viewport or a day with
-  fewer scheduled items. Per this spec's own instruction not to mark this AC done without an actual
-  passing measurement, it stays unchecked — flagged for a product decision (ship as-is given how narrow
-  the margin is, or trim something to guarantee clearance) rather than resolved unilaterally here.
+- **AC-13** [MANUAL] — **pass, after a fix** (initially measured as a 1.5px near-miss — see below).
+
+**AC-13 fix, requested explicitly rather than shipped as a known gap**: measured directly
+(`getBoundingClientRect()` against `window.innerHeight`, not assumed) that the bucket list's top edge
+sat at 806px against an 805px-tall viewport — 1.5px below the fold, with one occurrence scheduled
+today. Nowhere near `frontend_spec_028`'s severity (there, the gap was 1000px+, structurally
+unreachable regardless of content or viewport) but not a clean pass either. Two changes, both
+requested together:
+1. **Guarantee real clearance, not just scrape by**: `TodayView.module.css`'s `.toolbar` margin
+   trimmed from `1rem` to `0.5rem`. Re-measured page-relative (viewport-independent): the bucket's
+   top moved from 806px to 797px, a genuine ~9px improvement — comfortably clears the original 805px
+   case with real margin, not a hyper-precise 1-2px patch. Not a mathematical guarantee for
+   arbitrarily long schedules (no CSS margin trim can promise that), but a real, measured improvement
+   for the content that actually triggered the near-miss.
+2. **The drawer now stretches to the bucket list's bottom edge**, per direct request, independent of
+   the clearance question: `TodayView.module.css`'s `.layout` changed `align-items: flex-start` →
+   `stretch`, and `ActivityDrawer.module.css`'s `.drawer` lost its `max-height: 32rem` cap (kept
+   `overflow-y: auto` for when the activity list itself is taller than the stretched height). Confirmed
+   via `getBoundingClientRect()`: `.drawer`'s top/bottom now exactly match `.main`'s (grid + bucket)
+   top/bottom, not just visually similar.
 
 **Test count**: 472/472 passing across 37 files, up from a confirmed 453/453-across-35-files baseline
 (measured via an isolated `git worktree` checkout of the pre-change commit). `npm run lint` (oxlint):
@@ -501,6 +511,6 @@ Strategy note.
 - [x] FRONTEND-016-AC-10 — "Browse activities" opens a drag-mode drawer panel beside today's grid
 - [x] FRONTEND-016-AC-11 — drawer rows have a visible drag affordance (cursor + handle icon) — the original fix didn't actually render (class-name hashing bug), corrected and confirmed visible in a real browser, see Summary
 - [x] FRONTEND-016-AC-12 — the single-day grid stays legible/usable with the drawer open (confirmed in a real browser)
-- [ ] FRONTEND-016-AC-13 — the bucket list is reachable without scrolling with the drawer open — **1.5px short of the fold at the tested viewport, a near-miss, not a clean pass; left unchecked pending a product decision, see Summary**
+- [x] FRONTEND-016-AC-13 — the bucket list is reachable without scrolling with the drawer open — initially a 1.5px near-miss, fixed (see Summary) and confirmed in a real browser
 - [x] FRONTEND-016-AC-14 — dropping a drawer item calls `onAssignFromDrawer` via `usePlanActions`
 

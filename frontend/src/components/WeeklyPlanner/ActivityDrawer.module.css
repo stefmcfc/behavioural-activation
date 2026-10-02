@@ -1,3 +1,6 @@
+/* No max-height here -- .layout's align-items: stretch (TodayView.module.css) sizes this to match
+   .main's full height, so the drawer's bottom edge lines up with the bucket list's. overflow-y
+   still scrolls the drawer's own content if the activity list is taller than that. */
 .drawer {
   flex: 0 0 320px;
   min-width: 0;
@@ -9,7 +12,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  max-height: 32rem;
   overflow-y: auto;
 }
 
