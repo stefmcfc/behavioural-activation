@@ -1,6 +1,6 @@
 # Eliminate the Weekly Plan Response's N+1 Lazy Loads (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02)
 **Priority**: P2 — performance, not a user-visible bug. Raised 2026-10-02 during a deliberate
 performance investigation (user request, following up on `.claude/SPEC_CANDIDATES.md`'s "Bulk
 sub-task fetch endpoint" candidate) — this spec targets a *separate*, more impactful finding from
@@ -12,6 +12,56 @@ that same investigation: the `GET /api/v1/plan` endpoint itself, not the fronten
 `API.md` update, no frontend changes
 **Roadmap version**: V1 polish / internal — a performance fix to an already-shipped endpoint, not a
 new capability
+
+## Summary
+
+All 5 ACs implemented and verified. Both named repository methods now use a custom `@Query` with
+`LEFT JOIN FETCH` across `activity`, `subTask`, and `subTask.activity`; existing behavior is
+unchanged (full 271-test suite passes, 0 failures).
+
+**Measured query-count proof (AC-02)**: using `Statistics.getPrepareStatementCount()` against a
+real Postgres instance, with one distinct `Activity`/`SubTask` per occurrence (not shared — see the
+real finding below on why that distinction matters) —
+
+| Scenario | Before fix | After fix |
+|---|---|---|
+| `GET /api/v1/plan`, 1 occurrence | 7 SQL statements | 6 SQL statements |
+| `GET /api/v1/plan`, 10 occurrences (mixed activity-/sub-task-based) | 21 SQL statements | 6 SQL statements |
+
+Before the fix, query count scaled with occurrence count (7 → 21, roughly +1.5 queries per extra
+occurrence — one extra lazy load per activity-based occurrence, two per sub-task-based one). After
+the fix it's flat at 6 regardless of N — proven, not assumed from the `JOIN FETCH` syntax alone.
+
+**Real findings**:
+- **`Statistics.getQueryExecutionCount()` is the wrong metric and would have made this test pass
+  for the wrong reason.** It only counts explicit HQL/JPQL/Criteria query executions, not the
+  individual SQL round trips triggered by entity/proxy loading (`Hibernate.initialize(...)` on a
+  lazy association) — exactly the mechanism this N+1 runs through (`PlanService.initializeTarget`).
+  It stayed identically flat whether the repository fix was present or deliberately reverted.
+  Switched to `Statistics.getPrepareStatementCount()`, which counts every actual SQL round trip and
+  does move between the two states — see `PlanControllerQueryCountSpec`'s own class-level Javadoc.
+- **A test using one shared `Activity`/`SubTask` across every occurrence silently masks the N+1**,
+  with or without the fix — Hibernate's session-level identity map serves every access after the
+  first from its in-memory cache regardless of `JOIN FETCH`. The query-count spec gives every
+  occurrence its own distinct `Activity`/`SubTask` specifically to avoid this.
+- **The bucket-reorder endpoint (`PUT /api/v1/plan/bucket/order`) does not reach a true constant
+  query count**, even after this fix, confirmed by direct measurement (not assumed) with distinct
+  activities/sub-tasks: a 1-item vs. 4-item reorder went from an 11-statement delta (before the fix)
+  to a 6-statement delta (after) — a real, measured improvement, but not flat. Root cause:
+  `PlanService.reorderBucket` builds its *returned* list via a separate, pre-existing,
+  per-submitted-id `plannedOccurrenceRepository.findByIdAndOwner` loop (one query per submitted id),
+  not from the JOIN-FETCHed `currentBucket` query this spec's AC-03 fixes — and
+  `PlanService.reorderBucket` is explicitly out of scope here (see Requirement 2's "unchanged
+  itself" framing). AC-03's literal requirement (the repository method itself gets the `JOIN FETCH`
+  treatment, verified at the repository level) is fully met; a true constant-query-count guarantee
+  for the *whole* endpoint would require also changing how `PlanService.reorderBucket` sources its
+  result list, which is a separate, legitimately-scoped follow-up, not silently folded into this
+  spec. Noted as a candidate in `.claude/SPEC_CANDIDATES.md` rather than fixed here.
+- Per this project's "don't implement a fix for a theory you haven't reproduced" convention: the
+  original assumption (that fixing the `currentBucket` repository query alone would also flatten
+  the bucket-reorder endpoint's full query count, since all the entities share one Hibernate
+  session) was tested directly and only partially held — downgraded to the finding above rather
+  than asserted as fact or quietly patched over with a mistuned test.
 
 ## Overview
 
@@ -189,10 +239,24 @@ def "PLANNER-017-AC-03: findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOr
 }
 ```
 
+### Deviations from the sketches above (see Summary for the full writeup)
+
+- **AC-02**: implemented with `Statistics.getPrepareStatementCount()`, not
+  `Statistics.getQueryExecutionCount()` as sketched — the latter doesn't count the SQL round trips
+  entity/proxy loading triggers, so it couldn't actually have distinguished the fixed state from
+  the unfixed one. `@DynamicPropertySource` was used, matching the sketch's own "implementer's call
+  on the mechanism" note. The controller bean (`PlanController.getWeek`) is invoked directly rather
+  than through `restTemplate` — this project has no existing `TestRestTemplate`/real-session-auth
+  integration pattern yet, and calling the bean directly exercises the identical call chain.
+- **AC-03/AC-05**: implemented exactly as sketched at the repository level (no deviation). No
+  equivalent full-endpoint query-count test was added for the bucket-reorder endpoint — see the
+  Summary's "real findings" for why a constant-count claim there would be false, given
+  `PlanService.reorderBucket`'s own unrelated, out-of-scope per-id lookup loop.
+
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-017-AC-01 — `findByOwnerAndWeekStartOrderByCreatedAtAsc` eager-fetches activity/subTask/subTask.activity
-- [ ] PLANNER-017-AC-02 — `GET /api/v1/plan` issues a constant number of queries regardless of occurrence count
-- [ ] PLANNER-017-AC-03 — the bucket-reorder query method gets the same `JOIN FETCH` treatment
-- [ ] PLANNER-017-AC-04 — every existing `GET /api/v1/plan` test passes unmodified
-- [ ] PLANNER-017-AC-05 — every existing bucket-reorder test passes unmodified
+- [x] PLANNER-017-AC-01 — `findByOwnerAndWeekStartOrderByCreatedAtAsc` eager-fetches activity/subTask/subTask.activity
+- [x] PLANNER-017-AC-02 — `GET /api/v1/plan` issues a constant number of queries regardless of occurrence count
+- [x] PLANNER-017-AC-03 — the bucket-reorder query method gets the same `JOIN FETCH` treatment
+- [x] PLANNER-017-AC-04 — every existing `GET /api/v1/plan` test passes unmodified
+- [x] PLANNER-017-AC-05 — every existing bucket-reorder test passes unmodified
