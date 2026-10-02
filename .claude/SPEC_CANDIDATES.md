@@ -14,7 +14,11 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-02 (the bulk sub-task fetch candidate moved to a real spec pair —
+Last updated: 2026-10-02 (the bucket-reorder query-scaling candidate, surfaced while implementing
+`planner_spec_017_plan_response_n_plus_one.md`, moved to a real spec —
+`planner_spec_019_bucket_reorder_query_scaling.md`, see `ROADMAP.md`'s "Internal / maintenance specs"
+— removed from this file.)
+Earlier note: 2026-10-02, the bulk sub-task fetch candidate moved to a real spec pair —
 `planner_spec_018_bulk_sub_task_fetch.md`/`frontend_spec_033_bulk_sub_task_fetch.md`, see
 `ROADMAP.md`'s "Specced, coming soon" — removed from this file. A second, related finding from the
 same performance investigation, the `GET /api/v1/plan` N+1, was *not* in this file — it moved
@@ -47,25 +51,6 @@ soon". The weekly grid orientation toggle candidate is now also written up
 ---
 
 ## Candidates
-
-## Eliminate the bucket-reorder endpoint's remaining per-item query scaling
-
-**Status**: Confirmed, not yet specced. Surfaced 2026-10-02 while implementing
-`planner_spec_017_plan_response_n_plus_one.md` (AC-03's `JOIN FETCH` fix for
-`findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc`). Measured
-directly: `PUT /api/v1/plan/bucket/order` still doesn't reach a constant query count the way
-`GET /api/v1/plan` now does — a 1-item vs. 4-item reorder went from an 11-statement delta (before
-planner_spec_017's fix) to a 6-statement delta (after), a real improvement but not flat. Root
-cause: `PlanService.reorderBucket` builds its *returned* list via a separate, pre-existing
-`plannedOccurrenceRepository.findByIdAndOwner` loop (one query per submitted id) rather than from
-the already-JOIN-FETCHed `currentBucket` query planner_spec_017 touches — explicitly kept out of
-that spec's scope (`PlanService.reorderBucket` was to stay "unchanged itself"). A real fix would
-need to change how `reorderBucket` sources/validates its result list (e.g. building it from
-`currentBucket`'s already-initialized entities instead of a second per-id lookup pass) while
-preserving the existing 404 (not found/not owned) vs. 409 (found but ineligible) distinction
-exactly — not a trivial swap, needs its own design pass and spec rather than folding into an
-unrelated fix. Lower priority than planner_spec_017's own fix: this is the lower-frequency
-bucket-reorder write path, not the most-hit `GET /api/v1/plan` read path.
 
 ## Touch-friendly weekend bucket list reordering
 
