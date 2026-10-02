@@ -7,6 +7,7 @@ import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import styles from './ActivityBank.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/activityApi')
 vi.mock('../../services/subTaskApi')
@@ -831,6 +832,62 @@ describe('ActivityBank', () => {
       expect(screen.getByText('Favourited routine')).toBeInTheDocument()
       expect(screen.queryByText('Non-favourited routine')).not.toBeInTheDocument()
       expect(screen.queryByText('Favourited pleasurable')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-031-AC-06: "Add activity" button is primary', () => {
+    it('combines styles.addButton with buttonVariants.primary', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+
+      const addButton = await screen.findByRole('button', { name: 'Add activity' })
+      expect(addButton).toHaveClass(styles.addButton)
+      expect(addButton).toHaveClass(buttonStyles.primary)
+    })
+  })
+
+  describe('FRONTEND-031-AC-13: Delete/Confirm delete are destructive; Cancel is not', () => {
+    it('applies destructive to Delete and Confirm delete, and no variant to Cancel', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const deleteButton = await screen.findByRole('button', { name: 'Delete' })
+      expect(deleteButton).toHaveClass(buttonStyles.destructive)
+
+      await userEvent.click(deleteButton)
+
+      const confirmButton = screen.getByRole('button', { name: 'Confirm delete' })
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      expect(confirmButton).toHaveClass(buttonStyles.destructive)
+      expect(cancelButton).not.toHaveClass(buttonStyles.destructive)
+      expect(cancelButton).not.toHaveClass(buttonStyles.primary)
+    })
+  })
+
+  describe('FRONTEND-031-AC-15/AC-16: regression guard -- other ActivityBank buttons stay unstyled', () => {
+    it('leaves Edit, favourite toggle, and sub-tasks disclosure with no variant class', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      const editButton = screen.getByRole('button', { name: /^edit$/i })
+      const favouriteButton = screen.getByRole('button', { name: /favourite/i })
+      const subTasksButton = screen.getByRole('button', { name: /sub-tasks/i })
+
+      for (const button of [editButton, favouriteButton, subTasksButton]) {
+        expect(button).not.toHaveClass(buttonStyles.primary)
+        expect(button).not.toHaveClass(buttonStyles.destructive)
+      }
+    })
+
+    it('leaves Unarchive with no variant class', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      render(<ActivityBank />)
+
+      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      const unarchiveButton = await screen.findByRole('button', { name: /unarchive/i })
+      expect(unarchiveButton).not.toHaveClass(buttonStyles.primary)
+      expect(unarchiveButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
 

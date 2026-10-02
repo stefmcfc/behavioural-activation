@@ -2,6 +2,7 @@ import { useState, type SubmitEvent } from 'react'
 import { authApi } from '../services/authApi'
 import { ApiError } from '../types/api'
 import styles from './LoginPage.module.css'
+import buttonStyles from '../styles/buttonVariants.module.css'
 
 interface LoginPageProps {
   readonly onLoginSuccess: (username: string) => void
@@ -119,7 +120,7 @@ export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageP
         {isSubmitting && <output>Logging in…</output>}
 
         <div className={styles.actions}>
-          <button type="submit" disabled={isSubmitting}>
+          <button type="submit" className={buttonStyles.primary} disabled={isSubmitting}>
             Log in
           </button>
         </div>

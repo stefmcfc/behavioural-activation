@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Settings } from './Settings'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 describe('Settings', () => {
   beforeEach(() => {
@@ -152,6 +153,16 @@ describe('Settings', () => {
       expect(screen.getByRole('button', { name: /reset.*routine/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /reset.*necessary/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /reset.*pleasurable/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-031-AC-16: regression guard -- "Reset to default" stays unstyled', () => {
+    it('leaves the Reset to default buttons with no variant class', () => {
+      render(<Settings />)
+
+      const resetButton = screen.getByRole('button', { name: /reset.*routine/i })
+      expect(resetButton).not.toHaveClass(buttonStyles.primary)
+      expect(resetButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
 })

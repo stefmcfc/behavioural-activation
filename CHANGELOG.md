@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Changed
+
+- Each screen's main action button (Add activity, Add sub-task, Log in, Save, Assign, Complete/
+  Undo) now stands out with a solid accent fill, and Activity/Sub-task deletion (Delete, Confirm
+  delete) now stands out with a solid red fill — everything else keeps the existing neutral button
+  style. Disabled buttons are now visibly dimmed, which previously had no visual indication at all.
+
 ## [0.24.0] - 2026-10-02
 
 ### Changed

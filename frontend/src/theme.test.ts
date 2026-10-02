@@ -60,6 +60,12 @@ describe('FRONTEND-007-AC-04: category tokens unchanged', () => {
   })
 })
 
+describe('FRONTEND-031-AC-01: --error-ink token', () => {
+  it('defines --error-ink in :root using light-dark(#ffffff, #690005)', () => {
+    expect(block(themeCss, ':root')).toMatch(/--error-ink:\s*light-dark\(#ffffff,\s*#690005\)/)
+  })
+})
+
 describe('tooling_spec_003 (no-spec refactor): light-dark() collapses the duplicated theme blocks', () => {
   it('defines color-scheme: light dark at :root, so System mode defers to the OS preference', () => {
     expect(block(themeCss, ':root')).toContain('color-scheme: light dark')

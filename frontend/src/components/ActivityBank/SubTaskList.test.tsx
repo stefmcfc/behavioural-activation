@@ -6,6 +6,7 @@ import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
 import styles from './SubTaskList.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/subTaskApi')
 
@@ -276,6 +277,46 @@ describe('SubTaskList', () => {
 
       expect(await screen.findByText(/pleasurable/i)).toBeInTheDocument()
       expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-031-AC-07: "Add sub-task" button is primary', () => {
+    it('combines styles.addButton with buttonVariants.primary', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" />)
+
+      const addButton = await screen.findByRole('button', { name: 'Add sub-task' })
+      expect(addButton).toHaveClass(styles.addButton)
+      expect(addButton).toHaveClass(buttonStyles.primary)
+    })
+  })
+
+  describe('FRONTEND-031-AC-14: Delete/Confirm delete are destructive; Cancel is not', () => {
+    it('applies destructive to Delete and Confirm delete, and no variant to Cancel', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" />)
+
+      const deleteButton = await screen.findByRole('button', { name: 'Delete' })
+      expect(deleteButton).toHaveClass(buttonStyles.destructive)
+
+      await userEvent.click(deleteButton)
+
+      const confirmButton = screen.getByRole('button', { name: 'Confirm delete' })
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+      expect(confirmButton).toHaveClass(buttonStyles.destructive)
+      expect(cancelButton).not.toHaveClass(buttonStyles.destructive)
+      expect(cancelButton).not.toHaveClass(buttonStyles.primary)
+    })
+  })
+
+  describe('FRONTEND-031-AC-16: regression guard -- Rename stays unstyled', () => {
+    it('leaves Rename with no variant class', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      render(<SubTaskList activityId="a1" />)
+
+      const renameButton = await screen.findByRole('button', { name: /rename/i })
+      expect(renameButton).not.toHaveClass(buttonStyles.primary)
+      expect(renameButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
 

@@ -8,6 +8,7 @@ import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { PlannedOccurrence } from '../../types/plan'
 import plannerGridStyles from './PlannerGrid.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/planApi')
 vi.mock('../../services/activityApi')
@@ -882,6 +883,29 @@ describe('WeeklyPlanner', () => {
 
       expect(planApi.create).toHaveBeenCalledTimes(1)
       resolveCreate({ ...walk, activityId: 'a9' })
+    })
+  })
+
+  describe('FRONTEND-031-AC-16: regression guard -- "Browse activities" and "Retry" stay unstyled', () => {
+    it('leaves "Browse activities" with no variant class', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await screen.findByText(/no activities planned/i)
+      const browseButton = screen.getByRole('button', { name: /browse activities/i })
+      expect(browseButton).not.toHaveClass(buttonStyles.primary)
+      expect(browseButton).not.toHaveClass(buttonStyles.destructive)
+    })
+
+    it('leaves "Retry" with no variant class', async () => {
+      vi.mocked(planApi.getWeek).mockRejectedValueOnce(
+        new ApiError(500, 'Something went wrong. Please try again.'),
+      )
+      render(<WeeklyPlanner />)
+
+      const retryButton = await screen.findByRole('button', { name: /retry/i })
+      expect(retryButton).not.toHaveClass(buttonStyles.primary)
+      expect(retryButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
 })

@@ -1,6 +1,7 @@
 # Frontend Button Visual Hierarchy (Primary / Destructive)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 17 ACs green, including AC-17's real-browser contrast
+check (see Summary)
 **Priority**: P3 — visual/UX polish, no new capability. Deferred scope from
 `frontend_spec_007_visual_refresh.md`'s Requirement 3 (see that spec's Out-of-scope section) and
 confirmed in `.claude/SPEC_CANDIDATES.md`'s "Frontend button visual hierarchy (primary/secondary)"
@@ -11,6 +12,61 @@ global base style in `index.css` and the `--accent`/`--accent-ink` token pair th
 tokens, already used for form/alert error text, reused here for the destructive variant)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme
+
+## Summary
+
+All 16 `[AUTO]` ACs implemented and tested as specified, with no deviations from the plan. 30 new
+tests added (13 production-behaviour tests for AC-06–AC-14, plus 17 regression-guard tests for
+AC-15/AC-16 and the two CSS-content ACs' own describe blocks) — full suite now 456 tests across 35
+files, up from the 426/35 baseline, 0 regressions. `npm run lint` (oxlint) and `npm run build`
+(`tsc -b && vite build`) both clean.
+
+**Mechanism exactly as planned**: `theme.css` gained `--error-ink` (AC-01); the new
+`frontend/src/styles/buttonVariants.module.css` exports `.primary`/`.destructive`, neither defining
+a `:focus-visible` override (AC-02–AC-04); `index.css` gained a generic `button:disabled` rule
+(AC-05). Every call site in Requirement 3/4 combines the new class via a plain template literal
+where a component-scoped class already existed (`` `${styles.addButton} ${buttonStyles.primary}` ``
+in `ActivityBank.tsx`/`SubTaskList.tsx`/`OccurrenceItem.tsx`), or sets `buttonStyles.primary`/
+`.destructive` directly where the button was previously classless (`BucketList.tsx`,
+`LoginPage.tsx`, `ActivityForm.tsx`/`SubTaskForm.tsx`, `AssignActivityPicker.tsx`,
+`ActivityBank.tsx`'s/`SubTaskList.tsx`'s Delete/Confirm delete). No `classnames`/`clsx` dependency
+added, as planned.
+
+**Regression guards (AC-15/AC-16) were verified both ways**: written as failing-if-wrong assertions
+(`not.toHaveClass`) against the *current* (pre-change) markup first, confirmed green before any
+production code changed (i.e. today's unstyled buttons really were unstyled), then re-confirmed
+green after all AC-06–AC-14 production changes landed — so a true regression (a variant class
+leaking onto a button it shouldn't) would have been caught either way, not just incidentally passed
+because the assertion never ran against real markup.
+
+**AC-17 — real-browser contrast check, now done**: logged in and checked both variants, both themes,
+using the WCAG relative-luminance formula against the actual rendered `getComputedStyle` `color`/
+`background-color` pair (not assumed from the source token values). All four combinations clear the
+4.5:1 minimum, one of them narrowly:
+
+| Variant | Theme | Text / background (rendered) | Contrast |
+|---|---|---|---|
+| `.primary` | Dark | `rgb(22,34,15)` / `rgb(147,178,142)` | 7.09:1 |
+| `.primary` | Light | `rgb(255,255,255)` / `rgb(95,122,94)` | **4.74:1** |
+| `.destructive` | Dark | `rgb(105,0,5)` / `rgb(255,180,171)` | 7.72:1 |
+| `.destructive` | Light | `rgb(255,255,255)` / `rgb(179,38,30)` | 6.54:1 |
+
+`.primary` in light theme is the tightest margin (4.74:1 vs. the 4.5:1 minimum) — a real pass, not a
+failure, but closer to the line than the other three; worth keeping in mind if `--accent`'s light
+value ever gets tweaked lighter in a future pass. Also spot-checked visually: `Add activity`/
+`Complete`/`Undo` render as a solid green pill with clearly legible text in both themes; `Delete`/
+`Confirm delete` as a solid red pill; `Cancel`, `Edit`, the per-cell grid `Add` buttons (5 visible at
+once, correctly *not* primary — confirms the Overview's "wall of colour" concern was worth avoiding),
+`Browse activities`, and the Settings popover's `Reset to default` buttons are all unchanged/neutral.
+`SettingsMenu`'s open-state icon highlight (`frontend_spec_030`) still works, confirming no
+regression there either.
+
+**One spec-language note, not a defect**: `.primary`/`.destructive`'s `border-color: var(--accent)`/
+`var(--error)` declarations are inert as written — the base `button` rule already sets `border:
+none`, which zeroes border-width/style, so a `border-color` alone with no width/style never produces
+a visible border. Harmless (the solid-fill backgrounds already give both variants a clear edge
+against the page background in both themes, confirmed above), but noted here in case a future pass
+wants an actual visible border and reaches for this same pattern expecting it to work.
 
 ## Overview
 
@@ -395,20 +451,20 @@ No Vitest sketch — contrast is a rendered-colour property, not testable withou
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-031-AC-01 — `theme.css` defines `--error-ink`
-- [ ] FRONTEND-031-AC-02 — `buttonVariants.module.css` defines `.primary`
-- [ ] FRONTEND-031-AC-03 — `buttonVariants.module.css` defines `.destructive`
-- [ ] FRONTEND-031-AC-04 — neither variant overrides `:focus-visible`
-- [ ] FRONTEND-031-AC-05 — `index.css` adds a generic `button:disabled` rule
-- [ ] FRONTEND-031-AC-06 — "Add activity" is primary
-- [ ] FRONTEND-031-AC-07 — "Add sub-task" is primary
-- [ ] FRONTEND-031-AC-08 — BucketList's "Add" is primary
-- [ ] FRONTEND-031-AC-09 — "Log in" is primary
-- [ ] FRONTEND-031-AC-10 — ActivityForm/SubTaskForm submit buttons are primary; Cancel is not
-- [ ] FRONTEND-031-AC-11 — AssignActivityPicker's "Assign" is primary; Cancel is not
-- [ ] FRONTEND-031-AC-12 — OccurrenceItem's Complete/Undo toggle is primary in both states
-- [ ] FRONTEND-031-AC-13 — ActivityBank's Delete/Confirm delete are destructive; Cancel is not
-- [ ] FRONTEND-031-AC-14 — SubTaskList's Delete/Confirm delete are destructive; Cancel is not
-- [ ] FRONTEND-031-AC-15 — icon-only and selection-row buttons receive no variant class
-- [ ] FRONTEND-031-AC-16 — every remaining named button receives no variant class
-- [ ] FRONTEND-031-AC-17 — contrast meets WCAG AA in both themes (real-browser check)
+- [x] FRONTEND-031-AC-01 — `theme.css` defines `--error-ink`
+- [x] FRONTEND-031-AC-02 — `buttonVariants.module.css` defines `.primary`
+- [x] FRONTEND-031-AC-03 — `buttonVariants.module.css` defines `.destructive`
+- [x] FRONTEND-031-AC-04 — neither variant overrides `:focus-visible`
+- [x] FRONTEND-031-AC-05 — `index.css` adds a generic `button:disabled` rule
+- [x] FRONTEND-031-AC-06 — "Add activity" is primary
+- [x] FRONTEND-031-AC-07 — "Add sub-task" is primary
+- [x] FRONTEND-031-AC-08 — BucketList's "Add" is primary
+- [x] FRONTEND-031-AC-09 — "Log in" is primary
+- [x] FRONTEND-031-AC-10 — ActivityForm/SubTaskForm submit buttons are primary; Cancel is not
+- [x] FRONTEND-031-AC-11 — AssignActivityPicker's "Assign" is primary; Cancel is not
+- [x] FRONTEND-031-AC-12 — OccurrenceItem's Complete/Undo toggle is primary in both states
+- [x] FRONTEND-031-AC-13 — ActivityBank's Delete/Confirm delete are destructive; Cancel is not
+- [x] FRONTEND-031-AC-14 — SubTaskList's Delete/Confirm delete are destructive; Cancel is not
+- [x] FRONTEND-031-AC-15 — icon-only and selection-row buttons receive no variant class
+- [x] FRONTEND-031-AC-16 — every remaining named button receives no variant class
+- [x] FRONTEND-031-AC-17 — contrast meets WCAG AA in both themes (real-browser check)

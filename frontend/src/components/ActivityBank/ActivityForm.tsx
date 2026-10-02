@@ -7,6 +7,7 @@ import { CategoryGuidance } from './CategoryGuidance'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import styles from './ActivityForm.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 interface ActivityFormProps {
   readonly mode: 'create' | 'edit'
@@ -203,7 +204,7 @@ export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFo
       </div>
 
       <div className={styles.actions}>
-        <button type="submit" disabled={isSubmitting}>
+        <button type="submit" className={buttonStyles.primary} disabled={isSubmitting}>
           {mode === 'edit' ? 'Save changes' : 'Save activity'}
         </button>
         {onCancel && (

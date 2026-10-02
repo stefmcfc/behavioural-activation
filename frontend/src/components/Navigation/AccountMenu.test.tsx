@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountMenu } from './AccountMenu'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 describe('FRONTEND-030: AccountMenu popover', () => {
   describe('FRONTEND-030-AC-07: opens to show the username and a Log out button', () => {
@@ -29,6 +30,27 @@ describe('FRONTEND-030: AccountMenu popover', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Log out' }))
 
       expect(onLogout).toHaveBeenCalled()
+    })
+  })
+
+  describe('FRONTEND-031-AC-16: regression guard -- "Log out" stays unstyled', () => {
+    it('leaves the Log out button with no variant class', async () => {
+      render(<AccountMenu username="steve" onLogout={vi.fn()} />)
+
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      const logoutButton = screen.getByRole('button', { name: 'Log out' })
+      expect(logoutButton).not.toHaveClass(buttonStyles.primary)
+      expect(logoutButton).not.toHaveClass(buttonStyles.destructive)
+    })
+  })
+
+  describe('FRONTEND-031-AC-15: regression guard -- trigger stays unstyled', () => {
+    it('leaves the Account trigger with no variant class', () => {
+      render(<AccountMenu username="steve" onLogout={vi.fn()} />)
+
+      const trigger = screen.getByRole('button', { name: 'Account' })
+      expect(trigger).not.toHaveClass(buttonStyles.primary)
+      expect(trigger).not.toHaveClass(buttonStyles.destructive)
     })
   })
 })

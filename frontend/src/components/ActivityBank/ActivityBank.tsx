@@ -10,6 +10,7 @@ import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import styles from './ActivityBank.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 type FormTarget = 'create' | Activity | null
 
@@ -186,6 +187,7 @@ export function ActivityBank() {
         <>
           <button
             type="button"
+            className={buttonStyles.destructive}
             onClick={() => handleConfirmDelete(activity.id)}
             disabled={deletingId === activity.id}
           >
@@ -210,7 +212,11 @@ export function ActivityBank() {
         <button type="button" onClick={() => setFormTarget(activity)}>
           Edit
         </button>
-        <button type="button" onClick={() => setConfirmingDeleteId(activity.id)}>
+        <button
+          type="button"
+          className={buttonStyles.destructive}
+          onClick={() => setConfirmingDeleteId(activity.id)}
+        >
           Delete
         </button>
       </>
@@ -281,7 +287,11 @@ export function ActivityBank() {
           </div>
         </fieldset>
 
-        <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+        <button
+          type="button"
+          className={`${styles.addButton} ${buttonStyles.primary}`}
+          onClick={() => setFormTarget('create')}
+        >
           Add activity
         </button>
       </div>

@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ActivityForm } from './ActivityForm'
 import { activityApi } from '../../services/activityApi'
 import type { Activity } from '../../types/activity'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/activityApi')
 
@@ -374,6 +375,21 @@ describe('ActivityForm', () => {
       await waitFor(() => expect(activityApi.update).toHaveBeenCalled())
       expect(activityApi.markFavourite).not.toHaveBeenCalled()
       expect(activityApi.unmarkFavourite).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('FRONTEND-031-AC-10: submit button is primary; Cancel is not', () => {
+    it('applies primary to the create-mode submit button', () => {
+      render(<ActivityForm mode="create" onSuccess={vi.fn()} onCancel={vi.fn()} />)
+      expect(screen.getByRole('button', { name: /save activity/i })).toHaveClass(buttonStyles.primary)
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      expect(cancelButton).not.toHaveClass(buttonStyles.primary)
+      expect(cancelButton).not.toHaveClass(buttonStyles.destructive)
+    })
+
+    it('applies primary to the edit-mode submit button', () => {
+      render(<ActivityForm mode="edit" activity={walk} onSuccess={vi.fn()} />)
+      expect(screen.getByRole('button', { name: /save changes/i })).toHaveClass(buttonStyles.primary)
     })
   })
 })

@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SubTaskForm } from './SubTaskForm'
 import { subTaskApi } from '../../services/subTaskApi'
 import type { SubTask } from '../../types/subTask'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/subTaskApi')
 
@@ -180,6 +181,21 @@ describe('SubTaskForm', () => {
     it('has no radio inputs in edit mode', () => {
       render(<SubTaskForm mode="edit" activityId="a1" subTask={guestList} onSuccess={vi.fn()} />)
       expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-031-AC-10: submit button is primary; Cancel is not', () => {
+    it('applies primary to the create-mode submit button', () => {
+      render(<SubTaskForm mode="create" activityId="a1" onSuccess={vi.fn()} onCancel={vi.fn()} />)
+      expect(screen.getByRole('button', { name: /save sub-task/i })).toHaveClass(buttonStyles.primary)
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      expect(cancelButton).not.toHaveClass(buttonStyles.primary)
+      expect(cancelButton).not.toHaveClass(buttonStyles.destructive)
+    })
+
+    it('applies primary to the edit-mode submit button', () => {
+      render(<SubTaskForm mode="edit" activityId="a1" subTask={guestList} onSuccess={vi.fn()} />)
+      expect(screen.getByRole('button', { name: /save changes/i })).toHaveClass(buttonStyles.primary)
     })
   })
 })

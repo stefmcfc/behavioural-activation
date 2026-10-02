@@ -6,6 +6,7 @@ import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
 import styles from './SubTaskList.module.css'
+import buttonStyles from '../../styles/buttonVariants.module.css'
 
 type FormTarget = 'create' | SubTask | null
 
@@ -103,7 +104,11 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
       <div className={styles.header}>
         {subTasks !== null && subTasks.length === 0 && <p>No sub-tasks yet.</p>}
         {!readOnly && (
-          <button type="button" className={styles.addButton} onClick={() => setFormTarget('create')}>
+          <button
+            type="button"
+            className={`${styles.addButton} ${buttonStyles.primary}`}
+            onClick={() => setFormTarget('create')}
+          >
             Add sub-task
           </button>
         )}
@@ -132,6 +137,7 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
                   <span className={styles.actions}>
                     <button
                       type="button"
+                      className={buttonStyles.destructive}
                       onClick={() => handleConfirmDelete(subTask.id)}
                       disabled={deletingId === subTask.id}
                     >
@@ -150,7 +156,11 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
                     <button type="button" onClick={() => setFormTarget(subTask)}>
                       Rename
                     </button>
-                    <button type="button" onClick={() => setConfirmingDeleteId(subTask.id)}>
+                    <button
+                      type="button"
+                      className={buttonStyles.destructive}
+                      onClick={() => setConfirmingDeleteId(subTask.id)}
+                    >
                       Delete
                     </button>
                   </span>
