@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-10-02
+
 ### Added
 
 - You can now open a "Browse activities" drawer on the Weekly Planner to drag an unplanned activity
