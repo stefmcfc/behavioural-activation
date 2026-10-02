@@ -1,6 +1,7 @@
 # Collapsible Filters in the Activity Picker (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 8 ACs green, including AC-08's real-browser pass (see
+Summary)
 **Priority**: P3 — UI polish, no new capability (every filter already exists and works; this changes
 only how much space they take up before being used).
 **Depends on**: `frontend_spec_028_activity_drawer.md` (origin of `ActivityPickerList.tsx`, the single
@@ -11,6 +12,80 @@ consumer), `frontend_spec_027_favourite_activities.md`/`frontend_spec_017_activi
 (origin of the favourite/category filters themselves, unchanged by this spec)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme
+
+## Summary
+
+All 7 `[AUTO]` ACs implemented and tested as specified, with no deviations from the Overview's
+judgment calls. `ActivityPickerList.tsx`'s three filter `<fieldset>`s (category/type/favourite) now
+render inside a single `<details className={styles.filtersDisclosure}>` with a
+`<summary className={styles.filtersSummary}>Filters</summary>`, no `open` attribute on initial
+render — exactly the "one disclosure, not three" shape requested. `AssignActivityPicker.tsx` and
+`ActivityDrawer.tsx` needed zero edits, confirming both consumers inherit the change through their
+existing `<ActivityPickerList ... />` renders (AC-04/AC-05).
+
+**jsdom `<details>`/`<summary>` finding (the risk flagged in the Overview, confirmed via a
+throwaway test before writing the real suite, then deleted)**: jsdom (v30, this project's pinned
+version) correctly implements the native toggle mechanics — activating the `<summary>` does flip
+the `open` attribute, with no custom JS needed, exactly as expected for this much simpler/older
+platform feature than the Popover API gap in `frontend_spec_030`. What jsdom does **not** model is
+the browser's own rendering behaviour that excludes a closed `<details>`'s non-`<summary>` content
+from the accessibility tree — `getByRole('radio', ...)` still finds a collapsed filter's radio
+inputs in jsdom even without opening the disclosure first. This is the same category of gap as this
+project's already-documented "jsdom doesn't render CSS" limitation (the hiding is UA-stylesheet/
+rendering-driven, not a `hidden`/`aria-hidden` attribute Testing Library's `isInaccessible` check can
+detect) — not a new, unrelated discovery. Net effect: AC-01 is cleanly `[AUTO]` as written (it only
+asserts the `open` attribute is absent, which is a real, confirmed-working signal). AC-02 was
+adjusted to assert the same real signal (the `open` attribute flipping to present on activation)
+plus DOM structural containment (`within(disclosure).getByRole('group', ...)` for all three filter
+groups, confirming they're descendants of the one `<details>`), rather than asserting on role-query
+visibility/absence before vs. after activation — that comparison would have passed in jsdom
+regardless of whether real-browser hiding/revealing worked, which is exactly the "test that passes
+for the wrong reason" trap flagged in the Overview. Nothing needed downgrading to `[MANUAL]` — the
+structural+attribute combination is a meaningful, real assertion of the actual requirement ("one
+disclosure wrapping all three, closed by default, opens on activation").
+
+**Test-touch scope matched the Overview's prediction closely but not exactly**: `grep` confirmed
+~11 filter-radio-interacting tests across `AssignActivityPicker.test.tsx` (not the ~21 estimated —
+the actual count of `userEvent.click(screen.getByRole('radio', ...))`/group-scoped assertions
+needing a preceding "open Filters" step was smaller) and 1 in `ActivityPickerList.test.tsx`
+(matching the ~1 estimate), each gaining exactly one `await userEvent.click(screen.getByText('Filters'))`
+setup line with no assertion changes. **`WeeklyPlanner.test.tsx` needed zero changes** — grepping it
+for `radio`/`Filter by`/`categoryFilter` etc. found no filter-radio interactions at all; its only
+`radio` role usage is the unrelated Weekdays/Weekend tab control (`frontend_spec_015`), not this
+component's filters. This is a mismatch against the Overview's "~4" estimate, most likely because
+the activity-filter interaction coverage that estimate was describing already lives in
+`AssignActivityPicker.test.tsx`/`ActivityPickerList.test.tsx` rather than `WeeklyPlanner.test.tsx`
+by the time this spec was implemented — noted here rather than silently treated as a discrepancy.
+
+**New tests**: 5 added (AC-01, AC-02, AC-07 in `ActivityPickerList.test.tsx`; AC-04 in
+`AssignActivityPicker.test.tsx`; AC-05 in `ActivityDrawer.test.tsx`). Full suite: 477 tests across 37
+files, up from the 472/37 baseline — 0 regressions. `npm test`, `npm run lint` (oxlint), and
+`npm run build` (`tsc -b && vite build`) all clean.
+
+**CSS**: `AssignActivityPicker.module.css` gained `.filtersDisclosure`/`.filtersSummary` (plus a
+`::-webkit-details-marker`/`::before` rotating-triangle marker pair for the expand/collapse
+affordance) — no bare `button {}` selector, no "primary"/"secondary" text, no non-radio
+`input[type=...]` override added, confirmed by re-running `moduleStyles.test.ts` unchanged. The
+summary is deliberately plain text + marker, not pill-button-styled, per the Overview's explicit
+"a disclosure isn't an action button" call.
+
+**AC-08 — real-browser verification, now done**: confirmed in both Light and Dark theme, in both
+consumers. The "▸ Filters" summary renders correctly collapsed, the marker rotates to "▾" on
+expansion (the `prefers-reduced-motion`-gated rotation transition added during review — see below —
+confirmed not blocking the state change itself), and all three fieldsets appear together underneath.
+Filter selection re-confirmed working after expanding (narrowed the Weekly Planner's Add modal list
+to "Necessary" category activities only). The drawer is now visibly more compact with the filters
+collapsed, which was the actual goal.
+
+**One fix applied during review, beyond what the implementation produced**: the marker-rotation
+`transition` in `AssignActivityPicker.module.css` was not gated behind
+`@media (prefers-reduced-motion: no-preference)`. This codebase already gates its one other CSS
+transition this way (`index.css`'s button hover-shadow lift, from `frontend_spec_007`), and the
+`modern-web-guidance` accessibility material consulted for this spec underscores respecting that
+preference — a small, non-decorative state-indicator animation is exactly the kind of thing it should
+still apply to. Wrapped the `transition` declaration in the same media query; the `transform: rotate`
+itself (the actual state change) is unaffected either way, so reduced-motion users still see the
+marker point the right direction, just without the animated sweep.
 
 ## Overview
 
@@ -281,11 +356,11 @@ No Vitest sketch — rendered marker/affordance appearance isn't testable withou
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-032-AC-01 — three filter fieldsets wrapped in one `<details>`, collapsed by default
-- [ ] FRONTEND-032-AC-02 — expanding reveals all three filters together, no per-filter collapsing
-- [ ] FRONTEND-032-AC-03 — each filter's own markup/labels/options unchanged
-- [ ] FRONTEND-032-AC-04 — Weekly Planner's Add modal shows the collapsed filters, zero changes to `AssignActivityPicker.tsx`
-- [ ] FRONTEND-032-AC-05 — Today's drawer shows the collapsed filters, zero changes to `ActivityDrawer.tsx`
-- [ ] FRONTEND-032-AC-06 — selecting a filter still narrows the visible list correctly
-- [ ] FRONTEND-032-AC-07 — filter state still resets to "All" on every fresh mount
-- [ ] FRONTEND-032-AC-08 — collapsed/expanded disclosure renders correctly in both themes, both consumers (real-browser check)
+- [x] FRONTEND-032-AC-01 — three filter fieldsets wrapped in one `<details>`, collapsed by default
+- [x] FRONTEND-032-AC-02 — expanding reveals all three filters together, no per-filter collapsing
+- [x] FRONTEND-032-AC-03 — each filter's own markup/labels/options unchanged
+- [x] FRONTEND-032-AC-04 — Weekly Planner's Add modal shows the collapsed filters, zero changes to `AssignActivityPicker.tsx`
+- [x] FRONTEND-032-AC-05 — Today's drawer shows the collapsed filters, zero changes to `ActivityDrawer.tsx`
+- [x] FRONTEND-032-AC-06 — selecting a filter still narrows the visible list correctly
+- [x] FRONTEND-032-AC-07 — filter state still resets to "All" on every fresh mount
+- [x] FRONTEND-032-AC-08 — collapsed/expanded disclosure renders correctly in both themes, both consumers (confirmed in a real browser)

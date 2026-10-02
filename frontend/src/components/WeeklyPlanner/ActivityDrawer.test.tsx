@@ -45,6 +45,37 @@ describe('FRONTEND-016-AC-10: the "Browse activities" drawer', () => {
   })
 })
 
+// FRONTEND-032-AC-05: the "Filters" disclosure is collapsed by default, with zero changes to
+// ActivityDrawer.tsx itself -- achieved entirely through its existing, unmodified
+// <ActivityPickerList mode="drag" .../> render (frontend_spec_032_collapsible_filters.md).
+describe('FRONTEND-032-AC-05: the drawer shows the collapsed Filters disclosure', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAll).mockReset()
+  })
+
+  it('shows the Filters disclosure collapsed by default', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([
+      {
+        id: 'a1',
+        name: 'Go for a walk',
+        category: 'ROUTINE',
+        description: null,
+        repeatable: true,
+        archived: false,
+        favourite: false,
+        createdAt: '2026-09-01T00:00:00Z',
+        subTaskCount: 0,
+      },
+    ])
+    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    render(<ActivityDrawer {...drawerProps()} />)
+
+    const disclosure = (await screen.findByText('Filters')).closest('details')!
+    expect(disclosure).not.toHaveAttribute('open')
+  })
+})
+
 // FRONTEND-016-AC-11: ActivityPickerList.tsx's drag-mode rows are reused unmodified (confirmed by
 // ActivityPickerList.test.tsx's unchanged drag-start/drag-end coverage); the fix for
 // frontend_spec_028's confirmed "no drag affordance" finding (computed cursor: auto, no handle

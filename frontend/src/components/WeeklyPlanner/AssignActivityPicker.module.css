@@ -25,6 +25,45 @@
   margin: 0;
 }
 
+/* FRONTEND-032: a single disclosure wrapping all three filter fieldsets, collapsed by default.
+   Kept visually simple -- text + a native marker -- deliberately not styled like this project's
+   pill-shaped action buttons (frontend_spec_030's "a disclosure isn't an action button" distinction
+   applies here too). */
+.filtersDisclosure {
+  margin: 0 0 0.85rem;
+}
+
+.filtersSummary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.3rem 0;
+  list-style: none;
+}
+
+.filtersSummary::-webkit-details-marker {
+  display: none;
+}
+
+.filtersSummary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.4rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .filtersSummary::before {
+    transition: transform 0.15s ease;
+  }
+}
+
+.filtersDisclosure[open] > .filtersSummary::before {
+  transform: rotate(90deg);
+}
+
+.filtersDisclosure > .filterFieldset {
+  margin-top: 0.85rem;
+}
+
 .filterFieldset {
   border: none;
   padding: 0;
