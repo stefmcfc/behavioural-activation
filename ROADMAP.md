@@ -71,6 +71,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
+| Collapsible filters in the activity picker | — (frontend-only) | [`frontend_spec_032_collapsible_filters.md`](.claude/specs/frontend_spec_032_collapsible_filters.md) | Not started. One `<details>`/`<summary>` disclosure wrapping all three filters (category/type/favourite), closed by default, in `ActivityPickerList` — fixes both the Weekly Planner's Add modal and Today's Browse activities drawer at once. |
 
 ## Internal / maintenance specs
 
