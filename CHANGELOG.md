@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-10-02
+
 ### Changed
 
 - Each screen's main action button (Add activity, Add sub-task, Log in, Save, Assign, Complete/
