@@ -66,9 +66,11 @@ Weekly Grid below), and the two archive endpoints below exist only for idempoten
 unarchive symmetry. Repeatable activities never auto-archive.
 
 - **`GET /api/v1/activities?includeArchived=`** — returns `200` with `{ "data": [...], "count": N
-  }`, the authenticated user's activities ordered alphabetically by name. `includeArchived`
+  }`, the authenticated user's activities ordered with every favourited activity first, then
+  alphabetically by name within each group (favourited and non-favourited). `includeArchived`
   defaults to `false` (excludes archived activities); `includeArchived=true` includes both archived
-  and non-archived, still ordered by name. Empty bank returns `{ "data": [], "count": 0 }`, not an
+  and non-archived, still favourites-first then alphabetical (an archived-and-favourited activity
+  still sorts into the favourite group). Empty bank returns `{ "data": [], "count": 0 }`, not an
   error.
 - **`POST /api/v1/activities`** — body `{ "name": "...", "category": "ROUTINE" | "NECESSARY" |
   "PLEASURABLE", "description": "..." | null, "repeatable": true | false | null }`. `repeatable`
@@ -87,6 +89,14 @@ unarchive symmetry. Repeatable activities never auto-archive.
   activity, `404` if `id` isn't owned by the authenticated user.
 - **`DELETE /api/v1/activities/{id}/archive`** — unarchives (`archived: false`). Returns `204`, or
   `404` if `id` isn't owned by the authenticated user.
+- **`POST /api/v1/activities/{id}/favourite`** — sets `favourite: true`. Idempotent — marking an
+  already-favourited activity is still a `200` success, not an error. Returns `200` with the updated
+  activity, `404` if `id` isn't owned by the authenticated user. `favourite` is never settable via
+  create/update — only via this endpoint and the one below.
+- **`DELETE /api/v1/activities/{id}/favourite`** — unmarks favourite (`favourite: false`).
+  Idempotent — unmarking an already-not-favourited activity is still a `204` success, not an error.
+  Returns `204`, or `404` if `id` isn't owned by the authenticated user. Fully orthogonal to
+  `archived` — neither flag's endpoints ever change the other.
 
 No `GET /api/v1/activities/{id}` endpoint — the frontend prefills its edit form from the
 already-fetched list.

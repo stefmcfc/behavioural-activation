@@ -48,8 +48,8 @@ public class ActivityService {
     public List<ActivityWithSubTaskCount> listForOwner(String ownerUsername, boolean includeArchived) {
         User owner = resolveOwner(ownerUsername);
         List<Activity> activities = includeArchived
-            ? activityRepository.findByOwnerOrderByNameAsc(owner)
-            : activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner);
+            ? activityRepository.findByOwnerOrderByFavouriteDescNameAsc(owner)
+            : activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner);
         return activities.stream()
             .map(activity -> new ActivityWithSubTaskCount(activity,
                 subTaskRepository.countByActivityIdAndOwner(activity.getId(), owner)))
@@ -115,6 +115,27 @@ public class ActivityService {
         return activityRepository.findByIdAndOwner(id, owner)
             .map(activity -> {
                 activity.unarchive();
+                return true;
+            })
+            .orElse(false);
+    }
+
+    @Transactional
+    public Optional<Activity> markFavourite(String ownerUsername, UUID id) {
+        User owner = resolveOwner(ownerUsername);
+        return activityRepository.findByIdAndOwner(id, owner)
+            .map(activity -> {
+                activity.markFavourite(); // idempotent -- a no-op if already favourited (AC-04)
+                return activity;
+            });
+    }
+
+    @Transactional
+    public boolean unmarkFavourite(String ownerUsername, UUID id) {
+        User owner = resolveOwner(ownerUsername);
+        return activityRepository.findByIdAndOwner(id, owner)
+            .map(activity -> {
+                activity.unmarkFavourite();
                 return true;
             })
             .orElse(false);

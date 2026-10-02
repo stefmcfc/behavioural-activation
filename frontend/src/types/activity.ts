@@ -7,6 +7,7 @@ export interface Activity {
   description: string | null
   repeatable: boolean
   archived: boolean
+  favourite: boolean
   createdAt: string
   subTaskCount: number
 }

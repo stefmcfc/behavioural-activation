@@ -84,9 +84,23 @@ public class ActivityController {
         return unarchived ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    @PostMapping("/{id}/favourite")
+    public ResponseEntity<ActivityResponse> markFavourite(@PathVariable UUID id, Authentication authentication) {
+        return activityService.markFavourite(authentication.getName(), id)
+            .map(activity -> ResponseEntity.ok(
+                toResponse(activity, activityService.countSubTasks(authentication.getName(), id))))
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/favourite")
+    public ResponseEntity<Void> unmarkFavourite(@PathVariable UUID id, Authentication authentication) {
+        boolean unmarked = activityService.unmarkFavourite(authentication.getName(), id);
+        return unmarked ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
     private static ActivityResponse toResponse(Activity activity, long subTaskCount) {
         return new ActivityResponse(activity.getId(), activity.getName(), activity.getCategory(),
-            activity.getDescription(), activity.isRepeatable(), activity.isArchived(), activity.getCreatedAt(),
-            (int) subTaskCount);
+            activity.getDescription(), activity.isRepeatable(), activity.isArchived(), activity.isFavourite(),
+            activity.getCreatedAt(), (int) subTaskCount);
     }
 }

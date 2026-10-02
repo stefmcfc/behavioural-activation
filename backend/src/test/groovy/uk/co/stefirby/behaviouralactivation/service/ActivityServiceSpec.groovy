@@ -64,7 +64,7 @@ class ActivityServiceSpec extends Specification {
 
         and: "the repository returns activities for that owner"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
-            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> activities
+            activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> activities
             subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
 
         when: "activities are listed for that username, excluding archived (default)"
@@ -77,7 +77,7 @@ class ActivityServiceSpec extends Specification {
     def "PLANNER-002-AC-11: listForOwner returns an empty list when the owner has no activities"() {
         given:
             userRepository.findByUsername("steve") >> Optional.of(owner)
-            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> []
+            activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> []
 
         when:
             def result = service.listForOwner("steve", false)
@@ -92,7 +92,7 @@ class ActivityServiceSpec extends Specification {
 
         and: "the repository returns activities for the full (mixed) list"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
-            activityRepository.findByOwnerOrderByNameAsc(owner) >> activities
+            activityRepository.findByOwnerOrderByFavouriteDescNameAsc(owner) >> activities
             subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
 
         when: "activities are listed with includeArchived=true"
@@ -112,7 +112,7 @@ class ActivityServiceSpec extends Specification {
             // the repository's list in order) rather than by id, which can't distinguish them here.
             def withSubTasks = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
             def withoutSubTasks = new Activity("Read", ActivityCategory.PLEASURABLE, null, owner)
-            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> [withSubTasks, withoutSubTasks]
+            activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> [withSubTasks, withoutSubTasks]
             subTaskRepository.countByActivityIdAndOwner(_, owner) >>> [2, 0]
 
         when: "activities are listed"
@@ -129,7 +129,7 @@ class ActivityServiceSpec extends Specification {
 
         and: "the owner has one activity"
             def activity = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
-            activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(owner) >> [activity]
+            activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> [activity]
 
         when: "activities are listed"
             service.listForOwner("steve", false)
@@ -349,5 +349,91 @@ class ActivityServiceSpec extends Specification {
 
         then: "the service reports failure"
             !unarchived
+    }
+
+    def "PLANNER-015-AC-03/AC-04: markFavourite sets favourite to true, idempotently, on the owner's activity"() {
+        given: "the authenticated username resolves to a User, who owns the target activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            if (alreadyFavourite) {
+                existing.markFavourite()
+            }
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "markFavourite is requested"
+            def result = service.markFavourite("steve", id)
+
+        then: "the activity is favourited, whether or not it already was"
+            result.isPresent()
+            result.get().favourite
+
+        where:
+            alreadyFavourite << [false, true]
+    }
+
+    def "PLANNER-015-AC-05: markFavourite returns empty when the id doesn't exist or belongs to a different owner"() {
+        given:
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "markFavourite is attempted"
+            def result = service.markFavourite("steve", id)
+
+        then: "the result is empty"
+            result.isEmpty()
+    }
+
+    def "PLANNER-015-AC-06/AC-07: unmarkFavourite sets favourite to false on the owner's activity and returns true, idempotently"() {
+        given: "the authenticated username resolves to a User, who owns a favourited activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            existing.markFavourite()
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "unmarkFavourite is requested"
+            def unmarked = service.unmarkFavourite("steve", id)
+
+        then: "the activity is no longer favourited, and the service reports success"
+            !existing.favourite
+            unmarked
+    }
+
+    def "PLANNER-015-AC-08: unmarkFavourite returns false when the id doesn't exist or belongs to a different owner"() {
+        given:
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "unmarkFavourite is attempted"
+            def unmarked = service.unmarkFavourite("steve", id)
+
+        then: "the service reports failure"
+            !unmarked
+    }
+
+    def "PLANNER-015-AC-09: archive/unarchive never change favourite, and markFavourite/unmarkFavourite never change archived"() {
+        given: "the authenticated username resolves to a User, who owns a favourited activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            existing.markFavourite()
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "the activity is archived"
+            def archived = service.archive("steve", id).get()
+
+        then: "favourite is unchanged"
+            archived.favourite
+            archived.archived
+
+        when: "favourite is unmarked"
+            service.unmarkFavourite("steve", id)
+
+        then: "archived is unchanged"
+            existing.archived
+            !existing.favourite
     }
 }

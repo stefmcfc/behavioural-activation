@@ -467,4 +467,158 @@ class ActivityControllerSpec extends Specification {
             0 * activityService.archive(_, _)
             0 * activityService.unarchive(_, _)
     }
+
+    def "PLANNER-015-AC-03: POST .../favourite succeeds, 200, with favourite: true"() {
+        given: "the service marks the activity favourite"
+            def id = UUID.randomUUID()
+            activityService.markFavourite("steve", id) >>
+                Optional.of(new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner).tap { markFavourite() })
+
+        when: "POST /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 200 with favourite: true"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.favourite').value(true))
+    }
+
+    def "PLANNER-015-AC-03: POST .../favourite response carries the activity's real current subTaskCount"() {
+        given: "the service marks the activity favourite"
+            def id = UUID.randomUUID()
+            activityService.markFavourite("steve", id) >>
+                Optional.of(new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner).tap { markFavourite() })
+            activityService.countSubTasks("steve", id) >> 1
+
+        when: "POST /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response carries the real current count, not an assumed 0"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.subTaskCount').value(1))
+    }
+
+    def "PLANNER-015-AC-04: POST .../favourite on an already-favourited activity is still a 200, not an error"() {
+        given: "the service reports the (already-favourited) activity, idempotently"
+            def id = UUID.randomUUID()
+            def alreadyFavourite = new Activity("Apply for jobs", ActivityCategory.NECESSARY, null, false, owner)
+            alreadyFavourite.markFavourite()
+            activityService.markFavourite("steve", id) >> Optional.of(alreadyFavourite)
+
+        when: "POST /api/v1/activities/{id}/favourite is requested again"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is still 200, still favourite, no error"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.favourite').value(true))
+    }
+
+    def "PLANNER-015-AC-05: POST .../favourite on another owner's (or nonexistent) activity returns 404"() {
+        given: "the service reports no matching activity for this owner"
+            def id = UUID.randomUUID()
+            activityService.markFavourite("steve", id) >> Optional.empty()
+
+        when: "POST /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(post("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-015-AC-06: DELETE .../favourite unmarks favourite and returns 204"() {
+        given: "the service unmarks the activity's favourite status successfully"
+            def id = UUID.randomUUID()
+            activityService.unmarkFavourite("steve", id) >> true
+
+        when: "DELETE /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 204 No Content"
+            result.andExpect(status().isNoContent())
+    }
+
+    def "PLANNER-015-AC-07: DELETE .../favourite on an already-not-favourited activity is still a 204, not an error"() {
+        given: "the service reports success idempotently"
+            def id = UUID.randomUUID()
+            activityService.unmarkFavourite("steve", id) >> true
+
+        when: "DELETE /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is still 204, no error"
+            result.andExpect(status().isNoContent())
+    }
+
+    def "PLANNER-015-AC-08: DELETE .../favourite on another owner's (or nonexistent) activity returns 404"() {
+        given: "the service reports no matching activity for this owner"
+            def id = UUID.randomUUID()
+            activityService.unmarkFavourite("steve", id) >> false
+
+        when: "DELETE /api/v1/activities/{id}/favourite is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}/favourite")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-015-AC-12: the create response reflects favourite: false for a newly created activity"() {
+        given: "a valid create request"
+            def body = objectMapper.writeValueAsString([name: "Walk", category: "ROUTINE"])
+
+        and: "the service creates the activity"
+            activityService.create("steve", _ as ActivityRequest) >>
+                new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+
+        when: "POST /api/v1/activities is requested"
+            def result = mockMvc.perform(post("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response reflects favourite: false"
+            result.andExpect(status().isCreated())
+            result.andExpect(jsonPath('$.favourite').value(false))
+    }
+
+    def "PLANNER-015-AC-12: list carries each activity's own favourite status"() {
+        given: "the service pairs a favourited and a non-favourited activity"
+            def favourite = new Activity("Zebra errand", ActivityCategory.ROUTINE, null, owner).tap { markFavourite() }
+            def notFavourite = new Activity("Apple walk", ActivityCategory.ROUTINE, null, owner)
+            activityService.listForOwner("steve", false) >> [
+                new ActivityWithSubTaskCount(favourite, 0),
+                new ActivityWithSubTaskCount(notFavourite, 0)
+            ]
+
+        when: "GET /api/v1/activities is requested"
+            def result = mockMvc.perform(get("/api/v1/activities")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "each activity's response carries its own favourite status"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.data[0].favourite').value(true))
+            result.andExpect(jsonPath('$.data[1].favourite').value(false))
+    }
+
+    def "PLANNER-015-AC-12: client-supplied favourite in the create/update request body has no effect -- there is no field to carry it"() {
+        expect: "ActivityRequest declares no favourite field"
+            !ActivityRequest.declaredFields*.name.contains("favourite")
+    }
+
+    def "PLANNER-015-AC-12: an unauthenticated request to the favourite endpoints returns 401 (inherited SecurityFilterChain rule)"() {
+        when: "the favourite/unmark-favourite endpoints are requested with no session"
+            def markResult = mockMvc.perform(post("/api/v1/activities/${UUID.randomUUID()}/favourite"))
+            def unmarkResult = mockMvc.perform(delete("/api/v1/activities/${UUID.randomUUID()}/favourite"))
+
+        then: "both responses are 401, not reaching the controller/service"
+            markResult.andExpect(status().isUnauthorized())
+            unmarkResult.andExpect(status().isUnauthorized())
+            0 * activityService.markFavourite(_, _)
+            0 * activityService.unmarkFavourite(_, _)
+    }
 }

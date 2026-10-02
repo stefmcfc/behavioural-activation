@@ -14,6 +14,7 @@ const walk: Activity = {
   description: 'Around the block',
   repeatable: true,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-28T00:00:00Z',
   subTaskCount: 0,
 }

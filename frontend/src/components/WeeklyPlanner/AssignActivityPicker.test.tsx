@@ -18,6 +18,7 @@ const walk: Activity = {
   description: null,
   repeatable: true,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-01T00:00:00Z',
   subTaskCount: 0,
 }
@@ -29,6 +30,7 @@ const party: Activity = {
   description: null,
   repeatable: true,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-01T00:00:00Z',
   subTaskCount: 0,
 }
@@ -40,6 +42,7 @@ const jobs: Activity = {
   description: null,
   repeatable: false,
   archived: false,
+  favourite: false,
   createdAt: '2026-09-01T00:00:00Z',
   subTaskCount: 0,
 }
@@ -234,6 +237,115 @@ describe('AssignActivityPicker', () => {
       await userEvent.click(screen.getByRole('radio', { name: 'Repeatable' }))
 
       expect(screen.getByText(/no activities match these filters/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-06: a favourited activity shows a read-only favourite indicator', () => {
+    it('renders a FavouriteIcon with no click handler for a favourited activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, favourite: true }])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
+      const icon = within(activityButton.parentElement!).getByRole('img', { name: 'Favourite' })
+      expect(icon.closest('button')).toBeNull()
+    })
+
+    it('renders no FavouriteIcon for a non-favourited activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, favourite: false }])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
+      expect(
+        within(activityButton.parentElement!).queryByRole('img', { name: 'Favourite' }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-07: sub-task rows never show a favourite indicator', () => {
+    it('renders no FavouriteIcon on a sub-task row, even when its parent activity is favourited', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...party, favourite: true }])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      renderPicker()
+
+      const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
+      expect(
+        within(subTaskButton.parentElement!).queryByRole('img', { name: 'Favourite' }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-08: preserves backend-provided order through its filters', () => {
+    it('renders activities in the exact order activityApi.getAll returns', async () => {
+      const zebraFavourite: Activity = { ...walk, id: 'z1', name: 'Zebra', favourite: true }
+      const appleActivity: Activity = { ...jobs, id: 'z2', name: 'Apple', favourite: false }
+      vi.mocked(activityApi.getAll).mockResolvedValue([zebraFavourite, appleActivity])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Zebra' })
+      const buttons = screen.getAllByRole('button', { name: /Zebra|Apple/ })
+      expect(buttons[0]).toHaveTextContent('Zebra')
+      expect(buttons[1]).toHaveTextContent('Apple')
+    })
+  })
+
+  describe('FRONTEND-027-AC-13: renders a "Favourites only" filter, unchecked by default', () => {
+    it('renders an unchecked checkbox', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+      expect(screen.getByRole('checkbox', { name: /favourites only/i })).not.toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-027-AC-14: checking the filter hides non-favourited activities, composing with existing filters', () => {
+    it('shows only the favourited activity when checked', async () => {
+      const favouritedActivity: Activity = { ...walk, favourite: true }
+      const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
+      vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+      await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+
+      expect(screen.getByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-15: a shown favourited activity\'s sub-tasks are unaffected by the filter', () => {
+    it('still renders sub-tasks beneath a shown favourited activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([{ ...party, favourite: true }])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Organise a leaving party' })
+      await userEvent.click(screen.getByRole('checkbox', { name: /favourites only/i }))
+
+      expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-027-AC-16: unchecking the filter restores previously-hidden activities', () => {
+    it('restores the non-favourited activity after unchecking', async () => {
+      const favouritedActivity: Activity = { ...walk, favourite: true }
+      const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
+      vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      renderPicker()
+
+      await screen.findByRole('button', { name: 'Go for a walk' })
+      const checkbox = screen.getByRole('checkbox', { name: /favourites only/i })
+      await userEvent.click(checkbox)
+      expect(screen.queryByRole('button', { name: 'Apply for jobs' })).not.toBeInTheDocument()
+
+      await userEvent.click(checkbox)
+      expect(screen.getByRole('button', { name: 'Apply for jobs' })).toBeInTheDocument()
     })
   })
 })

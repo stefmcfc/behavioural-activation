@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- You can now mark an activity as a favourite (a star toggle in the Activity Bank). Favourited
+  activities are pinned to the top of the Activity Bank and the Weekly Planner's "Add" picker, and
+  both surfaces have a new "Favourites only" filter (behaving like the existing "Show archived"
+  toggle) to narrow the list down further.
+
 ## [0.20.0] - 2026-10-02
 
 ### Added

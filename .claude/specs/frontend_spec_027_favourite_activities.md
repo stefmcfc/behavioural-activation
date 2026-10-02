@@ -1,6 +1,7 @@
 # Favourite Activities (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 16 ACs green, including AC-05/AC-09 `[MANUAL]`, confirmed
+in a real browser
 **Priority**: P3 — quality-of-life speed-up for finding commonly-used activities, no new domain
 capability
 **Depends on**: `planner_spec_015_favourite_activities.md` (the backend endpoints/field this
@@ -10,6 +11,53 @@ consumes — must land first), `frontend_spec_002_activity_bank.md` (the `Activi
 (the `RepeatableIcon` read-only-badge pattern this mirrors with a new `FavouriteIcon`)
 **Area**: Frontend only
 **Roadmap version**: V2-ish polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme
+
+## Summary
+
+Implemented as scoped. `Activity` gained `favourite: boolean`; `activityApi` gained
+`markFavourite(id)`/`unmarkFavourite(id)` (POST/DELETE `/activities/{id}/favourite`), mirroring
+`archive`/`unarchive` exactly. New shared `FavouriteIcon` component mirrors `RepeatableIcon` (simple
+`role="img"` `aria-label="Favourite"` SVG, no props, own CSS module, star path).
+
+`ActivityBank`: a favourite-toggle `<button>` (containing `<FavouriteIcon />`, `aria-pressed`,
+label text "Favourite"/"Unfavourite") was added to `renderRowActions`, present on both the archived
+and non-archived branches, with its own `favouritingId`/`favouriteError` state mirroring
+`handleUnarchive`'s structure exactly. A "Favourites only" checkbox (new `favouriteFilter` state,
+styled with the same `.archivedToggle` class as "Show archived") composes as an additional `AND`
+condition in `visibleActivities`, purely client-side, no re-fetch.
+
+`AssignActivityPicker`: a read-only `<FavouriteIcon />` renders next to a favourited activity's name
+alongside the existing `<CategoryChip>`/`<RepeatableIcon />` badges — no click handler, never
+rendered on sub-task rows. A "Favourites only" checkbox fieldset (new `favouriteFilter` state)
+composes as an additional `AND` condition alongside the existing category/repeatable filters;
+sub-task rendering is untouched, so a shown favourited activity's sub-tasks still render in full.
+
+No client-side `.sort()` was introduced in either component — both `visibleActivities` filters remain
+`Array.prototype.filter` only, confirmed by a dedicated regression-guard test in each component
+(AC-04/AC-08) asserting the backend's favourite-first order passes through unchanged.
+
+All 14 `[AUTO]` ACs (01–04, 06–08, 10–16) are covered by Vitest/RTL tests and pass. `npm test`
+(372/372 across 30 files) and `npm run lint` (oxlint, 0 findings) are green; `npm run build`
+(`tsc -b && vite build`) also passes cleanly. AC-05 and AC-09 (`[MANUAL]` real-browser visual checks)
+confirmed afterward (Claude in Chrome, against the local dev stack, logged in as the seeded user):
+in `ActivityBank`, the star toggle button (text "Favourite"/"Unfavourite") renders cleanly alongside
+the category chip and existing row actions with no overlap; toggling it round-trips through the real
+`POST`/`DELETE /api/v1/activities/{id}/favourite` endpoints and survives a page reload, with the
+favourited activity correctly pinned to the top of the list (`planner_spec_015`-AC-10 observed live).
+In `AssignActivityPicker`, the read-only star indicator is legible and clearly distinct from the
+category chip and repeatable icon at the picker's denser row size. The "Favourites only" checkbox
+filter was also exercised live in both surfaces, styled identically to the existing "Show archived"
+toggle as the user specifically asked for.
+
+**Real findings**:
+- Adding `favourite: boolean` to the `Activity` interface required updating every existing
+  `Activity`-typed object literal across `ActivityBank.test.tsx`, `AssignActivityPicker.test.tsx`,
+  `WeeklyPlanner.test.tsx`, `ActivityForm.test.tsx`, and `activityApi.test.ts` (the TypeScript
+  compiler, not Vitest/esbuild, is what caught these — `tsc -b` via `npm run build` was the
+  authoritative check since Vitest's esbuild transform doesn't type-check).
+- An extra (non-AC, but implied by "mirror `handleUnarchive`'s structure") test was added confirming
+  a failed `markFavourite` call surfaces an alert and leaves the toggle unchanged, matching the
+  existing unarchive-failure precedent.
 
 ## Overview
 
@@ -401,19 +449,19 @@ describe('FRONTEND-027: AssignActivityPicker "Favourites only" filter', () => {
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-027-AC-01 — each activity row has a favourite-toggle button
-- [ ] FRONTEND-027-AC-02 — clicking an unfavourited toggle marks it favourite
-- [ ] FRONTEND-027-AC-03 — clicking a favourited toggle unmarks it
-- [ ] FRONTEND-027-AC-04 — Activity Bank list preserves backend-provided order
-- [ ] FRONTEND-027-AC-05 — favourite toggle doesn't visually clash with existing row content (real-browser check)
-- [ ] FRONTEND-027-AC-06 — a favourited activity shows a read-only favourite indicator in the picker
-- [ ] FRONTEND-027-AC-07 — sub-task rows never show a favourite indicator
-- [ ] FRONTEND-027-AC-08 — the picker's activity list preserves backend-provided order
-- [ ] FRONTEND-027-AC-09 — favourite indicator reads clearly at the picker's row density (real-browser check)
-- [ ] FRONTEND-027-AC-10 — Activity Bank renders a "Favourites only" filter, unchecked by default
-- [ ] FRONTEND-027-AC-11 — checking it hides non-favourites, composes with the category filter
-- [ ] FRONTEND-027-AC-12 — unchecking it restores previously-hidden activities
-- [ ] FRONTEND-027-AC-13 — AssignActivityPicker renders a "Favourites only" filter, unchecked by default
-- [ ] FRONTEND-027-AC-14 — checking it hides non-favourited activities, composes with existing filters
-- [ ] FRONTEND-027-AC-15 — a shown favourited activity's sub-tasks are unaffected by the filter
-- [ ] FRONTEND-027-AC-16 — unchecking it restores previously-hidden activities
+- [x] FRONTEND-027-AC-01 — each activity row has a favourite-toggle button
+- [x] FRONTEND-027-AC-02 — clicking an unfavourited toggle marks it favourite
+- [x] FRONTEND-027-AC-03 — clicking a favourited toggle unmarks it
+- [x] FRONTEND-027-AC-04 — Activity Bank list preserves backend-provided order
+- [x] FRONTEND-027-AC-05 — favourite toggle doesn't visually clash with existing row content (confirmed in a real browser)
+- [x] FRONTEND-027-AC-06 — a favourited activity shows a read-only favourite indicator in the picker
+- [x] FRONTEND-027-AC-07 — sub-task rows never show a favourite indicator
+- [x] FRONTEND-027-AC-08 — the picker's activity list preserves backend-provided order
+- [x] FRONTEND-027-AC-09 — favourite indicator reads clearly at the picker's row density (confirmed in a real browser)
+- [x] FRONTEND-027-AC-10 — Activity Bank renders a "Favourites only" filter, unchecked by default
+- [x] FRONTEND-027-AC-11 — checking it hides non-favourites, composes with the category filter
+- [x] FRONTEND-027-AC-12 — unchecking it restores previously-hidden activities
+- [x] FRONTEND-027-AC-13 — AssignActivityPicker renders a "Favourites only" filter, unchecked by default
+- [x] FRONTEND-027-AC-14 — checking it hides non-favourited activities, composes with existing filters
+- [x] FRONTEND-027-AC-15 — a shown favourited activity's sub-tasks are unaffected by the filter
+- [x] FRONTEND-027-AC-16 — unchecking it restores previously-hidden activities
