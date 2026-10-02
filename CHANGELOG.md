@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-10-02
+
 ### Added
 
 - A new "Today" tab shows just the current day's plan (grid + weekend bucket list) — a faster view
