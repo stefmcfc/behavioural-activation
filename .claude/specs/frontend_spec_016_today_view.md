@@ -1,6 +1,9 @@
 # Today View (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — every `[AUTO]` AC green plus AC-09/AC-12 (`[MANUAL]`,
+confirmed in a real browser); AC-13 (`[MANUAL]`) left unchecked — a 1.5px near-miss on the bucket
+list's fold-reachability, not the severe failure `frontend_spec_028` had, but not a clean pass either
+(see Summary)
 **Priority**: P2 — same tier as the sibling Weekly Planner UX specs. Split off `SPEC_CANDIDATES.md`'s
 "Weekday/Weekend grid tabs + a 'Today' view" candidate into its own spec, confirmed 2026-09-30, so the
 grid-tabs bug fix (`frontend_spec_015_weekday_weekend_grid_tabs.md`) can ship independently first.
@@ -16,6 +19,99 @@ correction" section for why)
 `WeeklyPlanner` already does, just always for the real current week.
 **Roadmap version**: V1 (extends `product.md`'s V1 planner row / US-003 "View a weekly plan" — a
 reduced, single-day lens on the same data, not V2's tracking/reflection scope, and not AI)
+
+## Summary
+
+Implemented largely as scoped, with the `usePlanActions` extraction target corrected against the
+actual current `WeeklyPlanner.tsx` (which had moved on from this spec's now-stale sketch via
+`frontend_spec_025`/`026`/`028`/`031` and a subsequent drawer-removal pass) rather than the spec's
+illustrative code block. Two real defects were found and fixed during review before this could be
+called done — see below; this is not a case of the implementation matching the plan exactly.
+
+**`usePlanActions(weekStart)`** (new, `frontend/src/components/WeeklyPlanner/usePlanActions.ts`)
+extracts the occurrence fetch effect and `occurrences`/`loadError`/`retryCount`/`assignTarget`/
+`actionError`/`confirmingRemoveId`/`movingId`/`detailOpenId`/`busyId`/`bucketReorderInFlight`/
+`dragPayload` state, plus every `handleRetry`/`handleAssignSuccess`/`handleCloseAssign`/`handleMove`/
+`handleConfirmRemove`/`handleComplete`/`handleUndo`/`handleOpenDetail`/`handleCloseDetail`/
+`handleReorderBucket`/`handleCarryForward`/`handleDragEnd` handler. It additionally gained the
+`handleAssignFromDrawer`/`isAssigningFromDrawer` pair Requirement 5 needed (this didn't exist in
+`WeeklyPlanner.tsx` before — it was deleted along with the broken drawer), mirroring
+`frontend_spec_028`'s original implementation. `weekStart` navigation, the Weekdays/Weekend `gridTab`
+toggle, and each component's own `todayColumn` computation stayed local to `WeeklyPlanner.tsx`/
+`TodayView.tsx` respectively, not pulled into the hook. `getMondayOfCurrentWeek`/
+`getTodayPlanDayOfWeek`/`formatDate` moved from `WeeklyPlanner.tsx`-private functions into
+`planLabels.ts` (pure relocation) so `TodayView.tsx` can compute the same values without duplicating
+them.
+
+**Real finding #1 — a loading-state regression introduced by the extraction, caught in code review,
+not by the test suite**: the original `WeeklyPlanner.tsx` cleared `occurrences`/`loadError` to `null`
+at the start of `handlePreviousWeek`/`handleNextWeek`/`handleRetry`, so switching weeks showed
+"Loading plan…" immediately instead of the previous week's stale data lingering during the refetch.
+The first extraction dropped this — `usePlanActions`'s internal `useEffect` re-fetches on a
+`weekStart` change but never reset the old data first, so navigating weeks would briefly show last
+week's occurrences under this week's already-updated date header. No existing test caught this (none
+assert on the transient loading state, only on final fetch-call counts), confirming this project's
+"a green suite isn't proof of correctness for behavior no test actually exercises" lesson rather than
+contradicting it. Fixed by adding a `resetForRefetch()` function to the hook, called from
+`WeeklyPlanner.tsx`'s `handlePreviousWeek`/`handleNextWeek` and the hook's own `handleRetry` — matching
+the original three-call-site pattern (not folded into the effect body itself, since a synchronous
+`setState` directly inside a `useEffect` trips oxlint's `react(set-state-in-effect)` cascading-render
+warning; tried that first, reverted once the warning showed up with a previously-clean `npm run lint`).
+
+**Real finding #2 — AC-11's drag-affordance fix was non-functional as originally written, confirmed by
+inspecting the actual build output, not just the CSS source**: the original fix added
+`.drawer :global(.activityRow)::before`/`.drawer :global(.subTaskRow)::before` rules to
+`ActivityDrawer.module.css`, intending to add a grip-icon to `ActivityPickerList.tsx`'s rows without
+editing that shared file. This doesn't work — `.activityRow`/`.subTaskRow` are ordinary (non-`:global`)
+local classes in `AssignActivityPicker.module.css`, so CSS Modules hashes their compiled/applied name
+(confirmed directly in the built JS bundle: `activityRow_jq4ri_173`, not literal `activityRow`).
+`:global()` only stops a selector from being hashed in the file that *defines* it — it can't make a
+selector in a *different* file retroactively match a class some other module already hashed. The
+original "spot-checked the CSS rules compiled... in `dist/assets/*.css`" claim was true but
+insufficient: it confirmed the selector text compiled as written, not that it could ever match a real
+DOM element. Fixed by dropping the class-name references entirely and matching on structure/attributes
+instead, which are never subject to CSS Modules hashing: `.drawer li[draggable='true'] > div::before`
+for an activity row (content lives in a `<div>` child) and
+`.drawer li[draggable='true']:not(:has(> div))::before` for a sub-task row (the draggable `<li>` is
+itself the flex container, no `<div>` wrapper) — confirmed actually rendering via a real-browser
+screenshot (zoomed on the drawer row) and `getComputedStyle` (`cursor: grab` on the right element),
+not just a passing automated test (the test only asserts the CSS source contains `mask-image`/
+`cursor: grab` text, which would have passed either way — a real gap in what `[AUTO]` can catch here).
+
+**`WeeklyPlanner.tsx`** is now meaningfully shorter: week-nav state/handlers, the `gridTab` toggle, and
+a single `usePlanActions(weekStart)` call, with every render prop reading from `plan.*`.
+
+**`TodayView.tsx`** (new) renders a single-day `PlannerGrid` (`days={[today]}`, headed with
+`DAY_LABELS[today]`, today-specific empty-state text) and `BucketList` beneath it, both wired to the
+same `usePlanActions` hook, plus the `AssignActivityPicker` modal and (Requirement 5) the reintroduced
+`ActivityDrawer`. `WeeklyPlanner.tsx` continues to omit `onAssignFromDrawer`/the drawer entirely.
+
+**Deviations from the (confirmed outdated) spec sketch**: `TabNav`'s "Today" tab landed after "Weekly
+Planner" at the end of the tab list, not "between Weekly Planner and Settings" — `frontend_spec_030`
+removed Settings as a tab (header popover now) before this spec was written, so there's nothing left
+to position before. `usePlanActions` additionally returns `setDragPayload` (needed directly by both
+components' `onDragStart` wiring and the drawer's two drag-start callbacks).
+
+**Real-browser verification** (AC-09, AC-12, AC-13):
+- **AC-09** [MANUAL] — pass. Today tab, single-day grid, bucket list, and the reintroduced drawer all
+  render correctly in both Light and Dark theme; the grip-icon fix (above) confirmed visible in both.
+- **AC-12** [MANUAL] — pass. With the drawer open, the single-day grid stays fully legible (Morning/
+  Afternoon/Evening slots, full-width "Add" buttons) — the Weekly Planner's 5-column squeeze problem
+  doesn't recur here, as the Overview predicted.
+- **AC-13** [MANUAL] — **does not cleanly pass, left unchecked**. Measured directly
+  (`getBoundingClientRect()` against `window.innerHeight`, not assumed): with the drawer open and one
+  occurrence scheduled today, the bucket list's top edge sits at 806px against an 805px-tall viewport —
+  1.5px below the fold. This is a near-miss, not a repeat of `frontend_spec_028`'s severity (there, the
+  gap was 1000px+, structurally unreachable regardless of content or viewport); here it's essentially
+  at the boundary, and would likely sit comfortably above the fold on a taller viewport or a day with
+  fewer scheduled items. Per this spec's own instruction not to mark this AC done without an actual
+  passing measurement, it stays unchecked — flagged for a product decision (ship as-is given how narrow
+  the margin is, or trim something to guarantee clearance) rather than resolved unilaterally here.
+
+**Test count**: 472/472 passing across 37 files, up from a confirmed 453/453-across-35-files baseline
+(measured via an isolated `git worktree` checkout of the pre-change commit). `npm run lint` (oxlint):
+0 findings (briefly 1 warning mid-fix, resolved — see Real finding #1). `npm run build`: succeeds with
+no type errors.
 
 ## Overview
 
@@ -393,17 +489,18 @@ Strategy note.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-016-AC-01 — `TabNav` gains a "Today" entry, routed to `/today`
-- [ ] FRONTEND-016-AC-02 — `App.tsx` routes `/today` to `TodayView`, protected like other routes
-- [ ] FRONTEND-016-AC-03 — `TodayView` always fetches the real current week, independent of `WeeklyPlanner`
-- [ ] FRONTEND-016-AC-04 — single-day `PlannerGrid` scoped to today, headed with today's day name
-- [ ] FRONTEND-016-AC-05 — `BucketList` renders beneath the grid, unchanged
-- [ ] FRONTEND-016-AC-06 — an empty-state message specific to today when nothing is scheduled
-- [ ] FRONTEND-016-AC-07 — full Add/Complete/Undo/detail-card parity via the shared `usePlanActions` hook
-- [ ] FRONTEND-016-AC-08 — `TodayView` and `WeeklyPlanner` state are fully independent across routes
-- [ ] FRONTEND-016-AC-09 — Today tab + grid + bucket list render correctly in Light and Dark (real-browser check)
-- [ ] FRONTEND-016-AC-10 — "Browse activities" opens a drag-mode drawer panel beside today's grid
-- [ ] FRONTEND-016-AC-11 — drawer rows have a visible drag affordance (cursor + handle icon)
-- [ ] FRONTEND-016-AC-12 — the single-day grid stays legible/usable with the drawer open (real-browser check)
-- [ ] FRONTEND-016-AC-13 — the bucket list is reachable without scrolling with the drawer open, or this is explicitly flagged as not met (real-browser check)
-- [ ] FRONTEND-016-AC-14 — dropping a drawer item calls `onAssignFromDrawer` via `usePlanActions`
+- [x] FRONTEND-016-AC-01 — `TabNav` gains a "Today" entry, routed to `/today`
+- [x] FRONTEND-016-AC-02 — `App.tsx` routes `/today` to `TodayView`, protected like other routes
+- [x] FRONTEND-016-AC-03 — `TodayView` always fetches the real current week, independent of `WeeklyPlanner`
+- [x] FRONTEND-016-AC-04 — single-day `PlannerGrid` scoped to today, headed with today's day name
+- [x] FRONTEND-016-AC-05 — `BucketList` renders beneath the grid, unchanged
+- [x] FRONTEND-016-AC-06 — an empty-state message specific to today when nothing is scheduled
+- [x] FRONTEND-016-AC-07 — full Add/Complete/Undo/detail-card parity via the shared `usePlanActions` hook
+- [x] FRONTEND-016-AC-08 — `TodayView` and `WeeklyPlanner` state are fully independent across routes
+- [x] FRONTEND-016-AC-09 — Today tab + grid + bucket list render correctly in Light and Dark (confirmed in a real browser)
+- [x] FRONTEND-016-AC-10 — "Browse activities" opens a drag-mode drawer panel beside today's grid
+- [x] FRONTEND-016-AC-11 — drawer rows have a visible drag affordance (cursor + handle icon) — the original fix didn't actually render (class-name hashing bug), corrected and confirmed visible in a real browser, see Summary
+- [x] FRONTEND-016-AC-12 — the single-day grid stays legible/usable with the drawer open (confirmed in a real browser)
+- [ ] FRONTEND-016-AC-13 — the bucket list is reachable without scrolling with the drawer open — **1.5px short of the fold at the tested viewport, a near-miss, not a clean pass; left unchecked pending a product decision, see Summary**
+- [x] FRONTEND-016-AC-14 — dropping a drawer item calls `onAssignFromDrawer` via `usePlanActions`
+
