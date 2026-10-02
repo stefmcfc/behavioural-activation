@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { OccurrenceItem } from './OccurrenceItem'
@@ -41,10 +40,14 @@ interface BucketListProps {
   readonly onStartMove: (id: string) => void
   readonly onCancelMove: () => void
   readonly onConfirmMove: (id: string, dayOfWeek: PlanDayOfWeek, slot: PlanSlot) => void
+  readonly onMoveToBucket: (id: string) => void
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
   readonly onReorder: (occurrenceIds: string[]) => void
+  readonly draggedId: string | null
+  readonly onDragStart: (id: string) => void
+  readonly onDragEnd: () => void
 }
 
 export function BucketList({
@@ -63,10 +66,14 @@ export function BucketList({
   onStartMove,
   onCancelMove,
   onConfirmMove,
+  onMoveToBucket,
   onComplete,
   onUndo,
   onCarryForward,
   onReorder,
+  draggedId,
+  onDragStart,
+  onDragEnd,
 }: BucketListProps) {
   const bucketOccurrences = occurrences
     .filter((occurrence) => occurrence.dayOfWeek === null && occurrence.slot === null)
@@ -74,7 +81,6 @@ export function BucketList({
     .sort((a, b) => (a.bucketPosition ?? 0) - (b.bucketPosition ?? 0)) // FRONTEND-010-AC-01
   const zeroCategories = computeZeroCategories(bucketOccurrences)
   const idsInOrder = bucketOccurrences.map((occurrence) => occurrence.id)
-  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   const handleMoveUp = (id: string) => {
     const index = idsInOrder.indexOf(id)
@@ -93,20 +99,42 @@ export function BucketList({
   }
 
   const handleDrop = (targetId: string) => {
-    if (!draggedId || draggedId === targetId) return
-    const originalTargetIndex = idsInOrder.indexOf(targetId)
-    const withoutDragged = idsInOrder.filter((id) => id !== draggedId)
-    const next = [
-      ...withoutDragged.slice(0, originalTargetIndex),
-      draggedId,
-      ...withoutDragged.slice(originalTargetIndex),
-    ]
-    onReorder(next)
-    setDraggedId(null)
+    const id = draggedId
+    onDragEnd()
+    if (!id || id === targetId) return
+    if (idsInOrder.includes(id)) {
+      // FRONTEND-010: existing same-bucket reorder, unchanged (not gated by busyId — that flag
+      // guards individual-occurrence actions in flight, not this drag-to-reorder path).
+      const originalTargetIndex = idsInOrder.indexOf(targetId)
+      const withoutDragged = idsInOrder.filter((occurrenceId) => occurrenceId !== id)
+      const next = [
+        ...withoutDragged.slice(0, originalTargetIndex),
+        id,
+        ...withoutDragged.slice(originalTargetIndex),
+      ]
+      onReorder(next)
+    } else if (busyId === null) {
+      // FRONTEND-026-AC-03: a grid-origin (not-yet-bucketed) occurrence dropped on an existing
+      // bucket item demotes it the same as dropping anywhere else in the bucket; it is not
+      // spliced into a specific position. FRONTEND-026-AC-06: gated by busyId like the grid side.
+      onMoveToBucket(id)
+    }
+  }
+
+  const handlePanelDrop = () => {
+    const id = draggedId
+    onDragEnd()
+    if (!id || idsInOrder.includes(id) || busyId !== null) return
+    onMoveToBucket(id)
   }
 
   return (
-    <section aria-label="Weekend bucket list" className={styles.panel}>
+    <section
+      aria-label="Weekend bucket list"
+      className={styles.panel}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handlePanelDrop}
+    >
       <div className={styles.header}>
         <h3>Weekend bucket list</h3>
         <button type="button" onClick={onAdd} aria-label="Add to weekend bucket list">
@@ -150,7 +178,8 @@ export function BucketList({
               reorderDisabled={reorderInFlight}
               onMoveUp={handleMoveUp}
               onMoveDown={handleMoveDown}
-              onDragStart={setDraggedId}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
               onDragOverItem={(event) => event.preventDefault()}
               onDropOnItem={handleDrop}
             />

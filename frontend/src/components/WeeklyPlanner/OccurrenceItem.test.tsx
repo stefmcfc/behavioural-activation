@@ -410,6 +410,21 @@ describe('FRONTEND-025-AC-01: grid tiles are draggable, bucket tiles unaffected'
   })
 })
 
+describe('FRONTEND-026-AC-07: bucket drag handle wires onDragEnd, closing the latent reset gap', () => {
+  it('calls onDragEnd when a drag started on the bucket drag handle ends', () => {
+    const onDragEnd = vi.fn()
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true, onDragEnd })}
+      />,
+    )
+    const handle = document.querySelector('[draggable="true"]')!
+    fireEvent.dragStart(handle)
+    fireEvent.dragEnd(handle)
+    expect(onDragEnd).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('FRONTEND-011-AC-02/AC-03: the "moved from last week" label only renders when flagged', () => {
   it('renders the label when recentlyCarriedForward is true, and omits it otherwise', () => {
     const { rerender } = render(

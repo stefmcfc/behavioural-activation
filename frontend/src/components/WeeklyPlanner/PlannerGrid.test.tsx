@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
@@ -31,11 +32,31 @@ function baseGridProps(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
     onMoveToBucket: noop,
     onComplete: noop,
     onUndo: noop,
+    draggedId: null,
+    onDragStart: noop,
+    onDragEnd: noop,
   }
 }
 
 function renderGrid(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
   render(<PlannerGrid {...baseGridProps(overrides)} />)
+}
+
+// FRONTEND-026-AC-01: draggedId is now a controlled prop, not local state. This harness
+// mirrors WeeklyPlanner's lifted state so existing drag tests keep exercising real drag
+// behaviour (dragstart -> controlled draggedId -> drop) instead of asserting internals.
+function DraggableGridHarness(
+  props: Omit<Parameters<typeof PlannerGrid>[0], 'draggedId' | 'onDragStart' | 'onDragEnd'>,
+) {
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  return (
+    <PlannerGrid
+      {...props}
+      draggedId={draggedId}
+      onDragStart={setDraggedId}
+      onDragEnd={() => setDraggedId(null)}
+    />
+  )
 }
 
 describe('FRONTEND-007-AC-09: day-of-week labels use the mono day-label style', () => {
@@ -145,7 +166,7 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
   it("AC-04: calls onConfirmMove with the dropped cell's day/slot", () => {
     const onConfirmMove = vi.fn()
     render(
-      <PlannerGrid
+      <DraggableGridHarness
         {...baseGridProps()}
         occurrences={[occurrenceOnMonMorning]}
         onConfirmMove={onConfirmMove}
@@ -162,7 +183,7 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
   it('AC-05: does not call onConfirmMove when dropped back on its own cell', () => {
     const onConfirmMove = vi.fn()
     render(
-      <PlannerGrid
+      <DraggableGridHarness
         {...baseGridProps()}
         occurrences={[occurrenceOnMonMorning]}
         onConfirmMove={onConfirmMove}
@@ -178,7 +199,7 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
   it('AC-06: calls onConfirmMove when the target cell already has an occurrence', () => {
     const onConfirmMove = vi.fn()
     render(
-      <PlannerGrid
+      <DraggableGridHarness
         {...baseGridProps()}
         occurrences={[occurrenceOnMonMorning, occurrenceOnTueAfternoon]}
         onConfirmMove={onConfirmMove}
@@ -194,7 +215,7 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
   it('AC-07: a dragend with no drop leaves occurrences unchanged and resets cleanly', () => {
     const onConfirmMove = vi.fn()
     render(
-      <PlannerGrid
+      <DraggableGridHarness
         {...baseGridProps()}
         occurrences={[occurrenceOnMonMorning]}
         onConfirmMove={onConfirmMove}
@@ -209,7 +230,7 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
   it('AC-08: a drop while busyId is set does not call onConfirmMove', () => {
     const onConfirmMove = vi.fn()
     render(
-      <PlannerGrid
+      <DraggableGridHarness
         {...baseGridProps()}
         occurrences={[occurrenceOnMonMorning]}
         busyId={occurrenceOnMonMorning.id}
@@ -221,5 +242,23 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
     fireEvent.dragStart(sourceTile)
     fireEvent.drop(targetCell)
     expect(onConfirmMove).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-026-AC-08: grid-internal drag-to-move is unaffected by the draggedId state lift', () => {
+  it('still calls onConfirmMove between two grid cells now that draggedId is a controlled prop', () => {
+    const onConfirmMove = vi.fn()
+    render(
+      <DraggableGridHarness
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning, occurrenceOnTueAfternoon]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const targetCell = screen.getByLabelText('Add to Monday Afternoon').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(targetCell)
+    expect(onConfirmMove).toHaveBeenCalledWith(occurrenceOnMonMorning.id, 'MONDAY', 'AFTERNOON')
   })
 })

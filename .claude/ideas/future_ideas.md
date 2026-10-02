@@ -36,7 +36,9 @@ drag for unplanned activities).
 2026-10-02: added a third drag-and-drop idea, dragging between the grid and the weekend bucket
 list — carved out as explicitly out-of-scope by `frontend_spec_025_grid_drag_to_move.md`.
 Later the same day: added "Should a completed occurrence be movable?", raised while reviewing that
-same spec.
+same spec. Later the same day: the grid/bucket cross-drag idea moved straight to a real spec
+(`frontend_spec_026_grid_bucket_cross_drag.md`, see `ROADMAP.md`'s "Specced, coming soon") without
+passing through `SPEC_CANDIDATES.md` — removed from this file.
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -72,31 +74,6 @@ noted as a plausible pairing if this gets built.
 Needs a real design pass before writing ACs (panel placement/interaction, filter UI reuse vs.
 duplication, whether "favourites" is in scope for v1 of this or a separate later idea) — not just a
 markup reshuffle, similar to other open UI candidates in `.claude/SPEC_CANDIDATES.md`.
-
-## Drag-and-drop between the grid and the weekend bucket list
-
-**Status**: Not specced. Raised 2026-10-02, explicitly carved out as out-of-scope by
-`frontend_spec_025_grid_drag_to_move.md`'s Overview ("Out of scope, unchanged, still done via
-existing click-based actions: dragging onto/from the weekend bucket list"). That spec only covers
-dragging a grid-scheduled occurrence to a *different grid cell within the same visible grid* — it
-deliberately does not let you drag a grid occurrence onto the bucket (today's equivalent: the
-detail card's "Move to bucket" button), or drag a bucket item onto a grid cell to assign it a day/
-slot (today's equivalent: "Rearrange" from an open bucket item's card).
-
-Distinct from both other drag-and-drop ideas already logged: not the grid-internal move
-(`frontend_spec_025`, now specced) and not the sidebar/drawer assign-from-the-Activity-Bank idea
-(the entry above this one) — this is specifically about dragging between two *already-visible*
-sections of the same Weekly Planner page (the grid and the bucket list below it), each of which
-already has its own independent drag-and-drop implementation (`frontend_spec_025`'s grid move,
-`frontend_spec_010_bucket_reordering.md`'s bucket reorder) that would need to interoperate for this
-to work — currently they're built as fully separate, non-interacting component-local drag states
-(by design, see `frontend_spec_025`'s Overview on why that isolation is safe), so this would need
-a shared drag-source representation (most likely lifted into `WeeklyPlanner.tsx`, or a real
-`DataTransfer`-payload-based implementation instead of each component's own local `draggedId`
-state) rather than a small extension of either existing implementation. Worth revisiting once
-`frontend_spec_025` has shipped and its grid-only drag has been used for a while — confirm there's
-an actual felt need to cross the grid/bucket boundary by dragging, rather than building it ahead of
-that signal.
 
 ## Should a completed occurrence be movable?
 
