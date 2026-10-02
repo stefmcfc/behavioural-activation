@@ -5,6 +5,7 @@ import styles from './LoginPage.module.css'
 
 interface LoginPageProps {
   readonly onLoginSuccess: (username: string) => void
+  readonly sessionExpired?: boolean
 }
 
 function getErrorMessage(error: unknown): string {
@@ -22,7 +23,7 @@ function getErrorMessage(error: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-export function LoginPage({ onLoginSuccess }: LoginPageProps) {
+export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [usernameTouchedEmpty, setUsernameTouchedEmpty] = useState(false)
@@ -57,6 +58,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   return (
     <main className={styles.shell}>
       <h1>Log in</h1>
+      {sessionExpired && (
+        <p className={styles.sessionExpiredNotice} role="alert">
+          Your session has expired. Please log in again.
+        </p>
+      )}
       <form onSubmit={handleSubmit} noValidate>
         <div className={styles.field}>
           <label htmlFor="username">Username</label>

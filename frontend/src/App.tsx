@@ -6,11 +6,12 @@ import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
 import { Settings } from './components/Settings/Settings'
 import { TabNav } from './components/Navigation/TabNav'
 import { authApi } from './services/authApi'
+import { setUnauthorizedHandler } from './services/client'
 import styles from './App.module.css'
 
 type SessionState =
   | { status: 'checking' }
-  | { status: 'unauthenticated' }
+  | { status: 'unauthenticated'; expired?: boolean }
   | { status: 'authenticated'; username: string }
 
 function App() {
@@ -37,6 +38,20 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession((current) =>
+        current.status === 'authenticated'
+          ? { status: 'unauthenticated', expired: true }
+          : current,
+      )
+    })
+
+    return () => {
+      setUnauthorizedHandler(null)
+    }
+  }, [])
+
   const handleLoginSuccess = useCallback((username: string) => {
     setSession({ status: 'authenticated', username })
   }, [])
@@ -55,7 +70,7 @@ function App() {
   }
 
   if (session.status === 'unauthenticated') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />
+    return <LoginPage onLoginSuccess={handleLoginSuccess} sessionExpired={session.expired === true} />
   }
 
   return (

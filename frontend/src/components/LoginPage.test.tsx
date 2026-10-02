@@ -21,6 +21,23 @@ describe('LoginPage', () => {
     })
   })
 
+  describe('FRONTEND-029-AC-04: session-expired notice', () => {
+    it('shows the session-expired notice when sessionExpired is true', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} sessionExpired />)
+      expect(screen.getByText(/session has expired/i)).toBeInTheDocument()
+    })
+
+    it('shows no notice when sessionExpired is false', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} sessionExpired={false} />)
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+
+    it('shows no notice when sessionExpired is omitted', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-001-AC-03/AC-04: valid submit logs in and signals success', () => {
     it('calls authApi.login and onLoginSuccess when the form is valid', async () => {
       vi.mocked(authApi.login).mockResolvedValue({ username: 'steve' })

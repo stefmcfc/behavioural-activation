@@ -1,6 +1,7 @@
 # Graceful Session Expiry Handling
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 8 ACs implemented and test-covered, verified end-to-end in
+a real browser; AC-04's notice styling refined post-implementation per user feedback
 **Priority**: P2 — real UX bug found in use: the existing "Retry" button on an expired session can
 never succeed, and nothing tells the user why
 **Depends on**: `frontend_spec_001_login.md` (the `App.tsx` session gate and `LoginPage` this
@@ -10,6 +11,67 @@ manual-test loop)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 hardening — a gap noticed in real use, not tied to a `HIGH_LEVEL_DESIGN.md`
 version theme
+
+## Summary
+
+Implemented exactly as scoped in the Overview. `client.ts` gained a module-level
+`onUnauthorized` handler slot, an exported `setUnauthorizedHandler()` to register/clear it, and a
+`client.interceptors.response.use()` rejection handler that calls `onUnauthorized?.()` on any `401`
+response and then re-rejects unchanged — `request()`'s existing `ApiError`-wrapping logic is
+untouched and still runs on the re-thrown error. `App.tsx`'s `SessionState`'s `'unauthenticated'`
+variant gained an optional `expired?: boolean` field; a new mount-only `useEffect` registers a
+handler via `setUnauthorizedHandler` that only transitions state via a functional `setSession`
+update guarded on `current.status === 'authenticated'` (and clears the registration on unmount).
+`LoginPage` gained an optional `sessionExpired?: boolean` prop rendering a plain `<p>Your session
+has expired. Please log in again.</p>` above the form when `true`; `App.tsx` passes
+`sessionExpired={session.expired === true}` when rendering it from the `'unauthenticated'` branch.
+`handleLoginSuccess` was already a full-replacement `setSession({ status: 'authenticated',
+username })` with no `expired` field, so AC-05 required no production change — only a new test
+confirming it.
+
+No deviations from the spec. The "handler only acts while authenticated" mechanism was verified by
+spying on `setUnauthorizedHandler` (real, unmocked `client.ts`) in `App.test.tsx`, capturing the
+callback `App` registers, and invoking it directly in each session-state scenario — this exercises
+the exact same App-level logic the real interceptor would trigger, without needing a second,
+redundant simulation of the axios round-trip (that round-trip — "a 401 response invokes the
+registered handler, a non-401 does not, `request()` still throws `ApiError`" — is covered directly
+in the new `client.test.ts`). One incidental fix needed along the way: `vi.spyOn` on an ES-module
+named export persists across tests in this file without an explicit `vi.restoreAllMocks()` in
+`afterEach` (each subsequent `spyOn` call layers on top of the prior one rather than starting
+clean), which made one new test flaky depending on run order until that `afterEach` was added —
+worth keeping in mind for any future test file that `spyOn`s a module export more than once.
+
+Four pre-existing service test files (`authApi.test.ts`, `planApi.test.ts`, `activityApi.test.ts`,
+`subTaskApi.test.ts`) mock `axios.create()`'s return value without an `interceptors` property; each
+needed `interceptors: { response: { use: vi.fn() } }` added to that mock so `client.ts`'s new
+module-load-time `client.interceptors.response.use(...)` call doesn't throw `undefined is not an
+object` when those modules import `client.ts`. No behavior change to those test files otherwise.
+
+Test counts: 5 new tests in `frontend/src/services/client.test.ts` (new file), 10 new tests in
+`frontend/src/App.test.tsx` (AC-01/02 registration + scoping, AC-03/04 redirect + notice, AC-05
+re-login clears expired, AC-07 explicit logout shows no notice, AC-08 failed login's own inline
+error unaffected), 3 new tests in `frontend/src/components/LoginPage.test.tsx` (AC-04 notice
+shown/hidden/omitted). AC-06 (non-401 regression guard) relies on the pre-existing, unmodified
+`WeeklyPlanner.test.tsx` (`FRONTEND-004-AC-38`) and `ActivityBank.test.tsx` (`FRONTEND-006-AC-13`)
+Retry-flow tests continuing to pass unchanged (confirmed), plus the dedicated
+`client.test.ts` case confirming the interceptor itself is a no-op for non-`401` statuses. Full
+suite: 411 tests passing (32 files), `npm run lint` (oxlint) clean, `npm run build` clean.
+
+**Verified end-to-end in a real browser** (Claude in Chrome, against the local dev stack): logged in,
+invalidated the session server-side directly (`POST /auth/logout` via `fetch`, bypassing the app's own
+logout flow — the same way an idle timeout would leave the client-side cookie present but the
+server-side session gone), triggered a subsequent API call from the UI, and confirmed the app correctly
+bounced to the login screen with the expired message; confirmed logging back in clears it and resumes
+normally.
+
+**Post-implementation refinement (2026-10-02)**: the user felt the initial plain, unstyled `<p>` notice
+didn't stand out enough. Amended `FRONTEND-029-AC-04` (see its own entry for the full rationale, ID
+unchanged) to require real visual prominence — a bordered, tinted, bold notice box, `role="alert"`.
+Added `--error-bg`/`--error-border` to `theme.css`, mirroring the shape of the existing
+`--accent-bg`/`--accent-border` tokens (same light/dark `light-dark()` pattern, same opacity values),
+rather than inventing one-off colors in the component file — keeps the design-token approach this
+project already uses elsewhere. Re-verified in a real browser after the change: the notice now renders
+as a clearly bordered, error-tinted box immediately below the "Log in" heading.
 
 ## Overview
 
@@ -87,14 +149,24 @@ shell.
 **References**: Component: `frontend/src/App.tsx` (`SessionState` type gains an `expired?: boolean`
 field on the `'unauthenticated'` variant)
 
-### FRONTEND-029-AC-04 [AUTO]: LoginPage shows a session-expired notice only when shown for that reason
+### FRONTEND-029-AC-04 [AUTO]: LoginPage shows a prominent session-expired notice only when shown for that reason
 **Statement**: `LoginPage` shall accept a new prop (e.g. `sessionExpired?: boolean`) and, when `true`,
-render a visible notice (e.g. "Your session has expired. Please log in again.") above the login form.
-When the prop is absent or `false` — the normal first-visit and explicit-logout cases — no such notice
-shall render.
+render a visually prominent notice (e.g. "Your session has expired. Please log in again.") above the
+login form — bordered, background-filled, and bold, not plain unstyled text, so it reads as an
+important system message rather than blending into the page. When the prop is absent or `false` — the
+normal first-visit and explicit-logout cases — no such notice shall render.
 
-**References**: Component: `frontend/src/components/LoginPage.tsx`, `frontend/src/App.tsx` (passes
-`sessionExpired={session.status === 'unauthenticated' && session.expired === true}`)
+**Rationale**: **Amended 2026-10-02** (ID unchanged): the user confirmed after the initial
+implementation that a plain, unstyled `<p>` didn't stand out enough — a session-expiry message is
+urgent (it explains why the page just changed out from under you) and needed real visual weight. Styled
+via new `--error-bg`/`--error-border` theme tokens, mirroring the shape of the existing
+`--accent-bg`/`--accent-border` tokens — a bordered, tinted box using the existing `--error` color,
+`role="alert"` for immediate screen-reader announcement.
+
+**References**: Component: `frontend/src/components/LoginPage.tsx`, `frontend/src/components/LoginPage.module.css`
+(`.sessionExpiredNotice`), `frontend/src/theme.css` (new `--error-bg`/`--error-border` tokens),
+`frontend/src/App.tsx` (passes `sessionExpired={session.status === 'unauthenticated' && session.expired
+=== true}`)
 
 ### FRONTEND-029-AC-05 [AUTO]: Logging back in clears the expired state and resumes normally
 **Statement**: After a session-expired `LoginPage` is shown and the user successfully logs in again,
@@ -243,11 +315,11 @@ describe('FRONTEND-029: existing behaviors unaffected', () => {
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-029-AC-01 — shared API client exposes a registrable 401 handler
-- [ ] FRONTEND-029-AC-02 — the handler only acts while the app is currently authenticated
-- [ ] FRONTEND-029-AC-03 — detecting an expired session transitions to the login screen
-- [ ] FRONTEND-029-AC-04 — LoginPage shows a session-expired notice only when shown for that reason
-- [ ] FRONTEND-029-AC-05 — logging back in clears the expired state and resumes normally
-- [ ] FRONTEND-029-AC-06 — non-401 errors are unaffected, existing local Retry UI still applies
-- [ ] FRONTEND-029-AC-07 — explicit logout is unaffected and shows no expired notice
-- [ ] FRONTEND-029-AC-08 — a failed login attempt's own error display is unaffected
+- [x] FRONTEND-029-AC-01 — shared API client exposes a registrable 401 handler
+- [x] FRONTEND-029-AC-02 — the handler only acts while the app is currently authenticated
+- [x] FRONTEND-029-AC-03 — detecting an expired session transitions to the login screen
+- [x] FRONTEND-029-AC-04 — LoginPage shows a session-expired notice only when shown for that reason
+- [x] FRONTEND-029-AC-05 — logging back in clears the expired state and resumes normally
+- [x] FRONTEND-029-AC-06 — non-401 errors are unaffected, existing local Retry UI still applies
+- [x] FRONTEND-029-AC-07 — explicit logout is unaffected and shows no expired notice
+- [x] FRONTEND-029-AC-08 — a failed login attempt's own error display is unaffected

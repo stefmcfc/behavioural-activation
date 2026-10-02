@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const post = vi.fn()
 const get = vi.fn()
-const create = vi.fn(() => ({ post, get }))
+const create = vi.fn(() => ({ post, get, interceptors: { response: { use: vi.fn() } } }))
 
 function isMockAxiosError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error
