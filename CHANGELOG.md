@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-02
+
 ### Changed
 
 - The category/type/favourite filters in the "Add" modal and Today's "Browse activities" drawer are
