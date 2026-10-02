@@ -1,0 +1,86 @@
+.wrapper {
+  /* Exists only so :has() below can detect the panel's open state -- introduces no layout box of
+     its own, the trigger stays a direct flex item of the header. */
+  display: contents;
+}
+
+.trigger {
+  anchor-name: --account-trigger;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.wrapper:has(.panel:popover-open) .trigger {
+  border-color: var(--border);
+  background: var(--accent-bg);
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.panel {
+  /* CSS Anchor Positioning -- a popover is promoted to the top layer when open, which changes its
+     containing block to the viewport, so a plain position:relative wrapper + position:absolute
+     child (the pre-anchor-positioning approach) silently renders it below the fold.
+     The browser's own [popover] UA stylesheet sets `inset: 0` by default (centering it via
+     margin:auto) -- left/bottom MUST be explicitly reset to auto here, or the un-overridden
+     left:0/bottom:0 from that default over-constrains the box and silently wins over top/right,
+     pinning the panel to the viewport's top-left corner regardless of the anchor() values. */
+  position: fixed;
+  position-anchor: --account-trigger;
+  top: anchor(bottom);
+  right: anchor(right);
+  left: auto;
+  bottom: auto;
+  margin: 0.5rem 0 0;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+  width: max-content;
+  max-width: min(90vw, 18rem);
+}
+
+.panel:not(:popover-open) {
+  display: none;
+}
+
+.panelTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.username {
+  margin: 0 0 0.75rem;
+  color: var(--text-h);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.logoutButton {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.logoutButton:hover,
+.logoutButton:focus-visible {
+  border-color: var(--border-strong);
+}

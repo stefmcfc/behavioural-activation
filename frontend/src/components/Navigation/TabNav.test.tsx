@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { TabNav } from './TabNav'
 
-describe('FRONTEND-005-AC-01/AC-03: TabNav renders three labelled links, marks the active one', () => {
-  it('renders Activities, Weekly Planner, and Settings links', () => {
+describe('FRONTEND-005-AC-01/AC-03: TabNav renders labelled links, marks the active one', () => {
+  it('renders Activities and Weekly Planner links', () => {
     render(
       <MemoryRouter initialEntries={['/activities']}>
         <TabNav />
@@ -13,7 +13,6 @@ describe('FRONTEND-005-AC-01/AC-03: TabNav renders three labelled links, marks t
 
     expect(screen.getByRole('link', { name: 'Activities' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Weekly Planner' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
   })
 
   it('marks only the active route link with aria-current="page"', () => {
@@ -28,6 +27,17 @@ describe('FRONTEND-005-AC-01/AC-03: TabNav renders three labelled links, marks t
       'page',
     )
     expect(screen.getByRole('link', { name: 'Activities' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+  })
+})
+
+describe('FRONTEND-030-AC-02: TabNav no longer lists Settings', () => {
+  it('does not render a Settings link', () => {
+    render(
+      <MemoryRouter initialEntries={['/activities']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByRole('link', { name: 'Settings' })).not.toBeInTheDocument()
   })
 })

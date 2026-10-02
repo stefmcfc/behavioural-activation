@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-10-02
+
+### Changed
+
+- The page header is now Title | Settings icon | Account icon, with navigation tabs demoted to a
+  second row below it. Settings (theme, category colours) and your account info/Log out now open in
+  a small popover from their icon, instead of Settings being a separate tab and account info sitting
+  as static text in the header. The trigger icon highlights while its popover is open.
+
 ## [0.23.0] - 2026-10-02
 
 ### Added

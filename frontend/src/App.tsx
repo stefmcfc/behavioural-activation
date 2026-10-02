@@ -3,8 +3,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './components/LoginPage'
 import { ActivityBank } from './components/ActivityBank/ActivityBank'
 import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
-import { Settings } from './components/Settings/Settings'
 import { TabNav } from './components/Navigation/TabNav'
+import { SettingsMenu } from './components/Navigation/SettingsMenu'
+import { AccountMenu } from './components/Navigation/AccountMenu'
 import { authApi } from './services/authApi'
 import { setUnauthorizedHandler } from './services/client'
 import styles from './App.module.css'
@@ -75,17 +76,19 @@ function App() {
 
   return (
     <main className={styles.shell} data-testid="app-shell">
-      <h1>Behavioural Activation Planner</h1>
-      <p>Logged in as {session.username}</p>
-      <button type="button" onClick={handleLogout}>
-        Log out
-      </button>
+      <div className={styles.headerRow}>
+        <h1>Behavioural Activation Planner</h1>
+        <div className={styles.headerActions}>
+          <SettingsMenu />
+          <AccountMenu username={session.username} onLogout={handleLogout} />
+        </div>
+      </div>
       <TabNav />
       <Routes>
         <Route path="/" element={<Navigate to="/activities" replace />} />
         <Route path="/activities" element={<ActivityBank />} />
         <Route path="/planner" element={<WeeklyPlanner />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings" element={<Navigate to="/activities" replace />} />
       </Routes>
     </main>
   )
