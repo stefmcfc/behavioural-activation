@@ -33,27 +33,6 @@
   display: block;
 }
 
-/* FRONTEND-028-AC-03/AC-05: the "Browse activities" toggle sits in its own header row, above the
-   grid/bucket + drawer layout below. */
-.toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
-/* FRONTEND-028-AC-05: the open drawer sits beside the grid/bucket column, pushing it narrower --
-   not an overlay, so both the drag source and every drop target stay on-screen at once. */
-.layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.main {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .tabFieldset {
   border: none;
   padding: 0;

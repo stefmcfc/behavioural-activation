@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WeeklyPlanner } from './WeeklyPlanner'
@@ -783,120 +783,7 @@ describe('WeeklyPlanner', () => {
     })
   })
 
-  describe('FRONTEND-028-AC-03: drawer toggle, closed by default', () => {
-    it('is closed on mount and opens/closes via the toggle and the drawer close control', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([])
-      vi.mocked(activityApi.getAll).mockResolvedValue([])
-      render(<WeeklyPlanner />)
-
-      expect(
-        screen.queryByRole('complementary', { name: /activities/i }),
-      ).not.toBeInTheDocument()
-
-      await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
-      expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
-
-      await userEvent.click(screen.getByRole('button', { name: /close/i }))
-      expect(
-        screen.queryByRole('complementary', { name: /activities/i }),
-      ).not.toBeInTheDocument()
-    })
-  })
-
-  describe('FRONTEND-028-AC-04: the Add button/modal is fully unaffected by the drawer being open', () => {
-    it('still opens the assign modal from a grid cell with the drawer open', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([])
-      vi.mocked(activityApi.getAll).mockResolvedValue([])
-      render(<WeeklyPlanner />)
-
-      await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
-      expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
-
-      await userEvent.click(await screen.findByRole('button', { name: /add.*monday.*morning/i }))
-
-      expect(screen.getByText('Assign an activity or sub-task')).toBeInTheDocument()
-    })
-  })
-
-  describe('FRONTEND-028-AC-11/AC-12: dropping a drawer activity onto a grid cell creates an occurrence', () => {
-    const drawerActivity = {
-      id: 'a9',
-      name: 'Go for a walk',
-      category: 'ROUTINE' as const,
-      description: null,
-      repeatable: true,
-      archived: false,
-      favourite: false,
-      createdAt: '2026-09-01T00:00:00Z',
-      subTaskCount: 0,
-    }
-
-    it('AC-11: calls planApi.create and appends the returned occurrence', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([])
-      vi.mocked(activityApi.getAll).mockResolvedValue([drawerActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      vi.mocked(planApi.create).mockResolvedValue({ ...walk, activityId: 'a9' })
-      render(<WeeklyPlanner />)
-
-      await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
-      const row = (await screen.findByText('Go for a walk')).closest('li')!
-      const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
-
-      fireEvent.dragStart(row)
-      fireEvent.drop(targetCell)
-
-      await waitFor(() =>
-        expect(planApi.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            activityId: 'a9',
-            subTaskId: null,
-            dayOfWeek: 'TUESDAY',
-            slot: 'AFTERNOON',
-          }),
-        ),
-      )
-      // The drawer's own (drag-source) row also renders the activity's name -- assert on the
-      // newly-created grid occurrence's name button specifically, not just text presence.
-      expect(await screen.findByRole('button', { name: 'Go for a walk' })).toBeInTheDocument()
-    })
-
-    it('AC-12: a second drop while the first is in flight does not call planApi.create again', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([])
-      vi.mocked(activityApi.getAll).mockResolvedValue([drawerActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
-      let resolveCreate: (value: PlannedOccurrence) => void = () => {}
-      vi.mocked(planApi.create).mockReturnValue(
-        new Promise((resolve) => {
-          resolveCreate = resolve
-        }),
-      )
-      render(<WeeklyPlanner />)
-
-      await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
-      const row = (await screen.findByText('Go for a walk')).closest('li')!
-      const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
-
-      fireEvent.dragStart(row)
-      fireEvent.drop(targetCell)
-      fireEvent.dragStart(row)
-      fireEvent.drop(targetCell)
-
-      expect(planApi.create).toHaveBeenCalledTimes(1)
-      resolveCreate({ ...walk, activityId: 'a9' })
-    })
-  })
-
-  describe('FRONTEND-031-AC-16: regression guard -- "Browse activities" and "Retry" stay unstyled', () => {
-    it('leaves "Browse activities" with no variant class', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([])
-      render(<WeeklyPlanner />)
-
-      await screen.findByText(/no activities planned/i)
-      const browseButton = screen.getByRole('button', { name: /browse activities/i })
-      expect(browseButton).not.toHaveClass(buttonStyles.primary)
-      expect(browseButton).not.toHaveClass(buttonStyles.destructive)
-    })
-
+  describe('FRONTEND-031-AC-16: regression guard -- "Retry" stays unstyled', () => {
     it('leaves "Retry" with no variant class', async () => {
       vi.mocked(planApi.getWeek).mockRejectedValueOnce(
         new ApiError(500, 'Something went wrong. Please try again.'),
