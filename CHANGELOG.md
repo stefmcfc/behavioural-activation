@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- You can now open a "Browse activities" drawer on the Weekly Planner to drag an unplanned activity
+  or sub-task directly onto a grid cell or the weekend bucket to assign it there — a faster,
+  drag-based alternative to the existing "Add" button and picker modal, which still work exactly as
+  before. The drawer is closed by default and sits beside the grid when open.
+
 ## [0.21.0] - 2026-10-02
 
 ### Added

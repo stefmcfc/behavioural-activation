@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { BucketList } from './BucketList'
 import styles from './BucketList.module.css'
+import type { DragPayload } from './dragPayload'
 import type { PlannedOccurrence } from '../../types/plan'
 
 const noop = () => {}
@@ -53,26 +54,28 @@ function baseBucketProps(
     onUndo: noop,
     onCarryForward: noop,
     onReorder: noop,
-    draggedId: null,
+    dragPayload: null,
     onDragStart: noop,
     onDragEnd: noop,
+    onAssignFromDrawer: noop,
     ...overrides,
   }
 }
 
-// FRONTEND-026-AC-01: draggedId is now a controlled prop, not local state. This harness
-// mirrors WeeklyPlanner's lifted state so existing drag tests keep exercising real drag
-// behaviour (dragstart -> controlled draggedId -> drop) instead of asserting internals.
+// FRONTEND-026-AC-01 / FRONTEND-028: dragPayload (formerly draggedId) is a controlled prop, not
+// local state. This harness mirrors WeeklyPlanner's lifted state so existing drag tests keep
+// exercising real drag behaviour (dragstart -> controlled dragPayload -> drop) instead of
+// asserting internals.
 function DraggableBucketHarness(
-  props: Omit<Parameters<typeof BucketList>[0], 'draggedId' | 'onDragStart' | 'onDragEnd'>,
+  props: Omit<Parameters<typeof BucketList>[0], 'dragPayload' | 'onDragStart' | 'onDragEnd'>,
 ) {
-  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
   return (
     <BucketList
       {...props}
-      draggedId={draggedId}
-      onDragStart={setDraggedId}
-      onDragEnd={() => setDraggedId(null)}
+      dragPayload={dragPayload}
+      onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+      onDragEnd={() => setDragPayload(null)}
     />
   )
 }
@@ -207,7 +210,7 @@ describe('FRONTEND-026-AC-02: dropping a non-bucket-member occurrence on the pan
     const onReorder = vi.fn()
     render(
       <BucketList
-        {...baseBucketProps({ draggedId: 'grid-origin', onMoveToBucket, onReorder })}
+        {...baseBucketProps({ dragPayload: { kind: 'occurrence', id: 'grid-origin' }, onMoveToBucket, onReorder })}
       />,
     )
 
@@ -221,7 +224,7 @@ describe('FRONTEND-026-AC-02: dropping a non-bucket-member occurrence on the pan
 
   it('also calls onMoveToBucket when the empty-list state is the drop target', () => {
     const onMoveToBucket = vi.fn()
-    render(<BucketList {...baseBucketProps({ draggedId: 'grid-origin', onMoveToBucket })} />)
+    render(<BucketList {...baseBucketProps({ dragPayload: { kind: 'occurrence', id: 'grid-origin' }, onMoveToBucket })} />)
 
     expect(screen.getByText(/bucket list is empty/i)).toBeInTheDocument()
     fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
@@ -239,7 +242,7 @@ describe('FRONTEND-026-AC-03: dropping a non-bucket-member occurrence on an exis
       <BucketList
         {...baseBucketProps({
           occurrences,
-          draggedId: 'grid-origin',
+          dragPayload: { kind: 'occurrence', id: 'grid-origin' },
           onMoveToBucket,
           onReorder,
         })}
@@ -259,7 +262,7 @@ describe('FRONTEND-026-AC-06: a move in flight blocks a new cross-section drop o
     const onMoveToBucket = vi.fn()
     render(
       <BucketList
-        {...baseBucketProps({ draggedId: 'grid-origin', busyId: 'grid-origin', onMoveToBucket })}
+        {...baseBucketProps({ dragPayload: { kind: 'occurrence', id: 'grid-origin' }, busyId: 'grid-origin', onMoveToBucket })}
       />,
     )
 
@@ -275,7 +278,7 @@ describe('FRONTEND-026-AC-06: a move in flight blocks a new cross-section drop o
       <BucketList
         {...baseBucketProps({
           occurrences,
-          draggedId: 'grid-origin',
+          dragPayload: { kind: 'occurrence', id: 'grid-origin' },
           busyId: 'grid-origin',
           onMoveToBucket,
         })}
@@ -285,6 +288,56 @@ describe('FRONTEND-026-AC-06: a move in flight blocks a new cross-section drop o
     fireEvent.drop(screen.getByText('First').closest('li')!)
 
     expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-028-AC-13/AC-14: dropping a drawer item onto the bucket', () => {
+  it('AC-13: dropping on the panel calls onAssignFromDrawer with null day/slot', () => {
+    const onAssignFromDrawer = vi.fn()
+    const onMoveToBucket = vi.fn()
+    render(
+      <BucketList
+        {...baseBucketProps({
+          dragPayload: { kind: 'subtask', subTaskId: 'subtask-1' },
+          onAssignFromDrawer,
+          onMoveToBucket,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
+
+    expect(onAssignFromDrawer).toHaveBeenCalledWith(
+      { kind: 'subtask', subTaskId: 'subtask-1' },
+      null,
+      null,
+    )
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+
+  it('AC-14: dropping on an existing bucket item also assigns to the bucket, not a reorder', () => {
+    const onAssignFromDrawer = vi.fn()
+    const onReorder = vi.fn()
+    const occurrences = [bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 })]
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences,
+          dragPayload: { kind: 'activity', activityId: 'activity-2' },
+          onAssignFromDrawer,
+          onReorder,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByText('First').closest('li')!)
+
+    expect(onAssignFromDrawer).toHaveBeenCalledWith(
+      { kind: 'activity', activityId: 'activity-2' },
+      null,
+      null,
+    )
+    expect(onReorder).not.toHaveBeenCalled()
   })
 })
 

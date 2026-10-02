@@ -1,5 +1,6 @@
 import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
+import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
 import styles from './BucketList.module.css'
 
@@ -45,9 +46,14 @@ interface BucketListProps {
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
   readonly onReorder: (occurrenceIds: string[]) => void
-  readonly draggedId: string | null
+  readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
   readonly onDragEnd: () => void
+  readonly onAssignFromDrawer: (
+    payload: DragPayload,
+    dayOfWeek: PlanDayOfWeek | null,
+    slot: PlanSlot | null,
+  ) => void
 }
 
 export function BucketList({
@@ -71,9 +77,10 @@ export function BucketList({
   onUndo,
   onCarryForward,
   onReorder,
-  draggedId,
+  dragPayload,
   onDragStart,
   onDragEnd,
+  onAssignFromDrawer,
 }: BucketListProps) {
   const bucketOccurrences = occurrences
     .filter((occurrence) => occurrence.dayOfWeek === null && occurrence.slot === null)
@@ -99,9 +106,17 @@ export function BucketList({
   }
 
   const handleDrop = (targetId: string) => {
-    const id = draggedId
+    const payload = dragPayload
     onDragEnd()
-    if (!id || id === targetId) return
+    if (!payload) return
+    if (payload.kind !== 'occurrence') {
+      // FRONTEND-028-AC-14: a drawer-origin payload is never already a bucket member — it always
+      // gets a brand-new occurrence created in the bucket, never a same-bucket reorder.
+      onAssignFromDrawer(payload, null, null)
+      return
+    }
+    const id = payload.id
+    if (id === targetId) return
     if (idsInOrder.includes(id)) {
       // FRONTEND-010: existing same-bucket reorder, unchanged (not gated by busyId — that flag
       // guards individual-occurrence actions in flight, not this drag-to-reorder path).
@@ -122,9 +137,16 @@ export function BucketList({
   }
 
   const handlePanelDrop = () => {
-    const id = draggedId
+    const payload = dragPayload
     onDragEnd()
-    if (!id || idsInOrder.includes(id) || busyId !== null) return
+    if (!payload) return
+    if (payload.kind !== 'occurrence') {
+      // FRONTEND-028-AC-13: dropped on empty bucket space — same new-assignment path, no day/slot.
+      onAssignFromDrawer(payload, null, null)
+      return
+    }
+    const id = payload.id
+    if (idsInOrder.includes(id) || busyId !== null) return
     onMoveToBucket(id)
   }
 

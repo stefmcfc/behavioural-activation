@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { planApi } from '../../services/planApi'
 import { ApiError } from '../../types/api'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
+import { ActivityDrawer } from './ActivityDrawer'
 import { AssignActivityPicker, type AssignTarget } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
+import type { DragPayload } from './dragPayload'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
 import { WEEKDAY_DAYS, WEEKEND_DAYS, parseWeekStart } from './planLabels'
@@ -103,10 +105,13 @@ export function WeeklyPlanner() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [gridTab, setGridTab] = useState<GridTab>(() => getDefaultGridTab())
   const [bucketReorderInFlight, setBucketReorderInFlight] = useState(false)
-  // FRONTEND-026-AC-01: a single shared drag state, lifted here so a drag starting in
-  // PlannerGrid is visible to BucketList's drop handlers, and vice versa.
-  const [draggedId, setDraggedId] = useState<string | null>(null)
-  const handleDragEnd = () => setDraggedId(null)
+  // FRONTEND-026-AC-01 / FRONTEND-028: a single shared drag state, lifted here so a drag starting
+  // in PlannerGrid, BucketList, or (as of FRONTEND-028) the ActivityDrawer is visible to every
+  // drop handler. Widened from a bare occurrence id to a DragPayload union -- see dragPayload.ts.
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
+  const handleDragEnd = () => setDragPayload(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [isAssigningFromDrawer, setIsAssigningFromDrawer] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -153,6 +158,34 @@ export function WeeklyPlanner() {
   }
 
   const handleCloseAssign = () => setAssignTarget(null)
+
+  // FRONTEND-028-AC-11/AC-12: a drawer-origin drag has no existing occurrence, so it needs a
+  // brand-new one created via the same endpoint AssignActivityPicker's "Assign" already uses --
+  // mirrors handleAssignSuccess's append-to-local-state, gated by its own in-flight boolean rather
+  // than the occurrence-keyed busyId (there's no occurrence id yet to key by).
+  const handleAssignFromDrawer = async (
+    payload: DragPayload,
+    dayOfWeek: PlanDayOfWeek | null,
+    slot: PlanSlot | null,
+  ) => {
+    if (isAssigningFromDrawer || payload.kind === 'occurrence') return
+    setActionError(null)
+    setIsAssigningFromDrawer(true)
+    try {
+      const created = await planApi.create({
+        activityId: payload.kind === 'activity' ? payload.activityId : null,
+        subTaskId: payload.kind === 'subtask' ? payload.subTaskId : null,
+        weekStart,
+        dayOfWeek,
+        slot,
+      })
+      setOccurrences((previous) => (previous ? [...previous, created] : [created]))
+    } catch (error) {
+      setActionError(getErrorMessage(error))
+    } finally {
+      setIsAssigningFromDrawer(false)
+    }
+  }
 
   const handleMove = async (
     id: string,
@@ -296,103 +329,124 @@ export function WeeklyPlanner() {
         </button>
       </div>
 
-      {loadError && (
-        <p role="alert">
-          {loadError}{' '}
-          <button type="button" onClick={handleRetry}>
-            Retry
-          </button>
-        </p>
-      )}
-      {actionError && <p role="alert">{actionError}</p>}
+      <div className={styles.toolbar}>
+        <button type="button" onClick={() => setDrawerOpen((open) => !open)}>
+          Browse activities
+        </button>
+      </div>
 
-      {occurrences === null && !loadError && <output>Loading plan…</output>}
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          {loadError && (
+            <p role="alert">
+              {loadError}{' '}
+              <button type="button" onClick={handleRetry}>
+                Retry
+              </button>
+            </p>
+          )}
+          {actionError && <p role="alert">{actionError}</p>}
 
-      {occurrences !== null && (
-        <>
-          <fieldset className={styles.tabFieldset}>
-            <legend>View</legend>
-            <div className={styles.tabGroup}>
-              <label className={styles.tabOption}>
-                <input
-                  type="radio"
-                  name="grid-tab"
-                  checked={gridTab === 'WEEKDAYS'}
-                  onChange={() => setGridTab('WEEKDAYS')}
-                />{' '}
-                Weekdays
-              </label>
-              <label className={styles.tabOption}>
-                <input
-                  type="radio"
-                  name="grid-tab"
-                  checked={gridTab === 'WEEKEND'}
-                  onChange={() => setGridTab('WEEKEND')}
-                />{' '}
-                Weekend
-              </label>
-            </div>
-          </fieldset>
+          {occurrences === null && !loadError && <output>Loading plan…</output>}
 
-          <PlannerGrid
-            weekStart={weekStart}
-            days={gridTab === 'WEEKDAYS' ? WEEKDAY_DAYS : WEEKEND_DAYS}
-            heading={gridTab === 'WEEKDAYS' ? 'Week grid' : 'Weekend grid'}
-            emptyMessage={
-              gridTab === 'WEEKDAYS'
-                ? 'No activities planned for this week.'
-                : 'No activities planned for the weekend.'
-            }
-            occurrences={occurrences}
-            busyId={busyId}
-            detailOpenId={detailOpenId}
-            confirmingRemoveId={confirmingRemoveId}
-            movingId={movingId}
-            todayColumn={todayColumn}
-            onAdd={(dayOfWeek, slot) => setAssignTarget({ dayOfWeek, slot })}
-            onOpenDetail={handleOpenDetail}
-            onCloseDetail={handleCloseDetail}
-            onStartRemove={setConfirmingRemoveId}
-            onConfirmRemove={handleConfirmRemove}
-            onCancelRemove={() => setConfirmingRemoveId(null)}
-            onStartMove={setMovingId}
-            onCancelMove={() => setMovingId(null)}
-            onConfirmMove={(id, dayOfWeek, slot) => handleMove(id, { dayOfWeek, slot })}
-            onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
-            onComplete={handleComplete}
-            onUndo={handleUndo}
-            draggedId={draggedId}
-            onDragStart={setDraggedId}
+          {occurrences !== null && (
+            <>
+              <fieldset className={styles.tabFieldset}>
+                <legend>View</legend>
+                <div className={styles.tabGroup}>
+                  <label className={styles.tabOption}>
+                    <input
+                      type="radio"
+                      name="grid-tab"
+                      checked={gridTab === 'WEEKDAYS'}
+                      onChange={() => setGridTab('WEEKDAYS')}
+                    />{' '}
+                    Weekdays
+                  </label>
+                  <label className={styles.tabOption}>
+                    <input
+                      type="radio"
+                      name="grid-tab"
+                      checked={gridTab === 'WEEKEND'}
+                      onChange={() => setGridTab('WEEKEND')}
+                    />{' '}
+                    Weekend
+                  </label>
+                </div>
+              </fieldset>
+
+              <PlannerGrid
+                weekStart={weekStart}
+                days={gridTab === 'WEEKDAYS' ? WEEKDAY_DAYS : WEEKEND_DAYS}
+                heading={gridTab === 'WEEKDAYS' ? 'Week grid' : 'Weekend grid'}
+                emptyMessage={
+                  gridTab === 'WEEKDAYS'
+                    ? 'No activities planned for this week.'
+                    : 'No activities planned for the weekend.'
+                }
+                occurrences={occurrences}
+                busyId={busyId}
+                detailOpenId={detailOpenId}
+                confirmingRemoveId={confirmingRemoveId}
+                movingId={movingId}
+                todayColumn={todayColumn}
+                onAdd={(dayOfWeek, slot) => setAssignTarget({ dayOfWeek, slot })}
+                onOpenDetail={handleOpenDetail}
+                onCloseDetail={handleCloseDetail}
+                onStartRemove={setConfirmingRemoveId}
+                onConfirmRemove={handleConfirmRemove}
+                onCancelRemove={() => setConfirmingRemoveId(null)}
+                onStartMove={setMovingId}
+                onCancelMove={() => setMovingId(null)}
+                onConfirmMove={(id, dayOfWeek, slot) => handleMove(id, { dayOfWeek, slot })}
+                onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
+                onComplete={handleComplete}
+                onUndo={handleUndo}
+                dragPayload={dragPayload}
+                onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+                onDragEnd={handleDragEnd}
+                onAssignFromDrawer={handleAssignFromDrawer}
+              />
+
+              <BucketList
+                occurrences={occurrences}
+                busyId={busyId}
+                detailOpenId={detailOpenId}
+                confirmingRemoveId={confirmingRemoveId}
+                movingId={movingId}
+                reorderInFlight={bucketReorderInFlight}
+                onAdd={() => setAssignTarget({ dayOfWeek: null, slot: null })}
+                onOpenDetail={handleOpenDetail}
+                onCloseDetail={handleCloseDetail}
+                onStartRemove={setConfirmingRemoveId}
+                onConfirmRemove={handleConfirmRemove}
+                onCancelRemove={() => setConfirmingRemoveId(null)}
+                onStartMove={setMovingId}
+                onCancelMove={() => setMovingId(null)}
+                onConfirmMove={(id, dayOfWeek, slot) => handleMove(id, { dayOfWeek, slot })}
+                onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
+                onComplete={handleComplete}
+                onUndo={handleUndo}
+                onCarryForward={handleCarryForward}
+                onReorder={handleReorderBucket}
+                dragPayload={dragPayload}
+                onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+                onDragEnd={handleDragEnd}
+                onAssignFromDrawer={handleAssignFromDrawer}
+              />
+            </>
+          )}
+        </div>
+
+        {drawerOpen && (
+          <ActivityDrawer
+            onDragStartActivity={(activityId) => setDragPayload({ kind: 'activity', activityId })}
+            onDragStartSubTask={(subTaskId) => setDragPayload({ kind: 'subtask', subTaskId })}
             onDragEnd={handleDragEnd}
+            onClose={() => setDrawerOpen(false)}
           />
-
-          <BucketList
-            occurrences={occurrences}
-            busyId={busyId}
-            detailOpenId={detailOpenId}
-            confirmingRemoveId={confirmingRemoveId}
-            movingId={movingId}
-            reorderInFlight={bucketReorderInFlight}
-            onAdd={() => setAssignTarget({ dayOfWeek: null, slot: null })}
-            onOpenDetail={handleOpenDetail}
-            onCloseDetail={handleCloseDetail}
-            onStartRemove={setConfirmingRemoveId}
-            onConfirmRemove={handleConfirmRemove}
-            onCancelRemove={() => setConfirmingRemoveId(null)}
-            onStartMove={setMovingId}
-            onCancelMove={() => setMovingId(null)}
-            onConfirmMove={(id, dayOfWeek, slot) => handleMove(id, { dayOfWeek, slot })}
-            onMoveToBucket={(id) => handleMove(id, { dayOfWeek: null, slot: null })}
-            onComplete={handleComplete}
-            onUndo={handleUndo}
-            onCarryForward={handleCarryForward}
-            onReorder={handleReorderBucket}
-            draggedId={draggedId}
-            onDragStart={setDraggedId}
-            onDragEnd={handleDragEnd}
-          />
-        </>
-      )}
+        )}
+      </div>
 
       <Modal isOpen={assignTarget !== null} titleId="assign-picker-title" onClose={handleCloseAssign}>
         {assignTarget && (
