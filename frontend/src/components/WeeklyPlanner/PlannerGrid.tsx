@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
+import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, parseWeekStart } from './planLabels'
 import styles from './PlannerGrid.module.css'
@@ -33,9 +34,14 @@ interface PlannerGridProps {
   readonly onMoveToBucket: (id: string) => void
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
-  readonly draggedId: string | null
+  readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
   readonly onDragEnd: () => void
+  readonly onAssignFromDrawer: (
+    payload: DragPayload,
+    dayOfWeek: PlanDayOfWeek | null,
+    slot: PlanSlot | null,
+  ) => void
 }
 
 function cellClassName(isToday: boolean): string {
@@ -69,18 +75,27 @@ export function PlannerGrid({
   onMoveToBucket,
   onComplete,
   onUndo,
-  draggedId,
+  dragPayload,
   onDragStart,
   onDragEnd,
+  onAssignFromDrawer,
 }: PlannerGridProps) {
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
   )
 
   const handleDrop = (targetDay: PlanDayOfWeek, targetSlot: PlanSlot) => {
-    const id = draggedId
+    const payload = dragPayload
     onDragEnd()
-    if (id === null || busyId !== null) return
+    if (payload === null) return
+    if (payload.kind !== 'occurrence') {
+      // FRONTEND-028-AC-10: a drawer-origin drag has no existing occurrence to move -- it needs a
+      // brand-new one created, not frontend_spec_025/026's existing move/demote/promote branch.
+      onAssignFromDrawer(payload, targetDay, targetSlot)
+      return
+    }
+    const id = payload.id
+    if (busyId !== null) return
     const dragged = occurrences.find((occurrence) => occurrence.id === id)
     if (!dragged) return
     if (dragged.dayOfWeek === targetDay && dragged.slot === targetSlot) return

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
 import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
+import type { DragPayload } from './dragPayload'
 import type { PlanDayOfWeek, PlannedOccurrence } from '../../types/plan'
 
 const noop = () => {}
@@ -32,9 +33,10 @@ function baseGridProps(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
     onMoveToBucket: noop,
     onComplete: noop,
     onUndo: noop,
-    draggedId: null,
+    dragPayload: null,
     onDragStart: noop,
     onDragEnd: noop,
+    onAssignFromDrawer: noop,
   }
 }
 
@@ -42,19 +44,20 @@ function renderGrid(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
   render(<PlannerGrid {...baseGridProps(overrides)} />)
 }
 
-// FRONTEND-026-AC-01: draggedId is now a controlled prop, not local state. This harness
-// mirrors WeeklyPlanner's lifted state so existing drag tests keep exercising real drag
-// behaviour (dragstart -> controlled draggedId -> drop) instead of asserting internals.
+// FRONTEND-026-AC-01 / FRONTEND-028: dragPayload (formerly draggedId) is a controlled prop, not
+// local state. This harness mirrors WeeklyPlanner's lifted state so existing drag tests keep
+// exercising real drag behaviour (dragstart -> controlled dragPayload -> drop) instead of
+// asserting internals.
 function DraggableGridHarness(
-  props: Omit<Parameters<typeof PlannerGrid>[0], 'draggedId' | 'onDragStart' | 'onDragEnd'>,
+  props: Omit<Parameters<typeof PlannerGrid>[0], 'dragPayload' | 'onDragStart' | 'onDragEnd'>,
 ) {
-  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
   return (
     <PlannerGrid
       {...props}
-      draggedId={draggedId}
-      onDragStart={setDraggedId}
-      onDragEnd={() => setDraggedId(null)}
+      dragPayload={dragPayload}
+      onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+      onDragEnd={() => setDragPayload(null)}
     />
   )
 }
@@ -242,6 +245,66 @@ describe('FRONTEND-025: PlannerGrid drag-to-move', () => {
     fireEvent.dragStart(sourceTile)
     fireEvent.drop(targetCell)
     expect(onConfirmMove).not.toHaveBeenCalled()
+  })
+})
+
+describe('FRONTEND-028-AC-10/AC-15: dropping a drawer item on a grid cell', () => {
+  it("AC-10: calls onAssignFromDrawer with the dropped cell's day/slot, not onConfirmMove", () => {
+    const onAssignFromDrawer = vi.fn()
+    const onConfirmMove = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        dragPayload={{ kind: 'activity', activityId: 'activity-1' }}
+        onAssignFromDrawer={onAssignFromDrawer}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    fireEvent.drop(targetCell)
+    expect(onAssignFromDrawer).toHaveBeenCalledWith(
+      { kind: 'activity', activityId: 'activity-1' },
+      'TUESDAY',
+      'AFTERNOON',
+    )
+    expect(onConfirmMove).not.toHaveBeenCalled()
+  })
+
+  it('AC-10: also works for a sub-task payload', () => {
+    const onAssignFromDrawer = vi.fn()
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        dragPayload={{ kind: 'subtask', subTaskId: 'subtask-1' }}
+        onAssignFromDrawer={onAssignFromDrawer}
+      />,
+    )
+    const targetCell = screen.getByLabelText('Add to Monday Morning').closest('div')!
+    fireEvent.drop(targetCell)
+    expect(onAssignFromDrawer).toHaveBeenCalledWith(
+      { kind: 'subtask', subTaskId: 'subtask-1' },
+      'MONDAY',
+      'MORNING',
+    )
+  })
+
+  it('AC-15: an occurrence-kind payload is unaffected, still calling onConfirmMove', () => {
+    const onConfirmMove = vi.fn()
+    const onAssignFromDrawer = vi.fn()
+    render(
+      <DraggableGridHarness
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        onConfirmMove={onConfirmMove}
+        onAssignFromDrawer={onAssignFromDrawer}
+      />,
+    )
+    const sourceTile = screen.getByText(occurrenceOnMonMorning.name).closest('li')!
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(targetCell)
+    expect(onConfirmMove).toHaveBeenCalledWith(occurrenceOnMonMorning.id, 'TUESDAY', 'AFTERNOON')
+    expect(onAssignFromDrawer).not.toHaveBeenCalled()
   })
 })
 

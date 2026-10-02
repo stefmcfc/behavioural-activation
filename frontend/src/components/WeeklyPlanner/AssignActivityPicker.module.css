@@ -105,3 +105,8 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* FRONTEND-028: ActivityPickerList's drag-mode row label, replacing the select-mode button. */
+.activityName {
+  font-weight: 600;
+}

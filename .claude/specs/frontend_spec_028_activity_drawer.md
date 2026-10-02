@@ -1,6 +1,7 @@
 # Activity Drawer — Drag an Unplanned Activity onto the Grid or Bucket
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02) — all 18 ACs implemented and test-covered, including `AC-05`
+(`[MANUAL]`), confirmed in a real browser
 **Priority**: P3 — interaction speed-up, no new capability (assigning an activity already exists via
 the "Add" button + `AssignActivityPicker` modal)
 **Depends on**: `frontend_spec_025_grid_drag_to_move.md`, `frontend_spec_026_grid_bucket_cross_drag.md`
@@ -11,6 +12,74 @@ the "Add" button + `AssignActivityPicker` modal)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V2-ish polish — not tied to a specific `HIGH_LEVEL_DESIGN.md` version theme; the
 third and final piece of a drag-and-drop idea split in `.claude/ideas/future_ideas.md`
+
+## Summary
+
+Implemented exactly as scoped in the Overview's architecture decision. `ActivityPickerList.tsx` is
+a new component that owns the activity/sub-task fetch (plus the fanned-out per-activity sub-task
+fetch), the category/repeatable/favourite filter state and pill UI, and row rendering, parameterized
+by `mode: 'select' | 'drag'`. It reuses `AssignActivityPicker.module.css` directly rather than
+introducing a parallel CSS module — the two modes render near-identical markup, and this keeps
+`moduleStyles.test.ts`'s existing `AssignActivityPicker.module.css` assertions meaningful without a
+second near-duplicate check. `AssignActivityPicker.tsx` is now a thin wrapper: it owns only
+`selected`/`submitError`/`isSubmitting` state, the Assign/Cancel footer, and `handleAssign`, and
+renders `<ActivityPickerList mode="select" .../>` for everything else. Its full pre-existing test
+suite (`AssignActivityPicker.test.tsx`, 20 tests spanning `FRONTEND-006`/`009`/`017`/`022`/`027`)
+passes **unmodified** — zero line changes to that test file, confirming AC-02's regression guard.
+
+`ActivityDrawer.tsx` is a new component rendering `<ActivityPickerList mode="drag" .../>` inside an
+`<aside aria-labelledby="activity-drawer-heading">` with a heading and a "Close" button.
+`WeeklyPlanner.tsx` gained a `drawerOpen` boolean (default `false`) and a "Browse activities" toggle
+button in a new header row above the grid/bucket + drawer layout; the layout itself is a new flex
+row (`.layout`/`.main` in `WeeklyPlanner.module.css`) with the drawer as a flex sibling beside
+`.main`, not an overlay.
+
+The drag-state widening followed the spec's minimal-diff design precisely: a new
+`dragPayload.ts` exports the `DragPayload` discriminated union (`kind: 'occurrence' | 'activity' |
+'subtask'`), imported by `PlannerGrid.tsx`, `BucketList.tsx`, and `WeeklyPlanner.tsx`.
+`PlannerGrid`/`BucketList`'s `draggedId: string | null` prop was renamed to `dragPayload: DragPayload
+| null` and each gained one new `onAssignFromDrawer` prop; their existing `onDragStart`/`onDragEnd`
+props keep the exact same `(id: string) => void`/`() => void` signatures as before, and
+`OccurrenceItem.tsx` needed **zero changes** — confirmed by its unmodified test suite.
+`WeeklyPlanner.tsx`'s own `onDragStart` wiring changed from a raw `setDraggedId` to `(id) =>
+setDragPayload({ kind: 'occurrence', id })`; the drawer's two new start-callbacks
+(`onDragStartActivity`/`onDragStartSubTask`) set the same shared state with the other two `kind`
+variants. `handleAssignFromDrawer` mirrors `handleAssignSuccess`'s append-to-local-state pattern,
+gated by a dedicated `isAssigningFromDrawer` boolean (not `busyId`, since a drawer-origin drag has no
+occurrence id yet to key by).
+
+Within `ActivityPickerList`, a sub-task row's `onDragStart`/`onDragEnd` call `event.stopPropagation()`
+before invoking `onDragStartSubTask`/`onDragEnd` — needed because in `drag` mode both an activity's
+`<li>` and its nested sub-task `<li>`s are `draggable`, and native drag events bubble; without
+`stopPropagation()`, dragging a sub-task row would also fire the parent activity row's
+`onDragStartActivity`, violating AC-07's "never both for the same drag." This mirrors the
+`stopPropagation()` precedent `frontend_spec_026` already established for bucket-item drops.
+
+`npm test`: 396/396 passing across 31 test files (up from the 380/380, 30-file baseline) — one new
+file (`ActivityDrawer.test.tsx`, 7 tests), plus `PlannerGrid.test.tsx` (+3 tests),
+`BucketList.test.tsx` (+2 tests), `WeeklyPlanner.test.tsx` (+4 tests) extended with new cases, and
+`BucketList.test.tsx`/`CrossSectionDrag.test.tsx`/`PlannerGrid.test.tsx` mechanically updated for the
+`draggedId` → `dragPayload` rename (prop renames and literal-value wrapping only — no assertion
+changed). `AssignActivityPicker.test.tsx` and `OccurrenceItem.test.tsx` required **zero** changes, as
+the architecture intended. `npm run lint` (oxlint): 0 findings. `npm run build` (`tsc -b && vite
+build`): succeeds with no type errors.
+
+**No deviations from the spec's prescribed architecture were needed.** The one implementation detail
+not spelled out explicitly in the Overview — the sub-task row's `stopPropagation()` requirement
+described above — follows directly from the nested-draggable structure the Overview's AC-06 test
+sketch already implied (asserting the outer activity `<li>` itself is draggable), so it's a
+necessary consequence of that design rather than a departure from it.
+
+**`FRONTEND-028-AC-05` verified afterward** (Claude in Chrome, against the local dev stack, logged in
+as the seeded user): opening the drawer pushes the grid/bucket column narrower with no visual overlap,
+and the grid remains fully visible and usable. Went further than the AC strictly requires — dispatched
+real `dragstart`/`dragover`/`drop`/`dragend` sequences (via `DragEvent`/`DataTransfer`, since synthetic
+mouse-drag via browser automation doesn't trigger native HTML5 DnD, the same limitation
+`frontend_spec_025`/`026` hit) against the live app in both directions: an activity row dragged from
+the drawer onto an empty grid cell (Thursday Morning) produced a real `POST /api/v1/plan/occurrences`
+(201) and the occurrence appeared there on reload; a sub-task row dragged onto the bucket panel
+produced a second real `POST` (201) with `subTaskId` set and `activityId` null, landing correctly in
+the bucket. Both test occurrences were deleted afterward via the API to leave no residue.
 
 ## Overview
 
@@ -483,21 +552,21 @@ describe('FRONTEND-028: existing behaviors unaffected', () => {
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-028-AC-01 — `ActivityPickerList` extracted, `AssignActivityPicker` renders it in `select` mode
-- [ ] FRONTEND-028-AC-02 — every existing `AssignActivityPicker` behavior unchanged after extraction
-- [ ] FRONTEND-028-AC-03 — toggle button opens/closes the drawer, closed by default
-- [ ] FRONTEND-028-AC-04 — the existing Add button/modal fully unaffected by drawer state
-- [ ] FRONTEND-028-AC-05 — open drawer sits beside the grid without breaking layout or obscuring drop targets (real-browser check)
-- [ ] FRONTEND-028-AC-06 — drawer renders the list in drag mode, no click-select
-- [ ] FRONTEND-028-AC-07 — starting a drag identifies the activity or sub-task being dragged
-- [ ] FRONTEND-028-AC-08 — a drag ending with no drop resets cleanly
-- [ ] FRONTEND-028-AC-09 — the drawer's filters behave identically to the modal's
-- [ ] FRONTEND-028-AC-10 — dropping a drawer item on a grid cell calls `onAssignFromDrawer`, not `onConfirmMove`
-- [ ] FRONTEND-028-AC-11 — the new-assignment handler calls `planApi.create` and appends the result
-- [ ] FRONTEND-028-AC-12 — a second drawer-drop in flight is ignored
-- [ ] FRONTEND-028-AC-13 — dropping on the bucket panel calls `onAssignFromDrawer` with null day/slot
-- [ ] FRONTEND-028-AC-14 — dropping on an existing bucket item also assigns to the bucket, not a reorder
-- [ ] FRONTEND-028-AC-15 — grid-internal drag-to-move (`frontend_spec_025`) unaffected
-- [ ] FRONTEND-028-AC-16 — bucket-internal drag-to-reorder (`frontend_spec_010`) unaffected
-- [ ] FRONTEND-028-AC-17 — grid/bucket cross-drag (`frontend_spec_026`) unaffected
-- [ ] FRONTEND-028-AC-18 — the modal's click-based assign flow unaffected
+- [x] FRONTEND-028-AC-01 — `ActivityPickerList` extracted, `AssignActivityPicker` renders it in `select` mode
+- [x] FRONTEND-028-AC-02 — every existing `AssignActivityPicker` behavior unchanged after extraction
+- [x] FRONTEND-028-AC-03 — toggle button opens/closes the drawer, closed by default
+- [x] FRONTEND-028-AC-04 — the existing Add button/modal fully unaffected by drawer state
+- [x] FRONTEND-028-AC-05 — open drawer sits beside the grid without breaking layout or obscuring drop targets (confirmed in a real browser)
+- [x] FRONTEND-028-AC-06 — drawer renders the list in drag mode, no click-select
+- [x] FRONTEND-028-AC-07 — starting a drag identifies the activity or sub-task being dragged
+- [x] FRONTEND-028-AC-08 — a drag ending with no drop resets cleanly
+- [x] FRONTEND-028-AC-09 — the drawer's filters behave identically to the modal's
+- [x] FRONTEND-028-AC-10 — dropping a drawer item on a grid cell calls `onAssignFromDrawer`, not `onConfirmMove`
+- [x] FRONTEND-028-AC-11 — the new-assignment handler calls `planApi.create` and appends the result
+- [x] FRONTEND-028-AC-12 — a second drawer-drop in flight is ignored
+- [x] FRONTEND-028-AC-13 — dropping on the bucket panel calls `onAssignFromDrawer` with null day/slot
+- [x] FRONTEND-028-AC-14 — dropping on an existing bucket item also assigns to the bucket, not a reorder
+- [x] FRONTEND-028-AC-15 — grid-internal drag-to-move (`frontend_spec_025`) unaffected
+- [x] FRONTEND-028-AC-16 — bucket-internal drag-to-reorder (`frontend_spec_010`) unaffected
+- [x] FRONTEND-028-AC-17 — grid/bucket cross-drag (`frontend_spec_026`) unaffected
+- [x] FRONTEND-028-AC-18 — the modal's click-based assign flow unaffected

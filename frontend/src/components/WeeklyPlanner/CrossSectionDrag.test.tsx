@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { BucketList } from './BucketList'
+import type { DragPayload } from './dragPayload'
 import { PlannerGrid } from './PlannerGrid'
 import { WEEKDAY_DAYS } from './planLabels'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 
-// frontend_spec_026: dragging a grid occurrence onto the bucket list (and vice versa) relies on
-// WeeklyPlanner lifting a single shared `draggedId` and passing it to both PlannerGrid and
-// BucketList. This harness mirrors that exact wiring (minus the real API calls WeeklyPlanner
-// makes) so these tests exercise the real cross-component drag flow, not two components tested
-// in isolation with the cross-section case asserted only indirectly.
+// frontend_spec_026 / frontend_spec_028: dragging a grid occurrence onto the bucket list (and
+// vice versa) relies on WeeklyPlanner lifting a single shared `dragPayload` (formerly a bare
+// `draggedId`) and passing it to both PlannerGrid and BucketList. This harness mirrors that exact
+// wiring (minus the real API calls WeeklyPlanner makes) so these tests exercise the real
+// cross-component drag flow, not two components tested in isolation with the cross-section case
+// asserted only indirectly.
 
 const noop = () => {}
 
@@ -66,7 +68,7 @@ function WeeklyPlannerHarness({
   onConfirmMove = noop,
   onReorder = noop,
 }: HarnessProps) {
-  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
 
   return (
     <>
@@ -93,9 +95,10 @@ function WeeklyPlannerHarness({
         onMoveToBucket={onMoveToBucket}
         onComplete={noop}
         onUndo={noop}
-        draggedId={draggedId}
-        onDragStart={setDraggedId}
-        onDragEnd={() => setDraggedId(null)}
+        dragPayload={dragPayload}
+        onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+        onDragEnd={() => setDragPayload(null)}
+        onAssignFromDrawer={noop}
       />
       <BucketList
         occurrences={occurrences}
@@ -118,9 +121,10 @@ function WeeklyPlannerHarness({
         onUndo={noop}
         onCarryForward={noop}
         onReorder={onReorder}
-        draggedId={draggedId}
-        onDragStart={setDraggedId}
-        onDragEnd={() => setDraggedId(null)}
+        dragPayload={dragPayload}
+        onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
+        onDragEnd={() => setDragPayload(null)}
+        onAssignFromDrawer={noop}
       />
     </>
   )
