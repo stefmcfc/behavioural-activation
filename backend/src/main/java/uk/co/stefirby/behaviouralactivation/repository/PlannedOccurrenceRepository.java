@@ -1,6 +1,7 @@
 package uk.co.stefirby.behaviouralactivation.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +46,17 @@ public interface PlannedOccurrenceRepository extends JpaRepository<PlannedOccurr
         + "ORDER BY o.bucketPosition ASC")
     List<PlannedOccurrence> findByOwnerAndWeekStartAndDayOfWeekIsNullAndSlotIsNullOrderByBucketPositionAsc(
         @Param("owner") User owner, @Param("weekStart") LocalDate weekStart);
+
+    // planner_spec_019_bucket_reorder_query_scaling.md (PLANNER-019-AC-01) -- same JOIN FETCH
+    // treatment, bulk-fetching PlanService.reorderBucket's submitted ids in one query instead of its
+    // former one-findByIdAndOwner-per-id loop. Result ordering is NOT guaranteed to match the
+    // `ids` collection's order -- callers must reconstruct their own order from this method's result.
+    @Query("SELECT o FROM PlannedOccurrence o "
+        + "LEFT JOIN FETCH o.activity "
+        + "LEFT JOIN FETCH o.subTask st "
+        + "LEFT JOIN FETCH st.activity "
+        + "WHERE o.id IN :ids AND o.owner = :owner")
+    List<PlannedOccurrence> findByIdInAndOwner(@Param("ids") Collection<UUID> ids, @Param("owner") User owner);
 
     // planner_spec_011_bucket_carry_forward_automation.md's stale-bucket-item detection -- bucket
     // items only (dayOfWeek/slot both null, PLANNER-011-AC-03); grid-scheduled occurrences are never

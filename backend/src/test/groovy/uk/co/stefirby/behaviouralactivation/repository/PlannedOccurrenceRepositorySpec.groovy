@@ -167,4 +167,29 @@ class PlannedOccurrenceRepositorySpec extends Specification {
         cleanup:
             activityRepository.delete(activity)
     }
+
+    def "PLANNER-019-AC-01: findByIdInAndOwner returns the matching occurrences with relationships already initialized"() {
+        given: "an activity-based and a sub-task-based occurrence, both owned by this spec's owner"
+            def activity = activityRepository.save(
+                new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner))
+            def subTask = subTaskRepository.save(
+                new SubTask(activity, "subtask 1", ActivityCategory.ROUTINE, owner))
+            def activityOccurrence = plannedOccurrenceRepository.save(
+                new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday, null, null, owner))
+            def subTaskOccurrence = plannedOccurrenceRepository.save(
+                new PlannedOccurrence(null, subTask, ActivityCategory.ROUTINE, monday, null, null, owner))
+
+        when: "fetched by id via the new bulk method, outside any further open Hibernate session"
+            def results = plannedOccurrenceRepository
+                .findByIdInAndOwner([activityOccurrence.id, subTaskOccurrence.id], owner)
+            entityManager.clear() // detach -- a lazy proxy would now throw if accessed
+
+        then: "both are returned, with every relationship already populated"
+            results.size() == 2
+            results.find { it.activity != null }.activity.name == 'Go for a walk'
+            results.find { it.subTask != null }.subTask.activity.name == 'Go for a walk'
+
+        cleanup:
+            activityRepository.delete(activity)
+    }
 }
