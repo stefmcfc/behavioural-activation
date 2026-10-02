@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.27.2] - 2026-10-03
+
+### Changed
+
+- Dragging to reorder the weekend bucket list is now faster for larger buckets — an internal fix
+  to how reordered items are fetched from the database, no visible behavior change.
+
 ## [0.27.1] - 2026-10-02
 
 ### Changed

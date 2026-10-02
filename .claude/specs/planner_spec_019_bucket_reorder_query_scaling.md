@@ -1,6 +1,6 @@
 # Eliminate the Bucket-Reorder Endpoint's Remaining Query Scaling (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-02)
 **Priority**: P3 — performance, lower urgency than `planner_spec_017`. `PUT /api/v1/plan/bucket/order`
 is a write path triggered only when the user actually drags to reorder the weekend bucket, not a
 page-load read path — real, but much lower-frequency than `GET /api/v1/plan`.
@@ -13,6 +13,45 @@ confirmed as a new `SPEC_CANDIDATES.md` entry surfaced while implementing that s
 byte-for-byte identical), no `API.md` update, no frontend changes
 **Roadmap version**: V1 polish / internal — a performance fix to an already-shipped endpoint, not a
 new capability
+
+## Summary
+
+All 7 ACs implemented and verified. `PlannedOccurrenceRepository` gained
+`findByIdInAndOwner(Collection<UUID>, User)`, given the same 3-way `LEFT JOIN FETCH`
+(`activity`/`subTask`/`subTask.activity`) treatment as `planner_spec_017`'s two existing methods.
+`PlanService.reorderBucket` now calls it once instead of looping `findByIdAndOwner` per submitted id,
+reconstructing `submitted` in `request.occurrenceIds()`'s exact order via a `Map<UUID,
+PlannedOccurrence>` lookup (the bulk query's own result order is not guaranteed to match the
+`IN`-list). Both 409 checks and the 404 check are unchanged in logic, type, and message — only
+re-sourced from the bulk-fetched map instead of the per-id-loop's accumulator. Full suite: 273 tests,
+0 failures (up from 271 before this spec — two new tests: the repository-level AC-01 test and the
+AC-03 query-count test).
+
+**Measured query-count finding (AC-03)**, using `Statistics.getPrepareStatementCount()` against a
+real Postgres instance, one distinct `Activity`/`SubTask` per occurrence (never shared):
+
+| Scenario | Raw total prepared statements |
+|---|---|
+| Reordering a 1-item bucket | 4 |
+| Reordering a 6-item bucket | 9 |
+
+The raw total is **not** perfectly flat (4 vs 9) — but this is expected and correctly attributed, not
+a residual bug. It decomposes exactly as `3 + N`: **3 constant reads** (owner lookup, the new bulk
+`findByIdInAndOwner`, and the already-`JOIN FETCH`-ed `currentBucket` fetch) plus **N necessary
+writes** — one `UPDATE` per submitted occurrence, because `PlannedOccurrence.assignBucketPosition`
+unconditionally sets `updatedAt = Instant.now()` on every call (not just when `bucketPosition`
+actually changes), so every submitted occurrence is dirty-checked as changed regardless, and no
+Hibernate batching is configured (`hibernate.jdbc.batch_size` unset). This N-sized write component is
+exactly the Overview's own "N necessary UPDATEs for N changed rows, not an N+1 *read* bug" carve-out
+— confirmed by direct measurement (4 = 3+1, 9 = 3+6), not assumed. The committed test therefore
+asserts the fix's actual, provable claim — `(rawCount - submittedCount)` is identical across both
+scenarios (3 both times) — isolating the constant *read* count the fix addresses, rather than
+asserting a literally-flat raw total that the entity's own unconditional `updatedAt` touch makes
+impossible regardless of this fix. This is the one deviation from the spec's TDD sketch (which
+compared raw totals directly); see `PlanServiceReorderBucketQueryCountSpec`'s class Javadoc for the
+full writeup.
+
+No `API.md` update — no endpoint, request/response shape, or status code changed.
 
 ## Overview
 
@@ -224,10 +263,13 @@ class PlanServiceReorderBucketQueryCountSpec extends Specification {
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-019-AC-01 — `findByIdInAndOwner` bulk-fetches with relationships already initialized
-- [ ] PLANNER-019-AC-02 — `reorderBucket` uses the bulk method, reconstructed in requested order
-- [ ] PLANNER-019-AC-03 — `PUT /api/v1/plan/bucket/order` issues a constant number of queries regardless of N
-- [ ] PLANNER-019-AC-04 — 404 (not found/not owned) case unchanged
-- [ ] PLANNER-019-AC-05 — check 1 (must currently be a bucket item) still fires independently
-- [ ] PLANNER-019-AC-06 — check 2 (exactly the current set) still catches a partial submission
-- [ ] PLANNER-019-AC-07 — bucket positions still assigned in the exact submitted order
+- [x] PLANNER-019-AC-01 — `findByIdInAndOwner` bulk-fetches with relationships already initialized
+- [x] PLANNER-019-AC-02 — `reorderBucket` uses the bulk method, reconstructed in requested order
+- [x] PLANNER-019-AC-03 — `PUT /api/v1/plan/bucket/order` issues a constant number of *read* queries
+      regardless of N (see Summary: the raw total is `3 + N` due to N necessary, pre-existing,
+      explicitly-out-of-scope position-assignment writes — the test isolates and asserts the constant
+      3-query read component)
+- [x] PLANNER-019-AC-04 — 404 (not found/not owned) case unchanged
+- [x] PLANNER-019-AC-05 — check 1 (must currently be a bucket item) still fires independently
+- [x] PLANNER-019-AC-06 — check 2 (exactly the current set) still catches a partial submission
+- [x] PLANNER-019-AC-07 — bucket positions still assigned in the exact submitted order

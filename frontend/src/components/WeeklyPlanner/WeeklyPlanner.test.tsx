@@ -69,6 +69,19 @@ describe('WeeklyPlanner', () => {
     vi.mocked(planApi.reorderBucket).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    // Most tests in this file don't care what day "today" is, but WeeklyPlanner.tsx's
+    // getDefaultGridTab() picks WEEKEND over WEEKDAYS whenever the real system clock lands on a
+    // Saturday/Sunday -- without this, every test below that renders a Monday-Friday occurrence
+    // and expects it immediately visible would silently break on any real-world weekend (exactly
+    // what happened the first Saturday after these tests were written). Pinned to a plain
+    // Wednesday here so WEEKDAYS is always the default; nested describe blocks below that
+    // genuinely care about a specific date already call their own vi.setSystemTime(...), which
+    // simply overrides this for the duration of that one test.
+    vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('FRONTEND-004-AC-09/AC-10: fetches the current week on mount, shows a loading indicator', () => {

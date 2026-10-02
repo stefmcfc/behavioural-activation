@@ -26,7 +26,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-weight: bolder;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -44,7 +44,7 @@
 }
 
 .slotLabel {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.65rem;

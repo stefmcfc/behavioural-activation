@@ -4,16 +4,18 @@ import '@testing-library/jest-dom'
 // so components that call it (e.g. Settings' "System" mode indicator) don't crash in tests that
 // don't explicitly stub it themselves.
 if (typeof window !== 'undefined' && !window.matchMedia) {
-  window.matchMedia = (query: string) => ({
+  // Cast rather than spelling out MediaQueryList's full shape -- the deprecated addListener/
+  // removeListener members it structurally requires are never called anywhere in this app
+  // (Settings.tsx only uses .matches/.addEventListener/.removeEventListener), so there's nothing
+  // real to stub for them.
+  window.matchMedia = ((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
     addEventListener: () => {},
     removeEventListener: () => {},
     dispatchEvent: () => false,
-  })
+  })) as typeof window.matchMedia
 }
 
 // jsdom doesn't implement <dialog>'s showModal()/close() (no native <dialog> support at all —
@@ -74,7 +76,7 @@ if (typeof HTMLElement !== 'undefined' && !HTMLElement.prototype.showPopover) {
   ): boolean {
     const isOpen = this.style.display === 'block'
     const force = typeof options === 'boolean' ? options : options?.force
-    const shouldOpen = force === undefined ? !isOpen : force
+    const shouldOpen = force ?? !isOpen
     if (shouldOpen) {
       this.showPopover()
     } else {

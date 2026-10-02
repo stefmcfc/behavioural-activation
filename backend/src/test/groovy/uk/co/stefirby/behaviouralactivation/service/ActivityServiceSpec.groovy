@@ -100,7 +100,7 @@ class ActivityServiceSpec extends Specification {
 
         then: "the archived-inclusive query is used, and the excluding one is never called"
             result*.activity() == activities
-            0 * activityRepository.findByOwnerAndArchivedFalseOrderByNameAsc(_)
+            0 * activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(_)
     }
 
     def "PLANNER-012-AC-01: listForOwner pairs each activity with its own owner-scoped sub-task count"() {

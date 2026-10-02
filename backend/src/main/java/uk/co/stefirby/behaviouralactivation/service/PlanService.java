@@ -5,7 +5,6 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -199,14 +198,21 @@ public class PlanService {
 
         User owner = resolveOwner(ownerUsername);
 
-        List<PlannedOccurrence> submitted = new ArrayList<>();
-        for (UUID id : request.occurrenceIds()) {
-            Optional<PlannedOccurrence> found = plannedOccurrenceRepository.findByIdAndOwner(id, owner);
-            if (found.isEmpty()) {
-                return Optional.empty(); // PLANNER-010-AC-11
-            }
-            submitted.add(found.get());
+        // planner_spec_019_bucket_reorder_query_scaling.md (PLANNER-019-AC-02) -- one bulk query
+        // instead of the former per-id findByIdAndOwner loop. The bulk query's result order is not
+        // guaranteed to match request.occurrenceIds()'s order, so `submitted` is rebuilt by looking
+        // each id up in a map, not by trusting foundById.values()'s iteration order -- PLANNER-010-
+        // AC-14 depends on this.
+        List<PlannedOccurrence> found =
+            plannedOccurrenceRepository.findByIdInAndOwner(request.occurrenceIds(), owner);
+        Map<UUID, PlannedOccurrence> foundById = found.stream()
+            .collect(Collectors.toMap(PlannedOccurrence::getId, Function.identity()));
+        if (foundById.size() != request.occurrenceIds().size()) {
+            return Optional.empty(); // PLANNER-010-AC-11
         }
+        List<PlannedOccurrence> submitted = request.occurrenceIds().stream()
+            .map(foundById::get)
+            .toList();
 
         boolean allCurrentBucketItemsForWeek = submitted.stream()
             .allMatch(occurrence -> occurrence.isBucketItem() && occurrence.getWeekStart().equals(request.weekStart()));

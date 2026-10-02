@@ -194,7 +194,7 @@
 }
 
 .detailLocation {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.68rem;
