@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-03
+
 ### Added
 
 - A new "Summary" tab shows how a week is going: planned/completed counts and a completion
