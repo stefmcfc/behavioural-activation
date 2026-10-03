@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import uk.co.stefirby.behaviouralactivation.model.SubTask;
 import uk.co.stefirby.behaviouralactivation.model.User;
 
@@ -21,4 +23,20 @@ public interface SubTaskRepository extends JpaRepository<SubTask, UUID> {
     // Added for planner_spec_012_subtask_count.md -- ActivityResponse.subTaskCount, owner-scoped
     // like every other query here (PLANNER-012-AC-02).
     long countByActivityIdAndOwner(UUID activityId, User owner);
+
+    // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02) -- backs the new
+    // GET /api/v1/sub-tasks bulk endpoint: every sub-task owned by the authenticated user, across
+    // all of their activities, in one query.
+    List<SubTask> findByOwner(User owner);
+
+    // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-04) -- a derived-query method name
+    // can't express a GROUP BY, so this is a custom @Query, the "real complexity/scale reason"
+    // structure.md's "no custom @Query methods unless..." caveat anticipates. Replaces
+    // ActivityService.listForOwner's former one-countByActivityIdAndOwner-call-per-activity loop
+    // with a single bulk query. Only activities with at least one sub-task appear in the result --
+    // callers must default missing activityIds to zero.
+    @Query("SELECT new uk.co.stefirby.behaviouralactivation.repository.SubTaskCountProjection("
+        + "s.activity.id, COUNT(s)) "
+        + "FROM SubTask s WHERE s.owner = :owner GROUP BY s.activity.id")
+    List<SubTaskCountProjection> countGroupedByActivityIdForOwner(@Param("owner") User owner);
 }

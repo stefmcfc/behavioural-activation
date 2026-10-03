@@ -194,6 +194,38 @@ class SubTaskServiceSpec extends Specification {
             !deleted
     }
 
+    def "PLANNER-018-AC-01/AC-02: listForOwner returns every sub-task owned by the resolved user, from the repository's owner-scoped query"() {
+        given: "the authenticated username resolves to a User"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+
+        and: "the repository returns sub-tasks across multiple activities for that owner"
+            def activity = new Activity("Organise a birthday party", ActivityCategory.PLEASURABLE, null, owner)
+            def otherActivity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
+            def subTasks = [
+                new SubTask(activity, "Create a guest list", ActivityCategory.PLEASURABLE, owner),
+                new SubTask(otherActivity, "Choose a route", ActivityCategory.ROUTINE, owner)
+            ]
+            subTaskRepository.findByOwner(owner) >> subTasks
+
+        when: "every sub-task is listed for that username"
+            def result = service.listForOwner("steve")
+
+        then: "the repository's owner-scoped result is returned unchanged"
+            result == subTasks
+    }
+
+    def "PLANNER-018-AC-01: listForOwner returns an empty list, not null or an error, when the owner has no sub-tasks at all"() {
+        given: "the authenticated username resolves to a User with no sub-tasks"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            subTaskRepository.findByOwner(owner) >> []
+
+        when: "every sub-task is listed for that username"
+            def result = service.listForOwner("steve")
+
+        then: "the result is an empty list"
+            result.isEmpty()
+    }
+
     def "PLANNER-003-AC-16/AC-19: delete returns false, and deletes nothing, when the sub-task id doesn't exist or isn't owned"() {
         given: "the parent activity is owned, but no matching sub-task is found"
             def activityId = UUID.randomUUID()

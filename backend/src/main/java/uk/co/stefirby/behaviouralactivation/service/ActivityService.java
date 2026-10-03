@@ -1,8 +1,10 @@
 package uk.co.stefirby.behaviouralactivation.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
@@ -10,6 +12,7 @@ import uk.co.stefirby.behaviouralactivation.model.Activity;
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory;
 import uk.co.stefirby.behaviouralactivation.model.User;
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository;
+import uk.co.stefirby.behaviouralactivation.repository.SubTaskCountProjection;
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository;
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository;
 
@@ -44,15 +47,21 @@ public class ActivityService {
         return activityRepository.save(activity);
     }
 
+    // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-04/AC-05) -- resolves every activity's
+    // subTaskCount via one bulk GROUP BY query instead of a countByActivityIdAndOwner call per
+    // activity (the former N+1). An activity absent from the grouped result has no sub-tasks, hence
+    // the 0L default -- byte-identical subTaskCount values to the old per-activity loop.
     @Transactional(readOnly = true)
     public List<ActivityWithSubTaskCount> listForOwner(String ownerUsername, boolean includeArchived) {
         User owner = resolveOwner(ownerUsername);
         List<Activity> activities = includeArchived
             ? activityRepository.findByOwnerOrderByFavouriteDescNameAsc(owner)
             : activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner);
+        Map<UUID, Long> subTaskCountsByActivityId = subTaskRepository.countGroupedByActivityIdForOwner(owner).stream()
+            .collect(Collectors.toMap(SubTaskCountProjection::activityId, SubTaskCountProjection::count));
         return activities.stream()
             .map(activity -> new ActivityWithSubTaskCount(activity,
-                subTaskRepository.countByActivityIdAndOwner(activity.getId(), owner)))
+                subTaskCountsByActivityId.getOrDefault(activity.getId(), 0L)))
             .toList();
     }
 

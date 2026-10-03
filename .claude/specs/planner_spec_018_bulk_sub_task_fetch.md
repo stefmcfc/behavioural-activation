@@ -1,6 +1,6 @@
 # Bulk Sub-task Fetch Endpoint (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03)
 **Priority**: P2 — performance/scale. Raised 2026-10-01 (`.claude/SPEC_CANDIDATES.md`'s "Bulk
 sub-task fetch endpoint" entry, from the `modern-web-guidance` review), promoted to a real spec
 2026-10-02 as part of a broader performance investigation (user request).
@@ -11,6 +11,40 @@ sub-task fetch endpoint" entry, from the `modern-web-guidance` review), promoted
 for the one real consumer of the new endpoint.
 **Roadmap version**: V1 polish / internal — a performance fix plus a small new endpoint, not a new
 user-facing capability (every sub-task already fetchable, just one activity at a time)
+
+## Summary
+
+All 6 ACs implemented and verified. `SubTaskController` was restructured per option (a) from this
+spec's own Overview: its class-level `@RequestMapping("/api/v1/activities/{activityId}/sub-tasks")`
+prefix was moved onto each of the four existing methods individually (as a `NESTED_BASE_PATH`
+constant), freeing the class to also host the new `@GetMapping("/api/v1/sub-tasks")` bare-path
+method — chosen over a second dedicated controller class since it's the same resource and the same
+backing `SubTaskService`, so a second controller would only have split one cohesive concern across
+two files for no benefit. `SubTaskService` gained `listForOwner(String)`, delegating to a new
+`SubTaskRepository.findByOwner(User)` derived-query method — no parent-activity existence check
+needed here (unlike `listForActivity`), since there's no single `activityId` to validate.
+
+`ActivityService.listForOwner`'s N+1 fix: `SubTaskRepository` gained
+`countGroupedByActivityIdForOwner(User)`, a custom `@Query` using a JPQL constructor expression
+(`SELECT new ...SubTaskCountProjection(s.activity.id, COUNT(s)) ... GROUP BY s.activity.id`) backed
+by a new `SubTaskCountProjection(UUID activityId, Long count)` record. `listForOwner` now calls this
+once, builds a `Map<UUID, Long>` from the result, and looks up each activity's count via
+`getOrDefault(activity.getId(), 0L)` — an activity absent from the grouped result has no sub-tasks,
+so its count is implicitly zero, exactly matching the old per-activity loop's values.
+`ActivityService.countSubTasks` (the single-activity path) was not touched, confirmed by its own
+unchanged test plus the fact that no production or test code for it was edited.
+
+**Measured query-count finding (AC-05)**, using `Statistics.getPrepareStatementCount()` against a
+real Postgres instance: `GET /api/v1/activities` issues an *identical* query count for a 1-activity
+owner and a 10-activity owner (half with a sub-task, half without) — a true constant, unlike
+`planner_spec_019`'s sibling finding for the bucket-reorder endpoint. This is expected: unlike that
+endpoint's N necessary position-assignment `UPDATE`s, this is a pure read path with no per-row write
+component to introduce a legitimate `N`-sized term. The fix was confirmed to actually matter (not a
+vacuously-passing test) by temporarily reverting `listForOwner` to the old per-activity-loop
+implementation and re-running `ActivityControllerQueryCountSpec` — it failed, as expected, before the
+fix was restored.
+
+Full suite: 283 tests, 0 failures (up from 273 before this spec).
 
 ## Overview
 
@@ -203,9 +237,9 @@ def "PLANNER-018-AC-05: GET /api/v1/activities issues a constant number of queri
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-018-AC-01 — `GET /api/v1/sub-tasks` returns every sub-task for the authenticated user
-- [ ] PLANNER-018-AC-02 — response is scoped to the authenticated user only
-- [ ] PLANNER-018-AC-03 — endpoint requires authentication
-- [ ] PLANNER-018-AC-04 — `ActivityService.listForOwner` uses one grouped-count query, not a per-activity loop
-- [ ] PLANNER-018-AC-05 — `GET /api/v1/activities` issues a constant number of queries regardless of activity count
-- [ ] PLANNER-018-AC-06 — `ActivityService.countSubTasks` (single-activity path) is unaffected
+- [x] PLANNER-018-AC-01 — `GET /api/v1/sub-tasks` returns every sub-task for the authenticated user
+- [x] PLANNER-018-AC-02 — response is scoped to the authenticated user only
+- [x] PLANNER-018-AC-03 — endpoint requires authentication
+- [x] PLANNER-018-AC-04 — `ActivityService.listForOwner` uses one grouped-count query, not a per-activity loop
+- [x] PLANNER-018-AC-05 — `GET /api/v1/activities` issues a constant number of queries regardless of activity count
+- [x] PLANNER-018-AC-06 — `ActivityService.countSubTasks` (single-activity path) is unaffected

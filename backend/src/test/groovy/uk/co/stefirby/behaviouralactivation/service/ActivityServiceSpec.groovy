@@ -7,6 +7,7 @@ import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
 import uk.co.stefirby.behaviouralactivation.model.SubTask
 import uk.co.stefirby.behaviouralactivation.model.User
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository
+import uk.co.stefirby.behaviouralactivation.repository.SubTaskCountProjection
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository
 
@@ -18,6 +19,17 @@ class ActivityServiceSpec extends Specification {
     ActivityService service = new ActivityService(activityRepository, userRepository, subTaskRepository)
 
     User owner = new User("steve", "hashed-password")
+
+    // Test-only helper: Activity.id is a plain @GeneratedValue field with no setter (only populated
+    // on persist), but PLANNER-018-AC-04's mocked-repository test needs distinct, non-null activity
+    // ids to exercise the grouped-count-by-activityId lookup meaningfully. Mirrors PlanServiceSpec's
+    // identical withId(...) helper.
+    private static <T> T withId(T entity, UUID id) {
+        def field = entity.class.getDeclaredField("id")
+        field.accessible = true
+        field.set(entity, id)
+        return entity
+    }
 
     def "PLANNER-002-AC-01/AC-02: create resolves the owner from the authenticated username, never the request body, and saves via the repository"() {
         given: "the authenticated username resolves to a User"
@@ -65,7 +77,7 @@ class ActivityServiceSpec extends Specification {
         and: "the repository returns activities for that owner"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
             activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> activities
-            subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
+            subTaskRepository.countGroupedByActivityIdForOwner(owner) >> []
 
         when: "activities are listed for that username, excluding archived (default)"
             def result = service.listForOwner("steve", false)
@@ -78,6 +90,7 @@ class ActivityServiceSpec extends Specification {
         given:
             userRepository.findByUsername("steve") >> Optional.of(owner)
             activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> []
+            subTaskRepository.countGroupedByActivityIdForOwner(owner) >> []
 
         when:
             def result = service.listForOwner("steve", false)
@@ -93,7 +106,7 @@ class ActivityServiceSpec extends Specification {
         and: "the repository returns activities for the full (mixed) list"
             def activities = [new Activity("Bake", ActivityCategory.PLEASURABLE, null, owner)]
             activityRepository.findByOwnerOrderByFavouriteDescNameAsc(owner) >> activities
-            subTaskRepository.countByActivityIdAndOwner(_, owner) >> 0
+            subTaskRepository.countGroupedByActivityIdForOwner(owner) >> []
 
         when: "activities are listed with includeArchived=true"
             def result = service.listForOwner("steve", true)
@@ -108,12 +121,10 @@ class ActivityServiceSpec extends Specification {
             userRepository.findByUsername("steve") >> Optional.of(owner)
 
         and: "the owner has two activities, one with sub-tasks and one without"
-            // Neither is persisted, so both share a null id -- stub by call order (the service maps
-            // the repository's list in order) rather than by id, which can't distinguish them here.
-            def withSubTasks = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
-            def withoutSubTasks = new Activity("Read", ActivityCategory.PLEASURABLE, null, owner)
+            def withSubTasks = withId(new Activity("Walk", ActivityCategory.ROUTINE, null, owner), UUID.randomUUID())
+            def withoutSubTasks = withId(new Activity("Read", ActivityCategory.PLEASURABLE, null, owner), UUID.randomUUID())
             activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >> [withSubTasks, withoutSubTasks]
-            subTaskRepository.countByActivityIdAndOwner(_, owner) >>> [2, 0]
+            subTaskRepository.countGroupedByActivityIdForOwner(owner) >> [new SubTaskCountProjection(withSubTasks.id, 2L)]
 
         when: "activities are listed"
             def result = service.listForOwner("steve", false)
@@ -134,8 +145,33 @@ class ActivityServiceSpec extends Specification {
         when: "activities are listed"
             service.listForOwner("steve", false)
 
-        then: "the count query is issued against the resolved owner, never any other user"
-            1 * subTaskRepository.countByActivityIdAndOwner(activity.id, owner) >> 0
+        then: "the grouped count query is issued against the resolved owner, never any other user"
+            1 * subTaskRepository.countGroupedByActivityIdForOwner(owner) >> []
+    }
+
+    def "PLANNER-018-AC-04: listForOwner resolves subTaskCount via one bulk grouped query, with byte-identical values to the old per-activity loop"() {
+        given: "the authenticated username resolves to a User"
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+
+        and: "three activities with varying sub-task counts, including zero"
+            def activityWithTwo = withId(new Activity("Walk", ActivityCategory.ROUTINE, null, owner), UUID.randomUUID())
+            def activityWithZero = withId(new Activity("Read", ActivityCategory.PLEASURABLE, null, owner), UUID.randomUUID())
+            def activityWithFive = withId(new Activity("Cook", ActivityCategory.NECESSARY, null, owner), UUID.randomUUID())
+            activityRepository.findByOwnerAndArchivedFalseOrderByFavouriteDescNameAsc(owner) >>
+                [activityWithTwo, activityWithZero, activityWithFive]
+
+        when: "activities are listed"
+            def result = service.listForOwner("steve", false)
+
+        then: "the grouped query is called exactly once, not once per activity (activityWithZero is absent from the result -- it has no sub-tasks)"
+            1 * subTaskRepository.countGroupedByActivityIdForOwner(owner) >> [
+                new SubTaskCountProjection(activityWithTwo.id, 2L),
+                new SubTaskCountProjection(activityWithFive.id, 5L)
+            ]
+            0 * subTaskRepository.countByActivityIdAndOwner(_, _)
+
+        and: "each activity's own count is carried through correctly, including the implicit zero"
+            result*.subTaskCount() == [2L, 0L, 5L]
     }
 
     def "PLANNER-012-AC-01: countSubTasks returns the owner-scoped count for a single activity"() {
