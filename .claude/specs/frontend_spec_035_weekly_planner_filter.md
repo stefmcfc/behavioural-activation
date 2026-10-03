@@ -70,9 +70,10 @@ persistence of the filter selection across visits (resets to "All"/"All" on ever
 mount — no `localStorage`, unlike `frontend_spec_012`'s grid-orientation preference, since there's no
 evidence yet that this needs to survive a visit the way a layout preference does), and the Weekdays/
 Weekend `View` tab control (`frontend_spec_015_weekday_weekend_grid_tabs.md`, unrelated and
-untouched — the new Filters disclosure sits directly above it, filter scope conceptually applying
-before the day-range tab selection, though this ordering is a judgment call open to adjustment during
-implementation).
+untouched — the new Filters disclosure sits directly *below* the View tab fieldset and above
+`PlannerGrid`/`BucketList`, per the user's explicit placement request during review — the Overview's
+original "directly above it" ordering, proposed as an adjustable judgment call, was flipped once
+seen in practice).
 
 ## Requirements
 

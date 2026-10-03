@@ -124,6 +124,30 @@ export function WeeklyPlanner() {
 
       {plan.occurrences !== null && (
         <>
+          <fieldset className={styles.tabFieldset}>
+            <legend>View</legend>
+            <div className={styles.tabGroup}>
+              <label className={styles.tabOption}>
+                <input
+                  type="radio"
+                  name="grid-tab"
+                  checked={gridTab === 'WEEKDAYS'}
+                  onChange={() => setGridTab('WEEKDAYS')}
+                />{' '}
+                Weekdays
+              </label>
+              <label className={styles.tabOption}>
+                <input
+                  type="radio"
+                  name="grid-tab"
+                  checked={gridTab === 'WEEKEND'}
+                  onChange={() => setGridTab('WEEKEND')}
+                />{' '}
+                Weekend
+              </label>
+            </div>
+          </fieldset>
+
           {/* FRONTEND-035-AC-01: closed by default (no `open` attribute) -- safe because
               categoryFilter/statusFilter always reset to 'ALL' on mount, so there's never a
               non-default filter hidden behind a closed disclosure the user didn't open. */}
@@ -170,30 +194,6 @@ export function WeeklyPlanner() {
               </ul>
             </fieldset>
           </details>
-
-          <fieldset className={styles.tabFieldset}>
-            <legend>View</legend>
-            <div className={styles.tabGroup}>
-              <label className={styles.tabOption}>
-                <input
-                  type="radio"
-                  name="grid-tab"
-                  checked={gridTab === 'WEEKDAYS'}
-                  onChange={() => setGridTab('WEEKDAYS')}
-                />{' '}
-                Weekdays
-              </label>
-              <label className={styles.tabOption}>
-                <input
-                  type="radio"
-                  name="grid-tab"
-                  checked={gridTab === 'WEEKEND'}
-                  onChange={() => setGridTab('WEEKEND')}
-                />{' '}
-                Weekend
-              </label>
-            </div>
-          </fieldset>
 
           <PlannerGrid
             weekStart={weekStart}
