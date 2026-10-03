@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-10-03
+
 ### Fixed
 
 - Hovering a primary (green) or destructive (red) button — Add activity, Complete, Delete, and
