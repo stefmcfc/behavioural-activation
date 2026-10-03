@@ -1,12 +1,16 @@
 # Filter the Weekly Planner by Category and Completion Status (Frontend)
 
 **Status**: Implemented (2026-10-03) — one shared `<details>`/`<summary>` "Filters" disclosure
-(category + status) above `WeeklyPlanner`'s View tab fieldset; `computeDimmedIds` (extracted into
-`weeklyPlannerFilters.ts`, see Implementer note below) drives a new `dimmedOccurrenceIds` prop
-threaded through `PlannerGrid`/`BucketList` into `OccurrenceItem`, which applies a new
-`styles.dimmed` (`opacity: 0.55`) class without touching any existing action. `npm test` 511/511,
-`npm run lint` clean, `npx tsc -b --noEmit` clean. AC-10 (real-browser, both themes) left unchecked
-per instructions — pending a manual pass.
+(category + status), positioned between the View tab fieldset and the grid/bucket list per review
+feedback; `computeDimmedIds` (extracted into `weeklyPlannerFilters.ts`, see Implementer note below)
+drives a new `dimmedOccurrenceIds` prop threaded through `PlannerGrid`/`BucketList` into
+`OccurrenceItem`, which applies a new `styles.dimmed` (`opacity: 0.55`) class without touching any
+existing action. `npm test` 511/511, `npm run lint` clean, `npx tsc -b --noEmit` clean. `AC-10`
+verified in a real browser, both themes: filtered to "Necessary" category in the Weekend bucket
+list, confirmed the non-matching "Go for a walk" (Pleasurable) row rendered visibly dimmed relative
+to the matching "Apply for jobs" (Necessary) row in both Light and Dark, remained fully legible (not
+disabled-looking), and stayed fully interactive — clicking Complete on the dimmed row registered
+normally.
 **Priority**: P2 — V1 polish, same tier as `frontend_spec_032_collapsible_filters.md`
 **Depends on**: `frontend_spec_004_week_planning.md` (origin of `WeeklyPlanner`/`PlannerGrid`/
 `BucketList`/`OccurrenceItem`), `frontend_spec_017_activity_bank_category_filter.md` (origin of
@@ -387,4 +391,4 @@ prop threading, and `OccurrenceItem`'s `.dimmed` class until every sketch above 
 - [x] FRONTEND-035-AC-07 — dimmed occurrences stay fully interactive (visual-only filtering)
 - [x] FRONTEND-035-AC-08 — default "All"/"All" dims nothing; existing tests stay green unmodified
 - [x] FRONTEND-035-AC-09 — one filter change updates dimming in both grid and bucket list together
-- [ ] FRONTEND-035-AC-10 — dimmed state visually legible, not disabled-looking, in both themes (real-browser check)
+- [x] FRONTEND-035-AC-10 — dimmed state visually legible, not disabled-looking, in both themes (real-browser check)
