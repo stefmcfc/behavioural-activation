@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.27.3] - 2026-10-03
+
 ### Changed
 
 - The Add picker and Browse activities drawer now load faster, especially with more activities —
