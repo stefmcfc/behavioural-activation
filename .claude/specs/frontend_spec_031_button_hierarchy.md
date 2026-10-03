@@ -13,8 +13,10 @@ resting (non-hover) state's rendered colours, which is why this passed review at
 re-asserting `background`/`color` in both hover rules (same values as the resting state — hover
 changes only the box-shadow, not the fill colour, matching the original design intent the Overview's
 specificity-math note already assumed was true). Regression-guarded by two new tests in
-`buttonVariants.test.ts` asserting hover re-asserts `background`/`color`. Pending a real-browser
-re-verification in both themes before merge.
+`buttonVariants.test.ts` asserting hover re-asserts `background`/`color`. Re-verified in a real
+browser across all four combinations (primary/destructive × Light/Dark): hovering "Add activity"
+(primary) and "Delete" (destructive) now shows clearly legible text against the correct fill colour
+in every case — confirmed fixed.
 **Priority**: P3 — visual/UX polish, no new capability. Deferred scope from
 `frontend_spec_007_visual_refresh.md`'s Requirement 3 (see that spec's Out-of-scope section) and
 confirmed in `.claude/SPEC_CANDIDATES.md`'s "Frontend button visual hierarchy (primary/secondary)"
