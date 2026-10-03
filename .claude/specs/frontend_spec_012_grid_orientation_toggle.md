@@ -1,6 +1,13 @@
 # Weekly Grid Orientation Toggle (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03). `utils/gridOrientation.ts`, the `Settings` fieldset, and
+`PlannerGrid`'s day-rows branch are all in place against the real current `PlannerGrid.tsx` (post-
+`frontend_spec_015`/`024`/`025`/`026`/`028`/`016`/`008`), not the stale sketch this spec originally
+shipped with — see the amended "Component/type changes" section below. All ACs including the manual
+`FRONTEND-012-AC-13` are satisfied; `npm test` (495/495), `npm run lint` (oxlint, clean), and
+`tsc -b --noEmit` all pass. `AC-13` verified in a real browser (Weekdays and Weekend views, Light
+and Dark) — today-highlight (Saturday, the real current date) renders correctly on both the
+day-section heading and its slot cells in day-rows, in both themes.
 **Priority**: P2 — same tier as the sibling Weekly Planner UX specs (`frontend_spec_008`–`011`),
 but raised independently of that "too much noise" batch; doesn't block V2 backend work.
 **Depends on**: `frontend_spec_004_week_planning.md` (origin of `PlannerGrid`/`WeeklyPlanner`),
@@ -49,16 +56,21 @@ there today). So the new `utils/gridOrientation.ts` deliberately does **not** ge
 `useState(() => getGridOrientation())` at render time, simpler than `theme.ts`'s shape (Requirement
 6).
 
-**Live update, no reload, no cross-component subscription needed**: `frontend_spec_005`'s category
-colours use an event-based `subscribeToCategoryColorChanges()` mechanism because `CategoryChip`
-instances can be simultaneously mounted in the same component that's changing the preference
-(`Settings` itself renders swatches next to the colour pickers). That doesn't apply here: `App.tsx`'s
-routing (`frontend_spec_005`) mounts `/planner` and `/settings` as mutually exclusive `<Route>`s, so
-`PlannerGrid` and `Settings` are never mounted at the same time. Changing the orientation in
-`Settings` and then navigating to the Weekly Planner tab causes `WeeklyPlanner`/`PlannerGrid` to
-mount fresh, which already reads the current `localStorage` value with no extra plumbing —
-confirmed by reading `App.tsx`'s route table. This spec therefore builds no
-`subscribeToGridOrientationChanges()`-style event mechanism (Requirement 6).
+**Live update — superseded by `frontend_spec_034_grid_orientation_live_update.md`**: this spec
+originally argued no cross-component subscription mechanism was needed, reasoning that `App.tsx`'s
+routing (`frontend_spec_005`) mounted `/planner` and `/settings` as mutually exclusive `<Route>`s,
+so `PlannerGrid` and `Settings` were never mounted at the same time, and a preference change would
+always reach `PlannerGrid` via a fresh mount. That reasoning held at the time this spec was written,
+but `frontend_spec_030_header_restructure.md` (implemented afterward) replaced the separate
+`/settings` route with a `Popover`-API overlay mounted over whichever page is already active —
+`PlannerGrid` and `Settings` are now routinely mounted at the same time, so a preference change made
+from the Settings popover while looking at the Weekly Planner had no visible effect until a reload
+or an unrelated navigation. `frontend_spec_034_grid_orientation_live_update.md` fixes this with an
+event-based `subscribeToGridOrientationChanges()` mechanism, mirroring `frontend_spec_005`'s own
+`subscribeToCategoryColorChanges()` (built for the identical problem: `CategoryChip` instances
+simultaneously mounted with the `Settings` panel changing their colour) — see that spec for the real
+contract going forward; `FRONTEND-012-AC-11` below is retained for history but its statement text is
+no longer accurate (superseded by `FRONTEND-034-AC-02`).
 
 **Structural conflict with `frontend_spec_008_occurrence_detail_card.md`, resolved**:
 `frontend_spec_008_occurrence_detail_card.md`'s `FRONTEND-008-AC-18` (not yet implemented) states
@@ -140,8 +152,14 @@ As a user, I want the option to see each day as its own section with Morning/Aft
 side by side, instead of one shared grid.
 
 - **FRONTEND-012-AC-07** [AUTO]: While the effective grid orientation is `'day-rows'`, `PlannerGrid`
-  shall render five day-sections in Monday–Friday order, each headed by that day's label and
-  containing that day's three slot cells (Morning, Afternoon, Evening) side by side within it.
+  shall render one day-section per entry in the `days` prop, in the order given (not a hardcoded
+  Monday–Friday list — by the time this spec was implemented, `frontend_spec_015` had already
+  generalized `PlannerGrid`'s hardcoded weekday list into a `days` prop shared by the Weekly
+  Planner's weekday tab (`WEEKDAY_DAYS`, 5 days), its weekend tab (`WEEKEND_DAYS`, 2 days), and the
+  Today view (a single day) — this AC's statement text is amended in place, ID unchanged, to hold
+  for all three, per the direct-edit precedent this spec's own Overview already establishes for
+  `frontend_spec_008`'s AC text). Each section is headed by that day's label and contains that
+  day's three slot cells (Morning, Afternoon, Evening) side by side within it.
 - **FRONTEND-012-AC-08** [AUTO]: Each slot cell in the day-rows layout shall render the same slot
   label (shown as small text inside the cell, preserving the existing inside-box treatment), Add
   control, and list of `OccurrenceItem`s — populated from the same `occurrences` data and the same
@@ -163,10 +181,13 @@ new layout — I shouldn't have to reload the page.
   level (see Overview).
 - **FRONTEND-012-AC-11** [AUTO]: When the user changes the grid-layout preference in `Settings` and
   then navigates to the Weekly Planner tab (`/planner`), `PlannerGrid` shall render using the newly
-  selected orientation — satisfied by React Router's route-exclusive mount/unmount of
-  `WeeklyPlanner`/`PlannerGrid` (`/planner` and `/settings` are mutually exclusive routes per
-  `frontend_spec_005_navigation_and_theme.md`), with no additional cross-component event/
-  subscription mechanism required.
+  selected orientation. **Superseded by `FRONTEND-034-AC-02`**: this AC's original satisfaction
+  argument (route-exclusive mount/unmount, no cross-component subscription needed) no longer holds
+  once `Settings` becomes a popover overlay rather than a separate route
+  (`frontend_spec_030_header_restructure.md`) — see Overview and
+  `frontend_spec_034_grid_orientation_live_update.md`, which adds the subscription mechanism this AC
+  said wouldn't be required. Retained, ID unchanged, as a historical record of this spec's original
+  (now-superseded) reasoning.
 
 ### Requirement 7 — Today-highlight consistency across orientations
 
@@ -267,60 +288,70 @@ const handleGridOrientationChange = (orientation: GridOrientation) => {
 </fieldset>
 ```
 
-`PlannerGrid.tsx` (restructured internally — prop interface unchanged per `FRONTEND-012-AC-05`; cell
-content factored into one shared `renderCell` helper used by both layout branches, since the two
-layouts differ only in grouping, not in what a cell renders):
+`PlannerGrid.tsx` (restructured internally — **as actually implemented**, against the real current
+`main` shape rather than the stale sketch this spec originally shipped with. By implementation time,
+`frontend_spec_015`/`024`/`025`/`026`/`028`/`016`/`008` had all landed, so the real
+`PlannerGridProps` interface already carries `weekStart`, `days` (not a hardcoded `WEEKDAYS`
+constant — also called with `WEEKEND_DAYS` and a single-day array), `heading`, `emptyMessage`,
+`todayColumn`, full drag-and-drop (`dragPayload`/`onDragStart`/`onDragEnd`/`onAssignFromDrawer`),
+and a day-label header row that already renders `getDayDate()` + `DAY_LABELS[day]` with a `.today`
+highlight — none of which existed when this spec's code sketch was first written. Every one of
+those props is preserved unchanged, per `FRONTEND-012-AC-05`; cell content is factored into one
+shared `renderCell` helper used by both layout branches, since the two layouts differ only in
+grouping, not in what a cell renders):
 
 ```tsx
-import { useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { getGridOrientation } from '../../utils/gridOrientation'
-// ...existing imports unchanged
+// ...existing imports unchanged (ALL_SLOTS, DAY_LABELS, SLOT_LABELS, getDayDate, etc.)
 
-export function PlannerGrid({ occurrences, busyId, confirmingRemoveId, movingId, /* ...existing */ }: PlannerGridProps) {
+function dayHeadingClassName(isToday: boolean): string {
+  return isToday ? `${styles.dayHeading} ${styles.today}` : styles.dayHeading
+}
+
+export function PlannerGrid({ weekStart, days, heading, emptyMessage, occurrences, busyId, todayColumn, /* ...all existing props, unchanged */ }: PlannerGridProps) {
   const [orientation] = useState(() => getGridOrientation())
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
   )
 
-  const renderCell = (day: PlanDayOfWeek, slot: PlanSlot) => {
-    const cellOccurrences = scheduled.filter(
-      (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
-    )
-    return (
-      <div key={`${day}-${slot}`} className={styles.cell}>
-        <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
-        <button type="button" onClick={() => onAdd(day, slot)} aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}>
-          Add
-        </button>
-        <ul className={styles.list}>
-          {cellOccurrences.map((occurrence) => (
-            <OccurrenceItem key={occurrence.id} occurrence={occurrence} isBucketItem={false} {...actionProps} />
-          ))}
-        </ul>
-      </div>
-    )
+  const renderCell = (day: PlanDayOfWeek, slot: PlanSlot): ReactNode => {
+    // ...unchanged from the pre-existing cell body: cellClassName/today highlight, slot label,
+    // Add button + its aria-label, onDragOver/onDrop -> handleDrop, and the OccurrenceItem list --
+    // identical in both orientations, which is what AC-08 requires.
   }
 
   return (
-    <section aria-label="Weekly grid">
-      <h3>Week grid</h3>
-      {scheduled.length === 0 && <p>No activities planned for this week.</p>}
+    <section aria-label={heading} className={styles.section}>
+      <h3>{heading}</h3>
+      {scheduled.length === 0 && <p>{emptyMessage}</p>}
       <div className={styles.scroll}>
-        {orientation === 'day-columns' ? (
-          <div className={styles.grid}>
-            {WEEKDAYS.map((day) => (
-              <div key={day} className={styles.dayLabel}>{DAY_LABELS[day]}</div>
-            ))}
-            {ALL_SLOTS.map((slot) => WEEKDAYS.map((day) => renderCell(day, slot)))}
+        {orientation === 'day-rows' ? (
+          <div className={styles.rows}>
+            {days.map((day) => {
+              const isToday = day === todayColumn
+              return (
+                <section key={day} className={styles.daySection} aria-label={DAY_LABELS[day]}>
+                  <h4 className={dayHeadingClassName(isToday)}>
+                    <span>{getDayDate(weekStart, day)}</span>
+                    <span>{DAY_LABELS[day]}</span>
+                  </h4>
+                  <div className={styles.daySlots}>
+                    {ALL_SLOTS.map((slot) => renderCell(day, slot))}
+                  </div>
+                </section>
+              )
+            })}
           </div>
         ) : (
-          <div className={styles.rows}>
-            {WEEKDAYS.map((day) => (
-              <section key={day} className={styles.daySection} aria-label={DAY_LABELS[day]}>
-                <h4 className={styles.dayHeading}>{DAY_LABELS[day]}</h4>
-                <div className={styles.daySlots}>{ALL_SLOTS.map((slot) => renderCell(day, slot))}</div>
-              </section>
+          <div className={styles.grid} style={{ '--day-count': days.length } as CSSProperties}>
+            {days.map((day) => (
+              <div key={day} className={dayLabelClassName(day === todayColumn)}>
+                <span>{getDayDate(weekStart, day)}</span>
+                <span>{DAY_LABELS[day]}</span>
+              </div>
             ))}
+            {ALL_SLOTS.map((slot) => days.map((day) => renderCell(day, slot)))}
           </div>
         )}
       </div>
@@ -329,8 +360,19 @@ export function PlannerGrid({ occurrences, busyId, confirmingRemoveId, movingId,
 }
 ```
 
-`PlannerGrid.module.css` (extended — existing `.grid`/`.dayLabel`/`.cell`/`.slotLabel`/`.list`
-classes reused unchanged for day-columns; new classes for day-rows):
+Note the day-rows branch iterates `days` directly (whatever order/length it's given — 5 weekdays,
+2 weekend days, or a single Today-view day), not a hardcoded weekday list, per the amended
+`FRONTEND-012-AC-07` above. The today-highlight (`FRONTEND-012-AC-12`) is applied via the same
+pattern `cellClassName`/`dayLabelClassName` already use for the day-columns branch — a new sibling
+`dayHeadingClassName` helper appends `styles.today` to `styles.dayHeading` when `day === todayColumn`,
+applied to both the section heading and (via the shared `renderCell`) every slot cell in that
+section.
+
+`PlannerGrid.module.css` (extended — existing `.grid`/`.dayLabel`/`.cell`/`.slotLabel`/`.list`/
+`.today` classes reused unchanged for day-columns; new classes for day-rows, **as actually
+implemented** using CSS logical properties for the new rules, per `frontend_conventions.md`'s
+newer convention — the sketch below replaces this spec's original `border-top`/`padding-top`/
+`margin` physical-property version):
 
 ```css
 .rows {
@@ -340,17 +382,21 @@ classes reused unchanged for day-columns; new classes for day-rows):
 }
 
 .daySection {
-  border-top: 1px solid var(--border);
-  padding-top: 0.6rem;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 0.6rem;
 }
 
 .dayHeading {
-  font-family: var(--mono);
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--mono), monospace;
+  font-weight: bolder;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 0.72rem;
   color: var(--text);
-  margin: 0 0 0.5rem;
+  margin-block-end: 0.5rem;
 }
 
 .daySlots {
@@ -359,6 +405,10 @@ classes reused unchanged for day-columns; new classes for day-rows):
   gap: 0.5rem;
 }
 ```
+
+`.dayHeading` is a flex row of two `<span>`s (date number, day name) mirroring `.dayLabel`'s
+existing shape exactly, so the day-rows section heading looks consistent with the day-columns
+header cell it replaces.
 
 A single component with an internal orientation-conditional branch (rather than two separate
 `PlannerGridColumns`/`PlannerGridRows` sub-components) was chosen because the only real difference
@@ -485,14 +535,34 @@ describe('FRONTEND-012-AC-11: PlannerGrid reads the preference at mount, reflect
 sites compiling unmodified, plus the fact that every sketch above renders `PlannerGrid` with the
 same prop list `PlannerGrid.test.tsx` already uses today. `FRONTEND-012-AC-10` is exercised
 implicitly by every sketch above (`PlannerGrid` reading the orientation with no `main.tsx` change
-required for any of them to pass). `FRONTEND-012-AC-12` cannot be given a real test sketch yet —
-it depends on `frontend_spec_008_occurrence_detail_card.md`'s `todayColumn` prop, which doesn't
-exist on `main` yet. Whichever of the two specs (`frontend_spec_008`, this one) is implemented
-second is responsible for adding the cross-orientation assertion (a shared `styles.today` class
-applied to the day-label/day-heading and matching slot cells in both orientations) to
-`PlannerGrid.test.tsx` at that time — the same "implemented against current `main`, extended later"
-approach `frontend_spec_009`/`frontend_spec_010` already used for their own dependencies on
-not-yet-real sibling-spec shapes. `FRONTEND-012-AC-13` is verified manually per its own statement.
+required for any of them to pass).
+
+`FRONTEND-012-AC-12` **does** now have a real test sketch — by implementation time,
+`frontend_spec_008`'s `todayColumn` prop (and its `FRONTEND-008-AC-18`/`AC-19` today-highlight) were
+already real on `main`, so the "cannot be given a real test sketch yet" note this spec originally
+carried no longer applies:
+
+```typescript
+describe('FRONTEND-012-AC-12: today-highlight is consistent across orientations', () => {
+  it('applies the today class to the day-section heading and its slot cells in day-rows', () => {
+    setGridOrientation('day-rows')
+
+    renderGrid({ todayColumn: 'TUESDAY' })
+
+    const tuesdayHeading = screen.getByRole('heading', { name: /tuesday/i, level: 4 })
+    expect(tuesdayHeading.closest(`.${styles.today}`)).not.toBeNull()
+    const tuesdaySection = tuesdayHeading.closest('section')!
+    expect(
+      within(tuesdaySection).getByLabelText('Add to Tuesday Morning').closest(`.${styles.today}`),
+    ).not.toBeNull()
+
+    const mondayHeading = screen.getByRole('heading', { name: /monday/i, level: 4 })
+    expect(mondayHeading.closest(`.${styles.today}`)).toBeNull()
+  })
+})
+```
+
+`FRONTEND-012-AC-13` is verified manually per its own statement.
 
 **Test Case (Green)**: implement `utils/gridOrientation.ts`, extend `Settings.tsx`, and restructure
 `PlannerGrid.tsx`/`PlannerGrid.module.css` as specified above until every sketch above (and
@@ -502,16 +572,16 @@ note.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-012-AC-01 — `getGridOrientation()` returns the stored value or defaults to `'day-columns'`
-- [ ] FRONTEND-012-AC-02 — `setGridOrientation()` persists the value to `localStorage`
-- [ ] FRONTEND-012-AC-03 — `Settings` renders the grid-layout option group, defaulting to "Days across the top"
-- [ ] FRONTEND-012-AC-04 — selecting an option persists it via `setGridOrientation()`
-- [ ] FRONTEND-012-AC-05 — `PlannerGrid`'s prop interface is unchanged by this spec
-- [ ] FRONTEND-012-AC-06 — day-columns layout renders exactly as before, unchanged, as the default
-- [ ] FRONTEND-012-AC-07 — day-rows layout renders five day-sections in Monday–Friday order
-- [ ] FRONTEND-012-AC-08 — day-rows cells render the same slot label/Add/list content as day-columns cells
-- [ ] FRONTEND-012-AC-09 — day-rows layout renders no shared day-label header row
-- [ ] FRONTEND-012-AC-10 — `PlannerGrid` reads the orientation via `useState` at mount, no `main.tsx` change
-- [ ] FRONTEND-012-AC-11 — a preference change is reflected on the next `/planner` mount, no reload needed
-- [ ] FRONTEND-012-AC-12 — today-highlight applies via one shared class, consistent in both orientations
-- [ ] FRONTEND-012-AC-13 — day-rows layout visually correct in Light and Dark (real-browser check)
+- [x] FRONTEND-012-AC-01 — `getGridOrientation()` returns the stored value or defaults to `'day-columns'`
+- [x] FRONTEND-012-AC-02 — `setGridOrientation()` persists the value to `localStorage`
+- [x] FRONTEND-012-AC-03 — `Settings` renders the grid-layout option group, defaulting to "Days across the top"
+- [x] FRONTEND-012-AC-04 — selecting an option persists it via `setGridOrientation()`
+- [x] FRONTEND-012-AC-05 — `PlannerGrid`'s prop interface is unchanged by this spec
+- [x] FRONTEND-012-AC-06 — day-columns layout renders exactly as before, unchanged, as the default
+- [x] FRONTEND-012-AC-07 — day-rows layout renders one day-section per entry in the `days` prop, in the order given
+- [x] FRONTEND-012-AC-08 — day-rows cells render the same slot label/Add/list content as day-columns cells
+- [x] FRONTEND-012-AC-09 — day-rows layout renders no shared day-label header row
+- [x] FRONTEND-012-AC-10 — `PlannerGrid` reads the orientation via `useState` at mount, no `main.tsx` change
+- [x] FRONTEND-012-AC-11 — a preference change is reflected on the next `/planner` mount, no reload needed
+- [x] FRONTEND-012-AC-12 — today-highlight applies via one shared class, consistent in both orientations
+- [x] FRONTEND-012-AC-13 — day-rows layout visually correct in Light and Dark (real-browser check)

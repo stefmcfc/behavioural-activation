@@ -1,14 +1,19 @@
 import { useState } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
+import { setGridOrientation } from '../../utils/gridOrientation'
 import type { DragPayload } from './dragPayload'
 import type { PlanDayOfWeek, PlannedOccurrence } from '../../types/plan'
 
 const noop = () => {}
+
+beforeEach(() => {
+  localStorage.clear()
+})
 
 function baseGridProps(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
   return {
@@ -346,5 +351,118 @@ describe('FRONTEND-026-AC-08: grid-internal drag-to-move is unaffected by the dr
     fireEvent.dragStart(sourceTile)
     fireEvent.drop(targetCell)
     expect(onConfirmMove).toHaveBeenCalledWith(occurrenceOnMonMorning.id, 'MONDAY', 'AFTERNOON')
+  })
+})
+
+describe('FRONTEND-012-AC-06: day-columns layout is unchanged when unset', () => {
+  it('renders a single shared grid with a day-label header row and no day-sections', () => {
+    renderGrid()
+
+    expect(screen.getByText('Monday').closest(`.${styles.dayLabel}`)).not.toBeNull()
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(0)
+  })
+})
+
+describe('FRONTEND-012-AC-07/AC-09: day-rows layout renders one section per day, no shared header', () => {
+  it('renders five day-sections in the order given by the days prop, each with its own heading', () => {
+    setGridOrientation('day-rows')
+
+    renderGrid()
+
+    const sections = document.querySelectorAll(`.${styles.daySection}`)
+    expect(sections).toHaveLength(5)
+    expect(screen.getByRole('heading', { name: /monday/i, level: 4 })).toHaveClass(
+      styles.dayHeading,
+    )
+    expect(document.querySelectorAll(`.${styles.dayLabel}`)).toHaveLength(0)
+  })
+
+  it('renders one section per entry in a shorter days list (WEEKEND_DAYS), not a hardcoded five', () => {
+    setGridOrientation('day-rows')
+
+    render(<PlannerGrid {...baseGridProps()} days={WEEKEND_DAYS} />)
+
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(2)
+    expect(screen.getByRole('heading', { name: /saturday/i, level: 4 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /sunday/i, level: 4 })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /monday/i, level: 4 })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-012-AC-08: day-rows cells render the same slot label/Add/list content', () => {
+  it("renders an inside-box slot label and Add control for each of Monday's three slots", () => {
+    setGridOrientation('day-rows')
+
+    renderGrid()
+
+    const mondaySection = screen.getByRole('heading', { name: /monday/i, level: 4 }).closest(
+      'section',
+    )!
+    expect(within(mondaySection).getByLabelText('Add to Monday Morning')).toBeInTheDocument()
+    expect(within(mondaySection).getByLabelText('Add to Monday Afternoon')).toBeInTheDocument()
+    expect(within(mondaySection).getByLabelText('Add to Monday Evening')).toBeInTheDocument()
+    expect(within(mondaySection).getByText('Morning')).toHaveClass(styles.slotLabel)
+  })
+
+  it('renders occurrences in the matching day-rows cell, same as day-columns', () => {
+    setGridOrientation('day-rows')
+
+    render(<PlannerGrid {...baseGridProps()} occurrences={[occurrenceOnMonMorning]} />)
+
+    expect(screen.getByText(occurrenceOnMonMorning.name)).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-012-AC-11: PlannerGrid reads the preference at mount', () => {
+  it('renders day-rows on a fresh mount after the preference was changed', () => {
+    setGridOrientation('day-rows')
+
+    renderGrid()
+
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(5)
+  })
+})
+
+describe('FRONTEND-034-AC-02: PlannerGrid re-renders live when the orientation preference changes while mounted', () => {
+  it('switches from day-columns to day-rows without remounting', () => {
+    renderGrid()
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(0)
+
+    act(() => {
+      setGridOrientation('day-rows')
+    })
+
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(5)
+  })
+})
+
+describe('FRONTEND-034-AC-03: PlannerGrid unsubscribes on unmount', () => {
+  it('does not update state (or warn) after unmount', () => {
+    const { unmount } = render(<PlannerGrid {...baseGridProps()} />)
+    unmount()
+
+    expect(() => {
+      act(() => {
+        setGridOrientation('day-rows')
+      })
+    }).not.toThrow()
+  })
+})
+
+describe('FRONTEND-012-AC-12: today-highlight is consistent across orientations', () => {
+  it('applies the today class to the day-section heading and its slot cells in day-rows', () => {
+    setGridOrientation('day-rows')
+
+    renderGrid({ todayColumn: 'TUESDAY' })
+
+    const tuesdayHeading = screen.getByRole('heading', { name: /tuesday/i, level: 4 })
+    expect(tuesdayHeading.closest(`.${styles.today}`)).not.toBeNull()
+    const tuesdaySection = tuesdayHeading.closest('section')!
+    expect(
+      within(tuesdaySection).getByLabelText('Add to Tuesday Morning').closest(`.${styles.today}`),
+    ).not.toBeNull()
+
+    const mondayHeading = screen.getByRole('heading', { name: /monday/i, level: 4 })
+    expect(mondayHeading.closest(`.${styles.today}`)).toBeNull()
   })
 })
