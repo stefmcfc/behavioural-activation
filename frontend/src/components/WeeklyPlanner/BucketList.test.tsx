@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { BucketList } from './BucketList'
 import styles from './BucketList.module.css'
+import occurrenceItemStyles from './OccurrenceItem.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 import type { DragPayload } from './dragPayload'
 import type { PlannedOccurrence } from '../../types/plan'
@@ -400,6 +401,27 @@ describe('FRONTEND-028-AC-13/AC-14: dropping a drawer item onto the bucket', () 
     )
 
     expect(() => fireEvent.drop(screen.getByText('First').closest('li')!)).not.toThrow()
+  })
+})
+
+describe('FRONTEND-035-AC-06: dimmedOccurrenceIds threads through to OccurrenceItem', () => {
+  it('applies styles.dimmed when the occurrence id is in dimmedOccurrenceIds', () => {
+    const occurrence = bucketOccurrence({ id: 'a', name: 'First' })
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences: [occurrence],
+          dimmedOccurrenceIds: new Set([occurrence.id]),
+        })}
+      />,
+    )
+    expect(screen.getByText('First').closest('li')).toHaveClass(occurrenceItemStyles.dimmed)
+  })
+
+  it('FRONTEND-035-AC-08: does not dim an occurrence when dimmedOccurrenceIds is omitted (default)', () => {
+    const occurrence = bucketOccurrence({ id: 'a', name: 'First' })
+    render(<BucketList {...baseBucketProps({ occurrences: [occurrence] })} />)
+    expect(screen.getByText('First').closest('li')).not.toHaveClass(occurrenceItemStyles.dimmed)
   })
 })
 

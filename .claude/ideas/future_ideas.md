@@ -50,6 +50,10 @@ unplanned activity via a sidebar/drawer") moved to a real spec
 it was waiting on (panel placement, filter reuse) is done; removed from this file. This closes out
 the three-way split of the original "drag-and-drop in the week planner" idea
 (`frontend_spec_025`/`026`/`028`).
+2026-10-03: the "Weekly grid completion/category-balance summary strip" entry moved to a real spec,
+reshaped from an inline strip into a full top-level tab per the user's own framing when confirming
+it — `frontend_spec_036_weekly_summary.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
+this file.
 Earlier review: 2026-08-27 (V1 high-level planning session).
 
 ---
@@ -99,16 +103,6 @@ naturally from real usage (per the design doc's own framing): mobile/PWA, notifi
 integration, therapy-worksheet import, therapist-facing export, multiple activity templates,
 natural-language activity entry, voice input, local/on-device AI, more sophisticated trend
 analysis, activity effectiveness scoring, social/connection activity tracking.
-
-## Weekly grid completion/category-balance summary strip
-
-**Status**: Not specced — Claude's suggestion (2026-09-29), not yet confirmed by the user. A small
-summary strip at the top of the week grid (e.g. "5/12 planned, Pleasurable: 0") showing completion
-progress and category balance for the week at a glance. No new data needed — everything's already
-in the `PlannedOccurrence` list the grid already fetches. Ties into BA's core "am I keeping balance"
-purpose, and would pair naturally with the decluttered grid tile shape `frontend_spec_008` already
-shipped, but was deliberately left out of that spec's scope since it was never explicitly confirmed
-— raise it again if/when there's appetite for another small Weekly Planner spec.
 
 ## End-of-week reflection (light journal, no scoring)
 

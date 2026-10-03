@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-03
+
+### Added
+
+- The Weekly Planner now has a collapsible "Filters" control for narrowing the view by category or
+  completion status. A filtered-out activity stays visible but dimmed, rather than disappearing, so
+  it's always clear what's actually planned where.
+
 ## [0.28.1] - 2026-10-03
 
 ### Fixed

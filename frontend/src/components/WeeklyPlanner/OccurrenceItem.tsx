@@ -27,6 +27,7 @@ interface OccurrenceItemProps {
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
+  readonly dimmed?: boolean
   readonly isFirst?: boolean
   readonly isLast?: boolean
   readonly reorderDisabled?: boolean
@@ -92,6 +93,7 @@ export function OccurrenceItem({
   onComplete,
   onUndo,
   onCarryForward,
+  dimmed,
   isFirst,
   isLast,
   reorderDisabled,
@@ -109,6 +111,14 @@ export function OccurrenceItem({
   const moveDaySelectId = `move-day-${occurrence.id}`
   const moveSlotSelectId = `move-slot-${occurrence.id}`
 
+  const rowClassName = [
+    styles.row,
+    !isBucketItem && styles.gridDraggable,
+    dimmed && styles.dimmed,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   const handleNameClick = () => {
     if (isDetailOpen) {
       onCloseDetail()
@@ -119,7 +129,7 @@ export function OccurrenceItem({
 
   return (
     <li
-      className={isBucketItem ? styles.row : `${styles.row} ${styles.gridDraggable}`}
+      className={rowClassName}
       draggable={!isBucketItem}
       onDragStart={!isBucketItem ? () => onDragStart?.(occurrence.id) : undefined}
       onDragEnd={!isBucketItem ? onDragEnd : undefined}

@@ -13,6 +13,10 @@ const CATEGORY_LABELS: Record<ActivityCategory, string> = {
 
 const ALL_CATEGORIES: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
 
+// FRONTEND-035-AC-08: a stable, shared empty default so omitting dimmedOccurrenceIds (every
+// pre-existing caller/test) behaves exactly as if nothing were dimmed.
+const NO_DIMMED_IDS: ReadonlySet<string> = new Set()
+
 function computeZeroCategories(
   bucketOccurrences: readonly PlannedOccurrence[],
 ): ActivityCategory[] {
@@ -33,6 +37,7 @@ interface BucketListProps {
   readonly confirmingRemoveId: string | null
   readonly movingId: string | null
   readonly reorderInFlight: boolean
+  readonly dimmedOccurrenceIds?: ReadonlySet<string>
   readonly onAdd: () => void
   readonly onOpenDetail: (id: string) => void
   readonly onCloseDetail: () => void
@@ -64,6 +69,7 @@ export function BucketList({
   confirmingRemoveId,
   movingId,
   reorderInFlight,
+  dimmedOccurrenceIds = NO_DIMMED_IDS,
   onAdd,
   onOpenDetail,
   onCloseDetail,
@@ -187,6 +193,7 @@ export function BucketList({
               key={occurrence.id}
               occurrence={occurrence}
               isBucketItem
+              dimmed={dimmedOccurrenceIds.has(occurrence.id)}
               busyId={busyId}
               detailOpenId={detailOpenId}
               confirmingRemoveId={confirmingRemoveId}

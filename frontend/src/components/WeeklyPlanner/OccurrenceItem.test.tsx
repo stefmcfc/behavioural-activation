@@ -469,6 +469,38 @@ describe('FRONTEND-031-AC-12: Complete/Undo toggle is primary in both states', (
   })
 })
 
+describe('FRONTEND-035-AC-07: dimmed prop applies styles.dimmed without affecting interactivity', () => {
+  it('applies styles.dimmed to the root li when dimmed is true, and omits it when false/omitted', () => {
+    const { rerender } = render(<OccurrenceItem {...baseProps({ dimmed: true })} />)
+    expect(screen.getByText('Walk').closest('li')).toHaveClass(styles.dimmed)
+
+    rerender(<OccurrenceItem {...baseProps({ dimmed: false })} />)
+    expect(screen.getByText('Walk').closest('li')).not.toHaveClass(styles.dimmed)
+
+    rerender(<OccurrenceItem {...baseProps()} />)
+    expect(screen.getByText('Walk').closest('li')).not.toHaveClass(styles.dimmed)
+  })
+
+  it('keeps Complete fully functional when dimmed', async () => {
+    const onComplete = vi.fn()
+    render(<OccurrenceItem {...baseProps({ dimmed: true, onComplete })} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /complete/i }))
+    expect(onComplete).toHaveBeenCalledWith('o1')
+  })
+
+  it('applies styles.dimmed for a bucket item too, alongside styles.row (no gridDraggable)', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: bucketOccurrence, isBucketItem: true, dimmed: true })}
+      />,
+    )
+    const row = screen.getByText('Paint').closest('li')!
+    expect(row).toHaveClass(styles.row)
+    expect(row).toHaveClass(styles.dimmed)
+  })
+})
+
 describe('FRONTEND-031-AC-16: regression guard -- detail-card actions stay unstyled', () => {
   it('leaves Rearrange, Remove, Carry forward, and Close with no variant class', () => {
     render(

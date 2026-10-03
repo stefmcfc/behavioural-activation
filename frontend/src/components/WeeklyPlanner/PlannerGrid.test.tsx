@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
+import occurrenceItemStyles from './OccurrenceItem.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 import { WEEKDAY_DAYS, WEEKEND_DAYS } from './planLabels'
 import { setGridOrientation } from '../../utils/gridOrientation'
@@ -446,6 +447,30 @@ describe('FRONTEND-034-AC-03: PlannerGrid unsubscribes on unmount', () => {
         setGridOrientation('day-rows')
       })
     }).not.toThrow()
+  })
+})
+
+describe('FRONTEND-035-AC-06: dimmedOccurrenceIds threads through to OccurrenceItem', () => {
+  it('applies styles.dimmed when the occurrence id is in dimmedOccurrenceIds', () => {
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        dimmedOccurrenceIds={new Set([occurrenceOnMonMorning.id])}
+      />,
+    )
+    expect(screen.getByText(occurrenceOnMonMorning.name).closest('li')).toHaveClass(
+      occurrenceItemStyles.dimmed,
+    )
+  })
+
+  it('FRONTEND-035-AC-08: does not dim an occurrence when dimmedOccurrenceIds is omitted (default)', () => {
+    render(
+      <PlannerGrid {...baseGridProps()} occurrences={[occurrenceOnMonMorning]} />,
+    )
+    expect(screen.getByText(occurrenceOnMonMorning.name).closest('li')).not.toHaveClass(
+      occurrenceItemStyles.dimmed,
+    )
   })
 })
 

@@ -1,13 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WeeklyPlanner } from './WeeklyPlanner'
+import { computeDimmedIds } from './weeklyPlannerFilters'
 import { planApi } from '../../services/planApi'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
 import type { PlannedOccurrence } from '../../types/plan'
 import plannerGridStyles from './PlannerGrid.module.css'
+import occurrenceItemStyles from './OccurrenceItem.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/planApi')
@@ -56,6 +58,44 @@ const bucketItemTwo: PlannedOccurrence = {
   name: 'Garden',
   bucketPosition: 1,
 }
+
+const necessaryOccurrence: PlannedOccurrence = { ...walk, id: 'necessary-1', category: 'NECESSARY' }
+const pleasurableOccurrence: PlannedOccurrence = { ...walk, id: 'pleasurable-1', category: 'PLEASURABLE' }
+const completedOccurrence: PlannedOccurrence = { ...walk, id: 'completed-1', completed: true }
+const incompleteOccurrence: PlannedOccurrence = { ...walk, id: 'incomplete-1', completed: false }
+
+const necessaryGridOccurrence: PlannedOccurrence = {
+  ...walk,
+  id: 'necessary-grid',
+  name: 'Tidy desk',
+  category: 'NECESSARY',
+}
+
+const pleasurableBucketOccurrence: PlannedOccurrence = {
+  ...bucketItem,
+  id: 'pleasurable-bucket',
+  name: 'Paint',
+  category: 'PLEASURABLE',
+}
+
+describe('FRONTEND-035-AC-05: computeDimmedIds', () => {
+  it('dims an occurrence whose category does not match an active category filter', () => {
+    const ids = computeDimmedIds([necessaryOccurrence, pleasurableOccurrence], 'PLEASURABLE', 'ALL')
+    expect(ids.has(necessaryOccurrence.id)).toBe(true)
+    expect(ids.has(pleasurableOccurrence.id)).toBe(false)
+  })
+
+  it('dims a completed occurrence when the status filter is "Not completed"', () => {
+    const ids = computeDimmedIds([completedOccurrence, incompleteOccurrence], 'ALL', 'NOT_COMPLETED')
+    expect(ids.has(completedOccurrence.id)).toBe(true)
+    expect(ids.has(incompleteOccurrence.id)).toBe(false)
+  })
+
+  it('FRONTEND-035-AC-08: dims nothing when both filters are "All"', () => {
+    const ids = computeDimmedIds([necessaryOccurrence, completedOccurrence], 'ALL', 'ALL')
+    expect(ids.size).toBe(0)
+  })
+})
 
 describe('WeeklyPlanner', () => {
   beforeEach(() => {
@@ -798,6 +838,44 @@ describe('WeeklyPlanner', () => {
       expect(items.findIndex((text) => text?.includes('Paint'))).toBeLessThan(
         items.findIndex((text) => text?.includes('Garden')),
       )
+    })
+  })
+
+  describe('FRONTEND-035-AC-01/AC-02/AC-03/AC-04: Filters disclosure renders closed, selecting options updates filter state', () => {
+    it('renders the Filters disclosure closed by default, with category and status fieldsets', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      const disclosure = (await screen.findByText('Filters')).closest('details')!
+      expect(disclosure).not.toHaveAttribute('open')
+
+      await userEvent.click(screen.getByText('Filters'))
+      expect(within(disclosure).getByRole('group', { name: /filter by category/i })).toBeInTheDocument()
+      expect(within(disclosure).getByRole('group', { name: /filter by status/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-035-AC-06/AC-07/AC-09: selecting a filter dims non-matching occurrences in both the grid and bucket list, without disabling them', () => {
+    it('dims a Necessary occurrence when the Pleasurable category filter is selected, and Complete still works', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([necessaryGridOccurrence, pleasurableBucketOccurrence])
+      vi.mocked(planApi.complete).mockResolvedValue({
+        ...necessaryGridOccurrence,
+        completed: true,
+        completedAt: '2026-10-05T09:00:00Z',
+      })
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByText('Filters'))
+      await userEvent.click(screen.getByRole('radio', { name: /^pleasurable$/i }))
+
+      const necessaryRow = screen.getByText(necessaryGridOccurrence.name).closest('li')!
+      expect(necessaryRow).toHaveClass(occurrenceItemStyles.dimmed)
+
+      const pleasurableRow = screen.getByText(pleasurableBucketOccurrence.name).closest('li')!
+      expect(pleasurableRow).not.toHaveClass(occurrenceItemStyles.dimmed)
+
+      await userEvent.click(within(necessaryRow).getByRole('button', { name: /complete/i }))
+      expect(planApi.complete).toHaveBeenCalledWith(necessaryGridOccurrence.id)
     })
   })
 
