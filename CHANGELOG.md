@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-03
+
 ### Added
 
 - A new "Weekly grid layout" setting lets you switch the Weekly Planner and Today grid between
