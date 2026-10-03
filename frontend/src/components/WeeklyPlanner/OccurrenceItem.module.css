@@ -155,11 +155,6 @@
   opacity: 0.8;
 }
 
-.completionIcon {
-  color: var(--accent);
-  flex-shrink: 0;
-}
-
 .carriedForwardLabel {
   font-size: 0.72rem;
   font-weight: 600;

@@ -20,3 +20,161 @@
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--border);
 }
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* FRONTEND-037 Requirement 1: segmented completion bar. */
+.completionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* FRONTEND-037 Requirement 2: lite grid (a header row of day labels, then one row per slot) and
+   the lite bucket list below it -- both read-only, no Add/drag/remove controls. */
+.liteGrid {
+  display: grid;
+  grid-template-columns: auto repeat(7, 1fr);
+  gap: 0.3rem;
+  align-items: center;
+  max-width: 48rem;
+}
+
+.liteGridCorner {
+  width: 1px;
+}
+
+.liteGridDayLabel,
+.liteGridSlotLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: center;
+}
+
+.liteGridSlotLabel {
+  text-align: left;
+}
+
+.liteGridCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-height: 1.6rem;
+  justify-content: center;
+}
+
+.liteBucket {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* FRONTEND-037 Requirement 3: location x category breakdown chart. */
+.breakdownChart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 36rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendSwatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+}
+
+.locationRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.locationLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.track {
+  position: relative;
+  background: var(--border);
+  border-radius: 4px;
+  height: 1.7rem;
+  overflow: visible;
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* FRONTEND-037-AC-12: a visible 2px surface-coloured gap (.bar's own background, shown through
+   the flex gap above) separates every segment from its neighbours, so two segments sharing an
+   identical or near-identical category colour still read as distinct shapes. */
+.segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2px;
+  overflow: visible;
+}
+
+.segmentLabelInside {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0 0.3rem;
+}
+
+/* FRONTEND-037-AC-13: a segment too narrow to fit its label with padding renders the label just
+   above the bar instead -- never dropped to tooltip-only. */
+.segmentLabelOutside {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  margin-bottom: 0.15rem;
+}
+
+.emptyLocation {
+  font-size: 0.78rem;
+  color: var(--text);
+  opacity: 0.7;
+  padding-left: 0.5rem;
+}
