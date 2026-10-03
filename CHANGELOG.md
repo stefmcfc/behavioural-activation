@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- A new "Weekly grid layout" setting lets you switch the Weekly Planner and Today grid between
+  "Days across the top" (the existing layout) and "Each day as its own section" (each day stacked
+  vertically with its Morning/Afternoon/Evening slots side by side).
+
 ## [0.27.3] - 2026-10-03
 
 ### Changed

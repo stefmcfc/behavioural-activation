@@ -12,12 +12,22 @@ import {
   setThemePreference as persistThemePreference,
   type ThemePreference,
 } from '../../utils/theme'
+import {
+  getGridOrientation,
+  setGridOrientation as persistGridOrientation,
+  type GridOrientation,
+} from '../../utils/gridOrientation'
 import styles from './Settings.module.css'
 
 const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
   { value: 'system', label: 'System' },
+]
+
+const GRID_ORIENTATION_OPTIONS: readonly { value: GridOrientation; label: string }[] = [
+  { value: 'day-columns', label: 'Days across the top' },
+  { value: 'day-rows', label: 'Each day as its own section' },
 ]
 
 const ALL_CATEGORIES: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
@@ -37,6 +47,9 @@ function getCategoryColorSnapshot(): Record<ActivityCategory, string> {
 export function Settings() {
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     getThemePreference(),
+  )
+  const [gridOrientation, setGridOrientationState] = useState<GridOrientation>(() =>
+    getGridOrientation(),
   )
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => getSystemPrefersDark())
   const [categoryColors, setCategoryColors] = useState<Record<ActivityCategory, string>>(() =>
@@ -58,6 +71,11 @@ export function Settings() {
   const handleThemeChange = (preference: ThemePreference) => {
     persistThemePreference(preference)
     setThemePreference(preference)
+  }
+
+  const handleGridOrientationChange = (orientation: GridOrientation) => {
+    persistGridOrientation(orientation)
+    setGridOrientationState(orientation)
   }
 
   const handleColorChange = (category: ActivityCategory, hex: string) => {
@@ -93,6 +111,26 @@ export function Settings() {
         {themePreference === 'system' && (
           <p>Currently: {systemPrefersDark ? 'Dark' : 'Light'}</p>
         )}
+      </fieldset>
+
+      <fieldset>
+        <legend>Weekly grid layout</legend>
+        <ul className={styles.themeList}>
+          {GRID_ORIENTATION_OPTIONS.map((option) => (
+            <li key={option.value}>
+              <label>
+                <input
+                  type="radio"
+                  name="grid-orientation"
+                  value={option.value}
+                  checked={gridOrientation === option.value}
+                  onChange={() => handleGridOrientationChange(option.value)}
+                />
+                {option.label}
+              </label>
+            </li>
+          ))}
+        </ul>
       </fieldset>
 
       <fieldset>

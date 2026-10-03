@@ -1,8 +1,9 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, parseWeekStart } from './planLabels'
+import { getGridOrientation } from '../../utils/gridOrientation'
 import styles from './PlannerGrid.module.css'
 
 function getDayDate(weekStart: string, day: PlanDayOfWeek): number {
@@ -52,6 +53,10 @@ function dayLabelClassName(isToday: boolean): string {
   return isToday ? `${styles.dayLabel} ${styles.today}` : styles.dayLabel
 }
 
+function dayHeadingClassName(isToday: boolean): string {
+  return isToday ? `${styles.dayHeading} ${styles.today}` : styles.dayHeading
+}
+
 export function PlannerGrid({
   weekStart,
   days,
@@ -80,6 +85,8 @@ export function PlannerGrid({
   onDragEnd,
   onAssignFromDrawer,
 }: PlannerGridProps) {
+  const [orientation] = useState(() => getGridOrientation())
+
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
   )
@@ -104,6 +111,58 @@ export function PlannerGrid({
     onConfirmMove(id, targetDay, targetSlot)
   }
 
+  const renderCell = (day: PlanDayOfWeek, slot: PlanSlot): ReactNode => {
+    const cellOccurrences = scheduled.filter(
+      (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
+    )
+    return (
+      <div
+        key={`${day}-${slot}`}
+        className={cellClassName(day === todayColumn)}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={() => handleDrop(day, slot)}
+      >
+        <div className={styles.cellHeader}>
+          <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
+          <button
+            type="button"
+            onClick={() => onAdd(day, slot)}
+            aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
+          >
+            Add
+          </button>
+        </div>
+        <ul className={styles.list}>
+          {cellOccurrences.map((occurrence) => (
+            <OccurrenceItem
+              key={occurrence.id}
+              occurrence={occurrence}
+              isBucketItem={false}
+              busyId={busyId}
+              detailOpenId={detailOpenId}
+              confirmingRemoveId={confirmingRemoveId}
+              movingId={movingId}
+              onOpenDetail={onOpenDetail}
+              onCloseDetail={onCloseDetail}
+              onStartRemove={onStartRemove}
+              onConfirmRemove={onConfirmRemove}
+              onCancelRemove={onCancelRemove}
+              onStartMove={onStartMove}
+              onCancelMove={onCancelMove}
+              onConfirmMove={onConfirmMove}
+              onMoveToBucket={onMoveToBucket}
+              onComplete={onComplete}
+              onUndo={onUndo}
+              onCarryForward={() => {}}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            />
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
   return (
     <section aria-label={heading} className={styles.section}>
       <h3>{heading}</h3>
@@ -111,67 +170,34 @@ export function PlannerGrid({
       {scheduled.length === 0 && <p>{emptyMessage}</p>}
 
       <div className={styles.scroll}>
-        <div className={styles.grid} style={{ '--day-count': days.length } as CSSProperties}>
-          {days.map((day) => (
-            <div key={day} className={dayLabelClassName(day === todayColumn)}>
-              <span>{getDayDate(weekStart, day)}</span>
-              <span>{DAY_LABELS[day]}</span>
-            </div>
-          ))}
-          {ALL_SLOTS.map((slot) =>
-            days.map((day) => {
-              const cellOccurrences = scheduled.filter(
-                (occurrence) => occurrence.dayOfWeek === day && occurrence.slot === slot,
-              )
+        {orientation === 'day-rows' ? (
+          <div className={styles.rows}>
+            {days.map((day) => {
+              const isToday = day === todayColumn
               return (
-                <div
-                  key={`${day}-${slot}`}
-                  className={cellClassName(day === todayColumn)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => handleDrop(day, slot)}
-                >
-                  <div className={styles.cellHeader}>
-                    <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
-                    <button
-                      type="button"
-                      onClick={() => onAdd(day, slot)}
-                      aria-label={`Add to ${DAY_LABELS[day]} ${SLOT_LABELS[slot]}`}
-                    >
-                      Add
-                    </button>
+                <section key={day} className={styles.daySection} aria-label={DAY_LABELS[day]}>
+                  <h4 className={dayHeadingClassName(isToday)}>
+                    <span>{getDayDate(weekStart, day)}</span>
+                    <span>{DAY_LABELS[day]}</span>
+                  </h4>
+                  <div className={styles.daySlots}>
+                    {ALL_SLOTS.map((slot) => renderCell(day, slot))}
                   </div>
-                  <ul className={styles.list}>
-                    {cellOccurrences.map((occurrence) => (
-                      <OccurrenceItem
-                        key={occurrence.id}
-                        occurrence={occurrence}
-                        isBucketItem={false}
-                        busyId={busyId}
-                        detailOpenId={detailOpenId}
-                        confirmingRemoveId={confirmingRemoveId}
-                        movingId={movingId}
-                        onOpenDetail={onOpenDetail}
-                        onCloseDetail={onCloseDetail}
-                        onStartRemove={onStartRemove}
-                        onConfirmRemove={onConfirmRemove}
-                        onCancelRemove={onCancelRemove}
-                        onStartMove={onStartMove}
-                        onCancelMove={onCancelMove}
-                        onConfirmMove={onConfirmMove}
-                        onMoveToBucket={onMoveToBucket}
-                        onComplete={onComplete}
-                        onUndo={onUndo}
-                        onCarryForward={() => {}}
-                        onDragStart={onDragStart}
-                        onDragEnd={onDragEnd}
-                      />
-                    ))}
-                  </ul>
-                </div>
+                </section>
               )
-            }),
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <div className={styles.grid} style={{ '--day-count': days.length } as CSSProperties}>
+            {days.map((day) => (
+              <div key={day} className={dayLabelClassName(day === todayColumn)}>
+                <span>{getDayDate(weekStart, day)}</span>
+                <span>{DAY_LABELS[day]}</span>
+              </div>
+            ))}
+            {ALL_SLOTS.map((slot) => days.map((day) => renderCell(day, slot)))}
+          </div>
+        )}
       </div>
     </section>
   )

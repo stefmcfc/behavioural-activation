@@ -64,6 +64,7 @@ spec-tidying effort this came out of).
 | Header restructure — Settings/Account icons, tabs demoted to a second row | — (frontend-only) | [`frontend_spec_030_header_restructure.md`](.claude/specs/frontend_spec_030_header_restructure.md) | ✅ Implemented (2026-10-02). Native Popover API + CSS anchor positioning for both menus, no custom JS; trigger icon highlights while its own popover is open; verified end-to-end in a real browser. |
 | Frontend button visual hierarchy (primary/destructive) | — (frontend-only) | [`frontend_spec_031_button_hierarchy.md`](.claude/specs/frontend_spec_031_button_hierarchy.md) | ✅ Implemented (2026-10-02). New `primary`/`destructive` CSS Module variant classes applied to each screen's headline action and the Activity/Sub-task delete flows; everything else keeps today's uniform treatment; contrast verified ≥4.5:1 in both themes in a real browser. |
 | Collapsible filters in the activity picker | — (frontend-only) | [`frontend_spec_032_collapsible_filters.md`](.claude/specs/frontend_spec_032_collapsible_filters.md) | ✅ Implemented (2026-10-02). One `<details>`/`<summary>` disclosure wrapping all three filters (category/type/favourite), closed by default, in `ActivityPickerList` — fixes both the Weekly Planner's Add modal and Today's Browse activities drawer at once; verified in a real browser. |
+| Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | ✅ Implemented (2026-10-03). New `utils/gridOrientation.ts` + Settings fieldset for an alternate "each day as its own section" `PlannerGrid` layout, read via `useState(() => getGridOrientation())` with no `main.tsx` change; today-highlight shared across both orientations. Pending a real-browser pass (`AC-13`). |
 
 ## Specced, coming soon
 
@@ -71,7 +72,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | Not started. Day-rows layout alongside the existing day-columns default. |
+| _(none currently)_ | | | |
 
 ## Internal / maintenance specs
 

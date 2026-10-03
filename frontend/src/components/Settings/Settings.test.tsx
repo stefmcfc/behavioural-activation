@@ -165,4 +165,32 @@ describe('Settings', () => {
       expect(resetButton).not.toHaveClass(buttonStyles.destructive)
     })
   })
+
+  describe('FRONTEND-012-AC-03/AC-04: grid layout toggle renders and persists a selection', () => {
+    it('defaults to "Days across the top" checked when nothing is stored', () => {
+      render(<Settings />)
+
+      expect(screen.getByRole('radio', { name: /days across the top/i })).toBeChecked()
+      expect(
+        screen.getByRole('radio', { name: /each day as its own section/i }),
+      ).not.toBeChecked()
+    })
+
+    it('reflects a previously stored "day-rows" preference', () => {
+      localStorage.setItem('bap-grid-orientation', 'day-rows')
+
+      render(<Settings />)
+
+      expect(screen.getByRole('radio', { name: /each day as its own section/i })).toBeChecked()
+    })
+
+    it('persists "day-rows" to localStorage when chosen', async () => {
+      render(<Settings />)
+
+      await userEvent.click(screen.getByRole('radio', { name: /each day as its own section/i }))
+
+      expect(localStorage.getItem('bap-grid-orientation')).toBe('day-rows')
+      expect(screen.getByRole('radio', { name: /each day as its own section/i })).toBeChecked()
+    })
+  })
 })
