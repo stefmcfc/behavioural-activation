@@ -73,6 +73,8 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Filter the Weekly Planner by category and completion status | — (frontend-only) | [`frontend_spec_035_weekly_planner_filter.md`](.claude/specs/frontend_spec_035_weekly_planner_filter.md) | Not started. Dims (doesn't hide) non-matching occurrences in both the grid and bucket list from one shared collapsible filter. |
+| Weekly Summary tab | — (frontend-only) | [`frontend_spec_036_weekly_summary.md`](.claude/specs/frontend_spec_036_weekly_summary.md) | Not started. New top-level tab showing this week's completion/category-balance stats, computed client-side from existing data — V1 polish, not V2's mood-tracking scope. |
 
 ## Internal / maintenance specs
 

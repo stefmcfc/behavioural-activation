@@ -14,7 +14,12 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-02 (the bucket-reorder query-scaling candidate, surfaced while implementing
+Last updated: 2026-10-03 (the "Filter the Weekly Planner by completed status and by category"
+candidate moved to a real spec — `frontend_spec_035_weekly_planner_filter.md`, see `ROADMAP.md`'s
+"Specced, coming soon" — removed from this file.)
+Earlier note: 2026-10-03, added the preset/starter activity bank candidate, raised by the user while
+reviewing V1 completeness after `frontend_spec_012`/`034` — see entry below.)
+Earlier note: 2026-10-02 (the bucket-reorder query-scaling candidate, surfaced while implementing
 `planner_spec_017_plan_response_n_plus_one.md`, moved to a real spec —
 `planner_spec_019_bucket_reorder_query_scaling.md`, see `ROADMAP.md`'s "Internal / maintenance specs"
 — removed from this file.)
@@ -52,6 +57,35 @@ soon". The weekly grid orientation toggle candidate is now also written up
 
 ## Candidates
 
+## Preset/starter activity bank for new users
+
+**Status**: Confirmed, not yet specced. Raised by the user 2026-10-03, while reviewing V1
+completeness after `frontend_spec_012_grid_orientation_toggle.md`/`frontend_spec_034_grid_
+orientation_live_update.md`. A brand-new user's Activity Bank starts completely empty today —
+`ActivityBank.tsx`'s only empty-state messaging is "No activities yet. Add one below to get
+started." (confirmed by reading the component), with no faster on-ramp than typing activities in
+one at a time from a blank page. A curated set of common activities the user could add with one
+click would lower that cold-start barrier.
+
+Notably, this isn't a new idea invented from scratch — `.claude/HIGH_LEVEL_DESIGN.md`'s planning-
+model section already lists an illustrative weekend example set almost verbatim (go for a walk, go
+somewhere for coffee, cook something interesting, see a friend, work on a personal project, watch a
+film, do one household task) that was written as prose for a human reader, never operationalized
+into the app. A real preset list would likely want examples across all three categories (Routine/
+Necessary/Pleasurable), not just the design doc's weekend-flavoured set, and both repeatable (e.g.
+"Go for a walk") and one-off-flavoured (e.g. "Apply for jobs" is explicitly used elsewhere in this
+project's own seed/test data as a one-off example) entries, to also showcase
+`planner_spec_006_repeatable_activities.md`'s repeatable/one-off distinction.
+
+Likely frontend-only: a "Suggested activities" section in the Activity Bank's empty state (or
+always-available, collapsed once the bank isn't empty), each item a one-click "Add" that calls the
+existing `POST /api/v1/activities` — no new backend endpoint needed, same pattern as any other
+activity creation. Open questions for whenever this gets a real design pass: is the preset list
+hardcoded client-side content or does it need to be editable/configurable later (no evidence it
+needs to be, for a personal single-user app); does adding a preset immediately remove it from the
+suggestions list (avoid duplicate adds) or allow re-adding; should suggestions be category-grouped
+to mirror the Activity Bank's own category filter.
+
 ## Touch-friendly weekend bucket list reordering
 
 **Status**: Confirmed, not yet specced. Deferred 2026-10-01, raised by the modern-web-guidance
@@ -65,22 +99,6 @@ Explicitly deferred rather than dropped: current usage is desktop-only, so there
 today, but worth a proper Pointer-Events-based (or a maintained sortable library's touch-aware)
 reorder implementation if/when this app sees real mobile use of the bucket list. Revisit if that
 usage pattern actually shows up, rather than building ahead of it.
-
-## Filter the Weekly Planner by completed status and by category
-
-**Status**: Confirmed, not yet specced. Raised 2026-10-01. The Weekly Planner's grid and weekend
-bucket list currently show every planned occurrence for the week with no filtering — the Activity
-Bank already has this exact pattern for its own list (`frontend_spec_017_activity_bank_category_filter.md`'s
-category filter, plus its existing "Show archived" status toggle), so this would extend the same
-idea to the planner view rather than inventing a new filtering UI from scratch. Likely wants two
-independent filters: by `ActivityCategory` (Routine/Necessary/Pleasurable) and by completed/not-yet-
-completed. Needs a real design pass before writing ACs: where the filter controls live (the grid and
-bucket list are two separate components/sections — one shared control above both, or one per
-section?), whether filtering hides non-matching occurrences entirely or just visually de-emphasises
-them (the latter might matter more here than in the Activity Bank, since an empty grid cell reads
-differently from an empty list), and whether the Weekdays/Weekend tab control
-(`frontend_spec_015_weekday_weekend_grid_tabs.md`) and any future filter control need to compose
-cleanly together in the same header area.
 
 ## Sub-task completion progress indicator (e.g. "2/3 done")
 
