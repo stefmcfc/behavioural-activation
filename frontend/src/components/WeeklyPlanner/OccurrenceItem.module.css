@@ -19,6 +19,13 @@
   cursor: grabbing;
 }
 
+/* FRONTEND-035: a filtered-out-but-still-visible occurrence. Deliberately a different opacity
+   value from .moveButton:disabled's 0.4 below -- dimmed is purely a rendering concern, not a
+   disabled/inactive state, so it shouldn't visually read the same as one. */
+.dimmed {
+  opacity: 0.55;
+}
+
 .completeButton {
   margin-left: auto;
 }

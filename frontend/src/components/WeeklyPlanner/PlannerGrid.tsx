@@ -23,6 +23,7 @@ interface PlannerGridProps {
   readonly confirmingRemoveId: string | null
   readonly movingId: string | null
   readonly todayColumn: PlanDayOfWeek | null
+  readonly dimmedOccurrenceIds?: ReadonlySet<string>
   readonly onAdd: (dayOfWeek: PlanDayOfWeek, slot: PlanSlot) => void
   readonly onOpenDetail: (id: string) => void
   readonly onCloseDetail: () => void
@@ -44,6 +45,10 @@ interface PlannerGridProps {
     slot: PlanSlot | null,
   ) => void
 }
+
+// FRONTEND-035-AC-08: a stable, shared empty default so omitting dimmedOccurrenceIds (every
+// pre-existing caller/test) behaves exactly as if nothing were dimmed.
+const NO_DIMMED_IDS: ReadonlySet<string> = new Set()
 
 function cellClassName(isToday: boolean): string {
   return isToday ? `${styles.cell} ${styles.today}` : styles.cell
@@ -68,6 +73,7 @@ export function PlannerGrid({
   confirmingRemoveId,
   movingId,
   todayColumn,
+  dimmedOccurrenceIds = NO_DIMMED_IDS,
   onAdd,
   onOpenDetail,
   onCloseDetail,
@@ -143,6 +149,7 @@ export function PlannerGrid({
               key={occurrence.id}
               occurrence={occurrence}
               isBucketItem={false}
+              dimmed={dimmedOccurrenceIds.has(occurrence.id)}
               busyId={busyId}
               detailOpenId={detailOpenId}
               confirmingRemoveId={confirmingRemoveId}

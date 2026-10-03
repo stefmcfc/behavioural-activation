@@ -1,6 +1,12 @@
 # Filter the Weekly Planner by Category and Completion Status (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03) — one shared `<details>`/`<summary>` "Filters" disclosure
+(category + status) above `WeeklyPlanner`'s View tab fieldset; `computeDimmedIds` (extracted into
+`weeklyPlannerFilters.ts`, see Implementer note below) drives a new `dimmedOccurrenceIds` prop
+threaded through `PlannerGrid`/`BucketList` into `OccurrenceItem`, which applies a new
+`styles.dimmed` (`opacity: 0.55`) class without touching any existing action. `npm test` 511/511,
+`npm run lint` clean, `npx tsc -b --noEmit` clean. AC-10 (real-browser, both themes) left unchecked
+per instructions — pending a manual pass.
 **Priority**: P2 — V1 polish, same tier as `frontend_spec_032_collapsible_filters.md`
 **Depends on**: `frontend_spec_004_week_planning.md` (origin of `WeeklyPlanner`/`PlannerGrid`/
 `BucketList`/`OccurrenceItem`), `frontend_spec_017_activity_bank_category_filter.md` (origin of
@@ -233,6 +239,20 @@ CSS Module. Either is acceptable; don't import across feature folders by habit i
 doesn't already do that elsewhere — confirm by checking for an existing cross-component CSS Module
 import before deciding.)*
 
+*(Implementer resolution, 2026-10-03: went with neither of the two options above.
+`ActivityPickerList.tsx` — a sibling already living in this same `WeeklyPlanner/` folder — already
+imports `AssignActivityPicker.module.css` for this exact
+`filtersDisclosure`/`filtersSummary`/`filterFieldset`/`filterGroup` set, established by
+`frontend_spec_032`. That's a real, same-folder precedent for sharing this filter-disclosure CSS
+across sibling components (unlike reaching into `ActivityBank/`, a different feature folder with no
+such precedent), so `WeeklyPlanner.tsx` imports `AssignActivityPicker.module.css` the same way
+rather than duplicating the CSS a third time or inventing a new shared module. Separately,
+`computeDimmedIds`/`StatusFilter`/`STATUS_FILTER_OPTIONS` were pulled out of `WeeklyPlanner.tsx`
+into a new sibling `weeklyPlannerFilters.ts` — not for a design reason, but because co-locating a
+second named export alongside the `WeeklyPlanner` component in the same file trips oxlint's
+`react(only-export-components)` fast-refresh rule; `WeeklyPlanner.test.tsx` imports
+`computeDimmedIds` from that module directly for the AC-05 unit tests.)*
+
 `PlannerGrid.tsx` / `BucketList.tsx` (both extended with one new prop):
 
 ```tsx
@@ -357,13 +377,13 @@ prop threading, and `OccurrenceItem`'s `.dimmed` class until every sketch above 
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-035-AC-01 — Filters disclosure renders closed by default, above the View tab fieldset
-- [ ] FRONTEND-035-AC-02 — category fieldset reuses `CATEGORY_FILTER_OPTIONS`/`ActivityBank`'s markup
-- [ ] FRONTEND-035-AC-03 — status fieldset offers All/Completed/Not completed as a 3-way radio group
-- [ ] FRONTEND-035-AC-04 — selecting an option updates the corresponding filter state
-- [ ] FRONTEND-035-AC-05 — `dimmedOccurrenceIds` computed correctly from occurrences + both filters
-- [ ] FRONTEND-035-AC-06 — `dimmedOccurrenceIds` passed to `PlannerGrid`/`BucketList`, threaded to `OccurrenceItem`
-- [ ] FRONTEND-035-AC-07 — dimmed occurrences stay fully interactive (visual-only filtering)
-- [ ] FRONTEND-035-AC-08 — default "All"/"All" dims nothing; existing tests stay green unmodified
-- [ ] FRONTEND-035-AC-09 — one filter change updates dimming in both grid and bucket list together
+- [x] FRONTEND-035-AC-01 — Filters disclosure renders closed by default, above the View tab fieldset
+- [x] FRONTEND-035-AC-02 — category fieldset reuses `CATEGORY_FILTER_OPTIONS`/`ActivityBank`'s markup
+- [x] FRONTEND-035-AC-03 — status fieldset offers All/Completed/Not completed as a 3-way radio group
+- [x] FRONTEND-035-AC-04 — selecting an option updates the corresponding filter state
+- [x] FRONTEND-035-AC-05 — `dimmedOccurrenceIds` computed correctly from occurrences + both filters
+- [x] FRONTEND-035-AC-06 — `dimmedOccurrenceIds` passed to `PlannerGrid`/`BucketList`, threaded to `OccurrenceItem`
+- [x] FRONTEND-035-AC-07 — dimmed occurrences stay fully interactive (visual-only filtering)
+- [x] FRONTEND-035-AC-08 — default "All"/"All" dims nothing; existing tests stay green unmodified
+- [x] FRONTEND-035-AC-09 — one filter change updates dimming in both grid and bucket list together
 - [ ] FRONTEND-035-AC-10 — dimmed state visually legible, not disabled-looking, in both themes (real-browser check)
