@@ -1,12 +1,35 @@
 # Weekly Summary Page Visual Refinements (Frontend)
 
-**Status**: Implemented (2026-10-03) — all 15 `[AUTO]` ACs built and green: the segmented
-completion bar, lite weekly grid + lite bucket list, and location × category breakdown chart all
-render in `WeeklySummary.tsx`, backed by a new shared `CompletionMark` component, an extracted
-`CompletionIcon`, and `weeklySummaryStats.ts`'s new `byLocation` breakdown. `npm test` (542 passed),
-`npm run lint` (clean), and `npx tsc -b --noEmit` (clean) all pass. The 5 `[MANUAL]` real-browser
-ACs (`AC-15`/`AC-16`/`AC-17`/`AC-19`/`AC-20`'s browser portion) are still unchecked, pending a
-real-browser verification pass.
+**Status**: Implemented (2026-10-03) — all 20 ACs green, including all 5 `[MANUAL]` real-browser
+checks. The segmented completion bar, lite weekly grid + lite bucket list, and location × category
+breakdown chart all render in `WeeklySummary.tsx`, backed by a new shared `CompletionMark`
+component, an extracted `CompletionIcon`, and `weeklySummaryStats.ts`'s new `byLocation` breakdown.
+`npm test` (542 passed), `npm run lint` (clean), and `npx tsc -b --noEmit` (clean) all pass.
+
+Real-browser verification covered all three visualizations in both Light and Dark (`AC-15`); the
+full edge-case set the user specifically asked to be tested, via `localStorage`/color-input
+JS-dispatch against the real Settings colour pickers rather than relying on the OS-native colour
+picker dialog automation can't drive directly: a category colour set to `#000000` in Dark theme and
+separately `#ffffff` in Light theme, both confirmed to still render a visible, bordered mark even in
+the not-completed (no-icon, no-text) state — the actual risk case (`AC-19`); two categories
+(Routine/Necessary) set to the identical hex, confirmed the completion bar still resolves each
+occurrence's completed/not-completed state correctly and the breakdown chart still shows them as two
+separately labelled, gap-separated segments, not one merged block (`AC-20`); and, going a step
+further than the spec's own `AC-16` wording ("the same hex" could read as two-or-three), all **three**
+categories set to one identical hex — the breakdown chart remained fully readable via its direct
+labels and the fixed segment order/gaps alone (`AC-16`). Keyboard-only Tab navigation from a blurred
+document body landed on a real `CompletionMark` button and revealed the identical detail text a
+mouse hover would, confirmed via `document.activeElement` plus a visible on-screen tooltip (`AC-17`).
+
+**One non-blocking finding from manual verification, not an AC violation**: the breakdown chart's
+segment colours and legend swatches do not live-update when a category colour is changed in Settings
+mid-session (confirmed via a fresh page load showing the change correctly) — unlike `CompletionMark`,
+which the implementer wired to `subscribeToCategoryColorChanges`/`useSyncExternalStore` matching
+`CategoryChip`'s existing pattern, the breakdown chart's own category-colour reads were not given the
+same live-subscription treatment. No AC in this spec required live Settings-sync for the breakdown
+chart specifically (unlike `frontend_spec_034`, which was a dedicated spec for exactly this kind of
+gap elsewhere), so this isn't a spec violation — flagged here for visibility/future consideration,
+not acted on.
 **Priority**: P2 — V1 polish, refining the just-shipped `frontend_spec_036`
 **Depends on**: `frontend_spec_036_weekly_summary.md` (origin of `WeeklySummary.tsx`,
 `weeklySummaryStats.ts`'s `computeStats`, this page and its existing plain-text stats, kept
@@ -483,9 +506,9 @@ manually, per their own statements, in a real browser.
 - [x] FRONTEND-037-AC-12 — segments always in fixed order, separated by a visible surface gap
 - [x] FRONTEND-037-AC-13 — every segment carries a direct text label, never tooltip-only
 - [x] FRONTEND-037-AC-14 — one shared legend, not per-bar
-- [ ] FRONTEND-037-AC-15 — all three visualizations legible in Light and Dark (real-browser check)
-- [ ] FRONTEND-037-AC-16 — breakdown chart stays readable under monochrome category colours (real-browser check)
-- [ ] FRONTEND-037-AC-17 — keyboard focus reveals the same detail as mouse hover (real-browser check)
+- [x] FRONTEND-037-AC-15 — all three visualizations legible in Light and Dark (real-browser check)
+- [x] FRONTEND-037-AC-16 — breakdown chart stays readable under monochrome category colours (real-browser check)
+- [x] FRONTEND-037-AC-17 — keyboard focus reveals the same detail as mouse hover (real-browser check)
 - [x] FRONTEND-037-AC-18 — every mark has a visible border regardless of fill colour
-- [ ] FRONTEND-037-AC-19 — white (Light)/black (Dark) category colours still render visible marks, especially not-completed (real-browser check)
-- [ ] FRONTEND-037-AC-20 — two categories sharing one colour still resolve correctly per-occurrence and stay visually separated in the breakdown chart (real-browser check)
+- [x] FRONTEND-037-AC-19 — white (Light)/black (Dark) category colours still render visible marks, especially not-completed (real-browser check)
+- [x] FRONTEND-037-AC-20 — two categories sharing one colour still resolve correctly per-occurrence and stay visually separated in the breakdown chart (real-browser check)
