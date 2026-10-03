@@ -3,6 +3,7 @@ import type { DragEvent } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from './planLabels'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { CompletionIcon } from '../icons/CompletionIcon'
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import styles from './OccurrenceItem.module.css'
@@ -37,28 +38,6 @@ interface OccurrenceItemProps {
   readonly onDragEnd?: () => void
   readonly onDragOverItem?: (event: DragEvent) => void
   readonly onDropOnItem?: (id: string) => void
-}
-
-function CompletionIcon() {
-  return (
-    <svg
-      className={styles.completionIcon}
-      viewBox="0 0 16 16"
-      width="16"
-      height="16"
-      role="img"
-      aria-label="Completed"
-    >
-      <path
-        d="M3 8.5l3 3 7-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
 }
 
 function GripIcon() {

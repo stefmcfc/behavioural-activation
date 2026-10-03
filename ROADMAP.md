@@ -75,7 +75,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Weekly Summary visual refinements (segmented completion bar, lite grid/bucket view, location × category breakdown chart) | — (frontend-only) | [`frontend_spec_037_weekly_summary_visualizations.md`](.claude/specs/frontend_spec_037_weekly_summary_visualizations.md) | Not started. Colourblind-conscious: status (completed/not) is an opacity modulation of each occurrence's own category colour, never a new red/green hue; category identity in the breakdown chart never relies on hue alone since category colours are user-customizable and not guaranteed distinct. |
+| Weekly Summary visual refinements (segmented completion bar, lite grid/bucket view, location × category breakdown chart) | — (frontend-only) | [`frontend_spec_037_weekly_summary_visualizations.md`](.claude/specs/frontend_spec_037_weekly_summary_visualizations.md) | All 15 `[AUTO]` ACs implemented and green (`npm test`/`npm run lint`/`tsc --noEmit` all clean); the 5 `[MANUAL]` real-browser ACs (Light/Dark legibility, monochrome-colour readability, keyboard-tooltip parity, white/black-colour visibility, shared-colour edge case) still pending a real-browser verification pass. Colourblind-conscious: status (completed/not) is an opacity modulation of each occurrence's own category colour, never a new red/green hue; category identity in the breakdown chart never relies on hue alone since category colours are user-customizable and not guaranteed distinct. |
 
 ## Internal / maintenance specs
 

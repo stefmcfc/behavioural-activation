@@ -1,6 +1,12 @@
 # Weekly Summary Page Visual Refinements (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03) — all 15 `[AUTO]` ACs built and green: the segmented
+completion bar, lite weekly grid + lite bucket list, and location × category breakdown chart all
+render in `WeeklySummary.tsx`, backed by a new shared `CompletionMark` component, an extracted
+`CompletionIcon`, and `weeklySummaryStats.ts`'s new `byLocation` breakdown. `npm test` (542 passed),
+`npm run lint` (clean), and `npx tsc -b --noEmit` (clean) all pass. The 5 `[MANUAL]` real-browser
+ACs (`AC-15`/`AC-16`/`AC-17`/`AC-19`/`AC-20`'s browser portion) are still unchecked, pending a
+real-browser verification pass.
 **Priority**: P2 — V1 polish, refining the just-shipped `frontend_spec_036`
 **Depends on**: `frontend_spec_036_weekly_summary.md` (origin of `WeeklySummary.tsx`,
 `weeklySummaryStats.ts`'s `computeStats`, this page and its existing plain-text stats, kept
@@ -463,23 +469,23 @@ manually, per their own statements, in a real browser.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-037-AC-01 — completion bar renders one block per occurrence
-- [ ] FRONTEND-037-AC-02 — completed blocks render before not-completed blocks
-- [ ] FRONTEND-037-AC-03 — block colour/opacity/icon reflects category + completion state
-- [ ] FRONTEND-037-AC-04 — each mark's `aria-label` carries name, day/slot or bucket, and status
-- [ ] FRONTEND-037-AC-05 — a zero-occurrence week renders no completion bar
-- [ ] FRONTEND-037-AC-06 — lite grid covers all 7 days × 3 slots, no interactive controls
-- [ ] FRONTEND-037-AC-07 — each cell renders one circle per scheduled occurrence, wrapping as needed
-- [ ] FRONTEND-037-AC-08 — lite bucket list renders bucket occurrences as ordered circles
-- [ ] FRONTEND-037-AC-09 — empty cells/bucket render no placeholder
-- [ ] FRONTEND-037-AC-10 — `byLocation` breakdown computed correctly per location × category
-- [ ] FRONTEND-037-AC-11 — three stacked bars, length proportional to each location's total
-- [ ] FRONTEND-037-AC-12 — segments always in fixed order, separated by a visible surface gap
-- [ ] FRONTEND-037-AC-13 — every segment carries a direct text label, never tooltip-only
-- [ ] FRONTEND-037-AC-14 — one shared legend, not per-bar
+- [x] FRONTEND-037-AC-01 — completion bar renders one block per occurrence
+- [x] FRONTEND-037-AC-02 — completed blocks render before not-completed blocks
+- [x] FRONTEND-037-AC-03 — block colour/opacity/icon reflects category + completion state
+- [x] FRONTEND-037-AC-04 — each mark's `aria-label` carries name, day/slot or bucket, and status
+- [x] FRONTEND-037-AC-05 — a zero-occurrence week renders no completion bar
+- [x] FRONTEND-037-AC-06 — lite grid covers all 7 days × 3 slots, no interactive controls
+- [x] FRONTEND-037-AC-07 — each cell renders one circle per scheduled occurrence, wrapping as needed
+- [x] FRONTEND-037-AC-08 — lite bucket list renders bucket occurrences as ordered circles
+- [x] FRONTEND-037-AC-09 — empty cells/bucket render no placeholder
+- [x] FRONTEND-037-AC-10 — `byLocation` breakdown computed correctly per location × category
+- [x] FRONTEND-037-AC-11 — three stacked bars, length proportional to each location's total
+- [x] FRONTEND-037-AC-12 — segments always in fixed order, separated by a visible surface gap
+- [x] FRONTEND-037-AC-13 — every segment carries a direct text label, never tooltip-only
+- [x] FRONTEND-037-AC-14 — one shared legend, not per-bar
 - [ ] FRONTEND-037-AC-15 — all three visualizations legible in Light and Dark (real-browser check)
 - [ ] FRONTEND-037-AC-16 — breakdown chart stays readable under monochrome category colours (real-browser check)
 - [ ] FRONTEND-037-AC-17 — keyboard focus reveals the same detail as mouse hover (real-browser check)
-- [ ] FRONTEND-037-AC-18 — every mark has a visible border regardless of fill colour
+- [x] FRONTEND-037-AC-18 — every mark has a visible border regardless of fill colour
 - [ ] FRONTEND-037-AC-19 — white (Light)/black (Dark) category colours still render visible marks, especially not-completed (real-browser check)
 - [ ] FRONTEND-037-AC-20 — two categories sharing one colour still resolve correctly per-occurrence and stay visually separated in the breakdown chart (real-browser check)
