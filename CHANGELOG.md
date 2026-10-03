@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-03
+
 ### Added
 
 - The Weekly Planner now has a collapsible "Filters" control for narrowing the view by category or
