@@ -8,8 +8,10 @@ rate, per-category Routine/Necessary/Pleasurable breakdown, scheduled-vs-bucket 
 client-side by a new `computeStats` helper (`WeeklySummary/weeklySummaryStats.ts`) from
 `planApi.getWeek`'s existing response — no backend change. 526/526 Vitest tests pass (513 baseline
 + 13 new: 2 `WeekNav.test.tsx`, 6 `WeeklySummary.test.tsx`, 3 `TabNav.test.tsx`, 2 `App.test.tsx`),
-`npm run lint` (oxlint) clean, `tsc -b --noEmit` clean. `FRONTEND-036-AC-13` (real-browser Light/
-Dark check) left unchecked, to be verified separately.
+`npm run lint` (oxlint) clean, `tsc -b --noEmit` clean. `FRONTEND-036-AC-13` verified in a real
+browser: a realistic mixed-category/completion week rendered correctly in both Light and Dark;
+separately confirmed `WeeklySummary`'s own week navigation is fully independent of `WeeklyPlanner`'s
+— stepping Summary forward a week left the Weekly Planner tab showing its own, unrelated week.
 **Priority**: P2 — V1 polish, new top-level view
 **Depends on**: `frontend_spec_005_navigation_and_theme.md` (`TabNav.tsx`'s `TABS` array,
 `App.tsx`'s route table pattern this spec's new tab/route follows), `frontend_spec_004_week_
@@ -377,4 +379,4 @@ manually, per its own statement, in both Light and Dark.
 - [x] FRONTEND-036-AC-10 — empty week shows a plain neutral-language empty-state message
 - [x] FRONTEND-036-AC-11 — loading state shown while a fetch is in flight
 - [x] FRONTEND-036-AC-12 — fetch failure shows an error with a working Retry control
-- [ ] FRONTEND-036-AC-13 — visually correct in Light and Dark (real-browser check)
+- [x] FRONTEND-036-AC-13 — visually correct in Light and Dark (real-browser check)
