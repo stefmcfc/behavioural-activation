@@ -1,5 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { getGridOrientation, setGridOrientation } from './gridOrientation'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  getGridOrientation,
+  setGridOrientation,
+  subscribeToGridOrientationChanges,
+} from './gridOrientation'
 
 const STORAGE_KEY = 'bap-grid-orientation'
 
@@ -33,6 +37,28 @@ describe('utils/gridOrientation', () => {
     it('writes "day-columns" to localStorage', () => {
       setGridOrientation('day-columns')
       expect(localStorage.getItem(STORAGE_KEY)).toBe('day-columns')
+    })
+  })
+
+  describe('FRONTEND-034-AC-01: setGridOrientation notifies subscribers', () => {
+    it('calls a subscribed listener when the orientation changes', () => {
+      const listener = vi.fn()
+      const unsubscribe = subscribeToGridOrientationChanges(listener)
+
+      setGridOrientation('day-rows')
+
+      expect(listener).toHaveBeenCalledTimes(1)
+      unsubscribe()
+    })
+
+    it('stops notifying after unsubscribe', () => {
+      const listener = vi.fn()
+      const unsubscribe = subscribeToGridOrientationChanges(listener)
+      unsubscribe()
+
+      setGridOrientation('day-rows')
+
+      expect(listener).not.toHaveBeenCalled()
     })
   })
 })

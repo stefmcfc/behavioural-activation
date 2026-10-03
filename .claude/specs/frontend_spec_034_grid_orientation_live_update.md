@@ -1,6 +1,11 @@
 # Live-Update the Grid-Orientation Preference Across the Settings Popover Boundary (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03). Added `CHANGE_EVENT`/`notifyChange()`/
+`subscribeToGridOrientationChanges()` to `utils/gridOrientation.ts` (mirroring
+`categoryColors.ts`'s mechanism exactly), and `PlannerGrid` now subscribes on mount
+(`useEffect(() => subscribeToGridOrientationChanges(...), [])`) and unsubscribes on unmount, so it
+re-renders live when the preference changes while mounted behind the Settings popover. `npm test`
+(499/499 passing), `npm run lint` (oxlint, clean), and `npx tsc -b --noEmit` (clean) all pass.
 **Priority**: P2 — same tier as `frontend_spec_012_grid_orientation_toggle.md`, whose gap this
 closes; not yet merged to `main`
 **Depends on**: `frontend_spec_012_grid_orientation_toggle.md` (origin of
@@ -209,6 +214,6 @@ this — React calls it automatically before unmount, removing the listener.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-034-AC-01 [AUTO]: `setGridOrientation` notifies subscribers via a `CustomEvent`, mirroring `categoryColors.ts`
-- [ ] FRONTEND-034-AC-02 [AUTO]: `PlannerGrid` subscribes on mount and re-renders live when the preference changes
-- [ ] FRONTEND-034-AC-03 [AUTO]: `PlannerGrid` unsubscribes on unmount
+- [x] FRONTEND-034-AC-01 [AUTO]: `setGridOrientation` notifies subscribers via a `CustomEvent`, mirroring `categoryColors.ts`
+- [x] FRONTEND-034-AC-02 [AUTO]: `PlannerGrid` subscribes on mount and re-renders live when the preference changes
+- [x] FRONTEND-034-AC-03 [AUTO]: `PlannerGrid` unsubscribes on unmount

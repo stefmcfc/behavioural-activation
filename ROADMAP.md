@@ -65,6 +65,7 @@ spec-tidying effort this came out of).
 | Frontend button visual hierarchy (primary/destructive) | — (frontend-only) | [`frontend_spec_031_button_hierarchy.md`](.claude/specs/frontend_spec_031_button_hierarchy.md) | ✅ Implemented (2026-10-02). New `primary`/`destructive` CSS Module variant classes applied to each screen's headline action and the Activity/Sub-task delete flows; everything else keeps today's uniform treatment; contrast verified ≥4.5:1 in both themes in a real browser. |
 | Collapsible filters in the activity picker | — (frontend-only) | [`frontend_spec_032_collapsible_filters.md`](.claude/specs/frontend_spec_032_collapsible_filters.md) | ✅ Implemented (2026-10-02). One `<details>`/`<summary>` disclosure wrapping all three filters (category/type/favourite), closed by default, in `ActivityPickerList` — fixes both the Weekly Planner's Add modal and Today's Browse activities drawer at once; verified in a real browser. |
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | ✅ Implemented (2026-10-03). New `utils/gridOrientation.ts` + Settings fieldset for an alternate "each day as its own section" `PlannerGrid` layout, read via `useState(() => getGridOrientation())` with no `main.tsx` change; today-highlight shared across both orientations; verified in a real browser in both Light and Dark. |
+| Live-update the grid-orientation preference across the Settings popover boundary (bug fix, found verifying `frontend_spec_012`) | — (frontend-only) | [`frontend_spec_034_grid_orientation_live_update.md`](.claude/specs/frontend_spec_034_grid_orientation_live_update.md) | ✅ Implemented (2026-10-03). `utils/gridOrientation.ts` now dispatches a `CustomEvent` on change (mirroring `categoryColors.ts`); `PlannerGrid` subscribes on mount and unsubscribes on unmount, so the Settings popover's layout toggle applies live, no reload/remount needed. |
 
 ## Specced, coming soon
 
@@ -72,7 +73,6 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Live-update the grid-orientation preference across the Settings popover boundary (bug fix, found verifying `frontend_spec_012`) | — (frontend-only) | [`frontend_spec_034_grid_orientation_live_update.md`](.claude/specs/frontend_spec_034_grid_orientation_live_update.md) | Not started. Building on the same not-yet-merged `feature/grid-orientation-toggle` branch as `frontend_spec_012`. |
 
 ## Internal / maintenance specs
 

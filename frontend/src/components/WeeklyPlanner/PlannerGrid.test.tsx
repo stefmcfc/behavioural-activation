@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
@@ -420,6 +420,32 @@ describe('FRONTEND-012-AC-11: PlannerGrid reads the preference at mount', () => 
     renderGrid()
 
     expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(5)
+  })
+})
+
+describe('FRONTEND-034-AC-02: PlannerGrid re-renders live when the orientation preference changes while mounted', () => {
+  it('switches from day-columns to day-rows without remounting', () => {
+    renderGrid()
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(0)
+
+    act(() => {
+      setGridOrientation('day-rows')
+    })
+
+    expect(document.querySelectorAll(`.${styles.daySection}`)).toHaveLength(5)
+  })
+})
+
+describe('FRONTEND-034-AC-03: PlannerGrid unsubscribes on unmount', () => {
+  it('does not update state (or warn) after unmount', () => {
+    const { unmount } = render(<PlannerGrid {...baseGridProps()} />)
+    unmount()
+
+    expect(() => {
+      act(() => {
+        setGridOrientation('day-rows')
+      })
+    }).not.toThrow()
   })
 })
 

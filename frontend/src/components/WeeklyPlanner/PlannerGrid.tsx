@@ -1,9 +1,9 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, parseWeekStart } from './planLabels'
-import { getGridOrientation } from '../../utils/gridOrientation'
+import { getGridOrientation, subscribeToGridOrientationChanges } from '../../utils/gridOrientation'
 import styles from './PlannerGrid.module.css'
 
 function getDayDate(weekStart: string, day: PlanDayOfWeek): number {
@@ -85,7 +85,12 @@ export function PlannerGrid({
   onDragEnd,
   onAssignFromDrawer,
 }: PlannerGridProps) {
-  const [orientation] = useState(() => getGridOrientation())
+  const [orientation, setOrientation] = useState(() => getGridOrientation())
+
+  useEffect(
+    () => subscribeToGridOrientationChanges(() => setOrientation(getGridOrientation())),
+    [],
+  )
 
   const scheduled = occurrences.filter(
     (occurrence) => occurrence.dayOfWeek !== null && occurrence.slot !== null,
