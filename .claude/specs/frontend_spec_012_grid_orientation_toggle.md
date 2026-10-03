@@ -3,9 +3,11 @@
 **Status**: Implemented (2026-10-03). `utils/gridOrientation.ts`, the `Settings` fieldset, and
 `PlannerGrid`'s day-rows branch are all in place against the real current `PlannerGrid.tsx` (post-
 `frontend_spec_015`/`024`/`025`/`026`/`028`/`016`/`008`), not the stale sketch this spec originally
-shipped with — see the amended "Component/type changes" section below. All ACs except the manual
-`FRONTEND-012-AC-13` (real-browser check) are satisfied; `npm test` (495/495), `npm run lint`
-(oxlint, clean), and `tsc -b --noEmit` all pass.
+shipped with — see the amended "Component/type changes" section below. All ACs including the manual
+`FRONTEND-012-AC-13` are satisfied; `npm test` (495/495), `npm run lint` (oxlint, clean), and
+`tsc -b --noEmit` all pass. `AC-13` verified in a real browser (Weekdays and Weekend views, Light
+and Dark) — today-highlight (Saturday, the real current date) renders correctly on both the
+day-section heading and its slot cells in day-rows, in both themes.
 **Priority**: P2 — same tier as the sibling Weekly Planner UX specs (`frontend_spec_008`–`011`),
 but raised independently of that "too much noise" batch; doesn't block V2 backend work.
 **Depends on**: `frontend_spec_004_week_planning.md` (origin of `PlannerGrid`/`WeeklyPlanner`),
@@ -574,4 +576,4 @@ note.
 - [x] FRONTEND-012-AC-10 — `PlannerGrid` reads the orientation via `useState` at mount, no `main.tsx` change
 - [x] FRONTEND-012-AC-11 — a preference change is reflected on the next `/planner` mount, no reload needed
 - [x] FRONTEND-012-AC-12 — today-highlight applies via one shared class, consistent in both orientations
-- [ ] FRONTEND-012-AC-13 — day-rows layout visually correct in Light and Dark (real-browser check)
+- [x] FRONTEND-012-AC-13 — day-rows layout visually correct in Light and Dark (real-browser check)
