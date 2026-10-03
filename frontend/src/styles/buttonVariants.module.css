@@ -10,6 +10,12 @@
 }
 
 .primary:hover {
+  /* Re-assert background/color: the global `button:hover` rule (index.css) sets
+     `background: var(--code-bg)` and would otherwise win here (it declares `background`, this
+     rule previously didn't), leaving `.primary`'s `color: var(--accent-ink)` paired against the
+     wrong background -- white-on-near-white in Light, near-black-on-near-black in Dark. */
+  background: var(--accent);
+  color: var(--accent-ink);
   box-shadow:
     rgba(43, 42, 40, 0.1) 0 2px 4px, rgba(43, 42, 40, 0.28) 0 6px 14px -6px;
 }
@@ -21,6 +27,9 @@
 }
 
 .destructive:hover {
+  /* Same fix as .primary:hover above. */
+  background: var(--error);
+  color: var(--error-ink);
   box-shadow:
     rgba(43, 42, 40, 0.1) 0 2px 4px, rgba(43, 42, 40, 0.28) 0 6px 14px -6px;
 }
