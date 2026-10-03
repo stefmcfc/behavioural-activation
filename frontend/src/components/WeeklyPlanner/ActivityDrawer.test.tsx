@@ -26,10 +26,12 @@ describe('FRONTEND-016-AC-10: the "Browse activities" drawer', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
   })
 
   it('renders a labelled complementary panel with ActivityPickerList in drag mode', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityDrawer {...drawerProps()} />)
 
     expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
@@ -38,6 +40,7 @@ describe('FRONTEND-016-AC-10: the "Browse activities" drawer', () => {
   it('renders a close control that calls onClose', async () => {
     const onClose = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityDrawer {...drawerProps({ onClose })} />)
 
     await userEvent.click(screen.getByRole('button', { name: /close/i }))
@@ -52,6 +55,7 @@ describe('FRONTEND-032-AC-05: the drawer shows the collapsed Filters disclosure'
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
   })
 
   it('shows the Filters disclosure collapsed by default', async () => {
@@ -68,7 +72,7 @@ describe('FRONTEND-032-AC-05: the drawer shows the collapsed Filters disclosure'
         subTaskCount: 0,
       },
     ])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityDrawer {...drawerProps()} />)
 
     const disclosure = (await screen.findByText('Filters')).closest('details')!

@@ -83,22 +83,23 @@ export function ActivityPickerList({
   useEffect(() => {
     let cancelled = false
 
-    activityApi
-      .getAll()
-      .then(async (fetchedActivities) => {
+    // FRONTEND-033-AC-02/AC-03: activityApi.getAll() and subTaskApi.getAllForOwner() are fetched in
+    // parallel -- there's no data dependency between them, since the bulk sub-task endpoint isn't
+    // scoped by activity id -- then the flat sub-task list is grouped by activityId client-side,
+    // replacing the previous one-subTaskApi.getAll()-call-per-activity fan-out.
+    Promise.all([activityApi.getAll(), subTaskApi.getAllForOwner()])
+      .then(([fetchedActivities, allSubTasks]) => {
         if (cancelled) return
-        setActivities(fetchedActivities)
 
-        const entries = await Promise.all(
-          fetchedActivities.map((activity) =>
-            subTaskApi
-              .getAll(activity.id)
-              .then((subTasks) => [activity.id, subTasks] as const),
-          ),
+        const grouped: Record<string, SubTask[]> = Object.fromEntries(
+          fetchedActivities.map((activity) => [activity.id, [] as SubTask[]]),
         )
-        if (!cancelled) {
-          setSubTasksByActivity(Object.fromEntries(entries))
+        for (const subTask of allSubTasks) {
+          ;(grouped[subTask.activityId] ??= []).push(subTask)
         }
+
+        setActivities(fetchedActivities)
+        setSubTasksByActivity(grouped)
       })
       .catch((error: unknown) => {
         if (!cancelled) {

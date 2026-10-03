@@ -7,6 +7,13 @@ export const subTaskApi = {
       client.get(`/activities/${activityId}/sub-tasks`),
     ).then((r) => r.data),
 
+  // FRONTEND-033-AC-01: every sub-task owned by the authenticated user, across all their
+  // activities, in one call -- used by ActivityPickerList to avoid an N+1 per-activity fan-out.
+  getAllForOwner: (): Promise<SubTask[]> =>
+    request<{ data: SubTask[]; count: number }>(() => client.get('/sub-tasks')).then(
+      (r) => r.data,
+    ),
+
   create: (activityId: string, input: SubTaskInput): Promise<SubTask> =>
     request<SubTask>(() => client.post(`/activities/${activityId}/sub-tasks`, input)),
 

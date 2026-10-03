@@ -1,6 +1,6 @@
 # Bulk Sub-task Fetch Endpoint (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03)
 **Priority**: P2 — performance/scale, paired with `planner_spec_018_bulk_sub_task_fetch.md`
 (**must be implemented first** — this spec consumes its new `GET /api/v1/sub-tasks` endpoint).
 **Depends on**: `planner_spec_018_bulk_sub_task_fetch.md` (the new endpoint this spec consumes),
@@ -8,6 +8,41 @@
 modified here, shared unmodified by `AssignActivityPicker`/`ActivityDrawer`)
 **Area**: Frontend only — no new UI, this is purely a fetch-strategy change
 **Roadmap version**: V1 polish / internal — a performance fix, not a new capability
+
+## Summary
+
+All 5 ACs implemented and verified. `subTaskApi.ts` gained `getAllForOwner(): Promise<SubTask[]>`,
+calling `GET /sub-tasks` and unwrapping the `{ data, count }` envelope via the same `request()`
+wrapper every other method in the file uses. `ActivityPickerList.tsx`'s mount effect now issues
+`Promise.all([activityApi.getAll(), subTaskApi.getAllForOwner()])` instead of fetching activities
+first and then fanning out one `subTaskApi.getAll(activityId)` call per activity — the two calls have
+no data dependency, so they run in parallel. The flat `SubTask[]` response is grouped into
+`Record<string, SubTask[]>` client-side: every fetched activity seeds an empty array first (so a
+zero-sub-task activity maps to `[]`, not an absent key, matching pre-existing behavior exactly), then
+each sub-task is pushed onto its `activityId`'s bucket.
+
+Total requests on mount dropped from `1 + N` to a constant `2`, confirmed via mock call-count
+assertions in `ActivityPickerList.test.tsx` (`activityApi.getAll` called once, `subTaskApi.getAllForOwner`
+called once, `subTaskApi.getAll` — the old per-activity method — never called).
+
+**Test fallout beyond the spec's named three files**: `AssignActivityPicker.test.tsx` and
+`ActivityDrawer.test.tsx` (the two consumers explicitly named in AC-05) had every
+`vi.mocked(subTaskApi.getAll)` mock setup switched to `vi.mocked(subTaskApi.getAllForOwner)`, with no
+assertion changes, as specified. Two additional files not named in the spec —
+`WeeklyPlanner.test.tsx` and `TodayView.test.tsx` — also needed the same mock-setup fix: both render
+`ActivityPickerList` indirectly (via the assign picker / browse drawer) and several of their tests
+mocked only `activityApi.getAll` with an empty array, relying on the old implementation's behavior of
+never calling `subTaskApi.getAll` when there were zero activities to fan out over. Since the new
+implementation calls `subTaskApi.getAllForOwner()` unconditionally (not gated on activity count), an
+auto-mocked, unconfigured `getAllForOwner()` resolved to `undefined`, and the component's grouping
+loop threw `TypeError: allSubTasks is not iterable` — caught by the component's own existing
+error-handling path and surfaced as an alert, which broke the small number of tests that asserted on
+the picker's actual contents (not just its structural presence). Fixed by defaulting
+`subTaskApi.getAllForOwner` to `mockResolvedValue([])` in each file's top-level `beforeEach`, plus
+updating the few explicit per-test overrides. No test assertions changed in either file — same
+treatment as AC-05, just a wider blast radius than the spec anticipated.
+
+Full suite: 480 tests, 0 failures. `npm run lint` (oxlint): clean, 0 issues.
 
 ## Overview
 
@@ -168,8 +203,10 @@ new test cases.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-033-AC-01 — `subTaskApi` gains a bulk `getAllForOwner()` method
-- [ ] FRONTEND-033-AC-02 — `ActivityPickerList` calls the bulk endpoint instead of fanning out per activity
-- [ ] FRONTEND-033-AC-03 — exactly two requests issued, regardless of activity count
-- [ ] FRONTEND-033-AC-04 — `subTasksByActivity`'s grouping is identical to today's result
-- [ ] FRONTEND-033-AC-05 — every existing test passes, with mocks updated for the new fetch shape
+- [x] FRONTEND-033-AC-01 — `subTaskApi` gains a bulk `getAllForOwner()` method
+- [x] FRONTEND-033-AC-02 — `ActivityPickerList` calls the bulk endpoint instead of fanning out per activity
+- [x] FRONTEND-033-AC-03 — exactly two requests issued, regardless of activity count
+- [x] FRONTEND-033-AC-04 — `subTasksByActivity`'s grouping is identical to today's result
+- [x] FRONTEND-033-AC-05 — every existing test passes, with mocks updated for the new fetch shape
+      (plus `WeeklyPlanner.test.tsx`/`TodayView.test.tsx`, not named in the original AC text — see
+      Summary)

@@ -42,6 +42,18 @@ const sendInvitations: SubTask = {
   createdAt: '2026-09-01T00:00:00Z',
 }
 
+const jobs: Activity = {
+  id: 'activity-3',
+  name: 'Apply for jobs',
+  category: 'NECESSARY',
+  description: null,
+  repeatable: false,
+  archived: false,
+  favourite: false,
+  createdAt: '2026-09-01T00:00:00Z',
+  subTaskCount: 0,
+}
+
 const noop = () => {}
 
 function dragProps(
@@ -64,11 +76,12 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
   })
 
   it('AC-06: rows are draggable with no select button', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityPickerList {...dragProps()} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
@@ -78,7 +91,7 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
 
   it('AC-06: a sub-task row is also draggable with no select button', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([party])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
     render(<ActivityPickerList {...dragProps()} />)
 
     const row = (await screen.findByText('Send invitations')).closest('li')!
@@ -90,7 +103,7 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
     const onDragStartActivity = vi.fn()
     const onDragStartSubTask = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityPickerList {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
@@ -104,7 +117,7 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
     const onDragStartActivity = vi.fn()
     const onDragStartSubTask = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([party])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
     render(<ActivityPickerList {...dragProps({ onDragStartActivity, onDragStartSubTask })} />)
 
     const row = (await screen.findByText('Send invitations')).closest('li')!
@@ -117,7 +130,7 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
   it('AC-08: a dragend with no drop resets the shared drag state', async () => {
     const onDragEnd = vi.fn()
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityPickerList {...dragProps({ onDragEnd })} />)
 
     const row = (await screen.findByText('Go for a walk')).closest('li')!
@@ -129,9 +142,7 @@ describe('FRONTEND-028: ActivityPickerList in drag mode is drag-only', () => {
 
   it('AC-09: the category filter hides a non-matching activity the same as select mode does', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk, party])
-    vi.mocked(subTaskApi.getAll).mockImplementation((activityId) =>
-      Promise.resolve(activityId === 'activity-2' ? [sendInvitations] : []),
-    )
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
     render(<ActivityPickerList {...dragProps()} />)
 
     await screen.findByText('Go for a walk')
@@ -160,11 +171,12 @@ describe('FRONTEND-032-AC-01/AC-02: filters live inside one collapsed-by-default
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
   })
 
   it('AC-01: the Filters disclosure is collapsed on initial render', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityPickerList {...dragProps()} />)
 
     await screen.findByText('Go for a walk')
@@ -175,7 +187,7 @@ describe('FRONTEND-032-AC-01/AC-02: filters live inside one collapsed-by-default
 
   it('AC-02: activating the summary opens the disclosure and reveals all three fieldsets together', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     render(<ActivityPickerList {...dragProps()} />)
 
     await screen.findByText('Go for a walk')
@@ -191,7 +203,7 @@ describe('FRONTEND-032-AC-01/AC-02: filters live inside one collapsed-by-default
 
   it('AC-07: filter state resets to All on a fresh mount', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([])
-    vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
     const { unmount } = render(<ActivityPickerList {...dragProps()} />)
     unmount()
 
@@ -201,5 +213,53 @@ describe('FRONTEND-032-AC-01/AC-02: filters live inside one collapsed-by-default
 
     const categoryGroup = screen.getByRole('group', { name: /category/i })
     expect(within(categoryGroup).getByRole('radio', { name: 'All' })).toBeChecked()
+  })
+})
+
+// frontend_spec_033_bulk_sub_task_fetch.md: ActivityPickerList fetches every sub-task in one bulk
+// call (subTaskApi.getAllForOwner()) in parallel with activityApi.getAll(), rather than fanning out
+// one subTaskApi.getAll(activityId) call per activity.
+describe('FRONTEND-033-AC-02/AC-03/AC-04: bulk fetch replaces the per-activity fan-out', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('AC-03: issues exactly two API calls regardless of activity count', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk, party, jobs])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+
+    render(
+      <ActivityPickerList
+        mode="select"
+        selected={null}
+        onSelectActivity={vi.fn()}
+        onSelectSubTask={vi.fn()}
+      />,
+    )
+    await screen.findByText(walk.name)
+
+    expect(activityApi.getAll).toHaveBeenCalledTimes(1)
+    expect(subTaskApi.getAllForOwner).toHaveBeenCalledTimes(1)
+    expect(subTaskApi.getAll).not.toHaveBeenCalled()
+  })
+
+  it('AC-04: groups the flat sub-task list by activityId, including an empty array for an activity with none', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk, party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations]) // walk has zero sub-tasks
+
+    render(
+      <ActivityPickerList
+        mode="select"
+        selected={null}
+        onSelectActivity={vi.fn()}
+        onSelectSubTask={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByText(sendInvitations.name)).toBeInTheDocument()
+    // walk renders with no sub-task rows beneath it, not an error/missing-key crash
+    expect(screen.getByText(walk.name)).toBeInTheDocument()
   })
 })

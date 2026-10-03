@@ -69,6 +69,11 @@ describe('WeeklyPlanner', () => {
     vi.mocked(planApi.reorderBucket).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    // Default to an empty bulk sub-task response for every test -- ActivityPickerList (reached via
+    // the assign picker/browse drawer) now always calls subTaskApi.getAllForOwner() unconditionally
+    // (frontend_spec_033), even when a test only cares about activityApi.getAll's result. Individual
+    // tests below override this with their own mockResolvedValue where sub-task content matters.
+    vi.mocked(subTaskApi.getAllForOwner).mockReset().mockResolvedValue([])
     // Most tests in this file don't care what day "today" is, but WeeklyPlanner.tsx's
     // getDefaultGridTab() picks WEEKEND over WEEKDAYS whenever the real system clock lands on a
     // Saturday/Sunday -- without this, every test below that renders a Monday-Friday occurrence
@@ -254,7 +259,7 @@ describe('WeeklyPlanner', () => {
           subTaskCount: 0,
         },
       ])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       vi.mocked(planApi.create).mockResolvedValue(walk)
       render(<WeeklyPlanner />)
@@ -284,7 +289,7 @@ describe('WeeklyPlanner', () => {
           subTaskCount: 0,
         },
       ])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([
         { id: 's1', activityId: 'a1', name: 'Send invites', category: 'PLEASURABLE', createdAt: '2026-09-01T00:00:00Z' },
       ])
       vi.mocked(planApi.getWeek).mockResolvedValue([])
@@ -510,7 +515,7 @@ describe('WeeklyPlanner', () => {
           subTaskCount: 0,
         },
       ])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       vi.mocked(planApi.create).mockRejectedValue(new ApiError(500, 'Server error'))
       render(<WeeklyPlanner />)

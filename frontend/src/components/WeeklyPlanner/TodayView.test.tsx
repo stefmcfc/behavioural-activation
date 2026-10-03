@@ -56,6 +56,10 @@ describe('TodayView', () => {
     vi.mocked(planApi.complete).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    // Default to an empty bulk sub-task response -- ActivityPickerList (reached via the "Browse
+    // activities" drawer) now always calls subTaskApi.getAllForOwner() unconditionally
+    // (frontend_spec_033), even when a test only cares about activityApi.getAll's result.
+    vi.mocked(subTaskApi.getAllForOwner).mockReset().mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -191,7 +195,7 @@ describe('TodayView', () => {
       vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       vi.mocked(activityApi.getAll).mockResolvedValue([drawerActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       vi.mocked(planApi.create).mockResolvedValue({
         ...wednesdayOccurrence,
         id: 'new-occ',
