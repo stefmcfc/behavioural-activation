@@ -79,12 +79,13 @@ describe('AssignActivityPicker', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
   })
 
   describe('FRONTEND-006-AC-12: never fetches with includeArchived (regression guard)', () => {
     it('calls activityApi.getAll with no arguments', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await waitFor(() => expect(activityApi.getAll).toHaveBeenCalledWith())
@@ -94,7 +95,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-009-AC-24: each activity and sub-task shows its category', () => {
     it('renders a CategoryChip next to the activity and its sub-task', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([party])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Organise a leaving party' })
@@ -108,7 +109,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-022-AC-01: shows the repeatable icon for a repeatable activity row', () => {
     it('renders RepeatableIcon next to the CategoryChip for a repeatable activity', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
@@ -121,7 +122,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-022-AC-02: shows no repeatable icon for a one-off activity row', () => {
     it('renders no RepeatableIcon for a one-off activity', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Apply for jobs' })
@@ -134,7 +135,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-022-AC-03: never shows the repeatable icon on a sub-task row, even when its parent activity is repeatable', () => {
     it('renders no RepeatableIcon on a sub-task row whose parent activity is repeatable', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([party])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
@@ -147,7 +148,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-022-AC-04: never shows the repeatable icon on a sub-task row when its parent activity is one-off', () => {
     it('renders no RepeatableIcon for a sub-task whose parent activity is one-off', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([stepOne])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([stepOne])
       renderPicker()
 
       const subTaskButton = await screen.findByRole('button', { name: 'Step one' })
@@ -160,9 +161,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-009-AC-25/AC-26: filtering by category', () => {
     it('hides an activity whose own category and sub-tasks all fail to match', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk, party])
-      vi.mocked(subTaskApi.getAll).mockImplementation((activityId) =>
-        Promise.resolve(activityId === 'a2' ? [sendInvitations] : []),
-      )
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -176,7 +175,7 @@ describe('AssignActivityPicker', () => {
 
     it('keeps a non-matching activity visible if one of its sub-tasks matches the filter', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([party])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Organise a leaving party' })
@@ -190,7 +189,7 @@ describe('AssignActivityPicker', () => {
 
     it('shows "No activities match this category" when nothing matches', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -206,7 +205,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-009-AC-30: filtering by repeatable/one-off', () => {
     it('shows only repeatable activities when Repeatable is selected', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -220,7 +219,7 @@ describe('AssignActivityPicker', () => {
 
     it('shows only one-off activities when One-off is selected', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -234,7 +233,7 @@ describe('AssignActivityPicker', () => {
 
     it('combines the type filter with the category filter', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk, jobs])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -250,7 +249,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-027-AC-06: a favourited activity shows a read-only favourite indicator', () => {
     it('renders a FavouriteIcon with no click handler for a favourited activity', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, favourite: true }])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
@@ -260,7 +259,7 @@ describe('AssignActivityPicker', () => {
 
     it('renders no FavouriteIcon for a non-favourited activity', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...walk, favourite: false }])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
@@ -273,7 +272,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-027-AC-07: sub-task rows never show a favourite indicator', () => {
     it('renders no FavouriteIcon on a sub-task row, even when its parent activity is favourited', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...party, favourite: true }])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
@@ -288,7 +287,7 @@ describe('AssignActivityPicker', () => {
       const zebraFavourite: Activity = { ...walk, id: 'z1', name: 'Zebra', favourite: true }
       const appleActivity: Activity = { ...jobs, id: 'z2', name: 'Apple', favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([zebraFavourite, appleActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Zebra' })
@@ -301,7 +300,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-027-AC-13: renders a "Favourites only" filter, "All" selected by default', () => {
     it('renders a two-option pill group with "All" selected', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -317,7 +316,7 @@ describe('AssignActivityPicker', () => {
       const favouritedActivity: Activity = { ...walk, favourite: true }
       const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -332,7 +331,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-027-AC-15: a shown favourited activity\'s sub-tasks are unaffected by the filter', () => {
     it('still renders sub-tasks beneath a shown favourited activity', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([{ ...party, favourite: true }])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([sendInvitations])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Organise a leaving party' })
@@ -348,7 +347,7 @@ describe('AssignActivityPicker', () => {
       const favouritedActivity: Activity = { ...walk, favourite: true }
       const nonFavouritedActivity: Activity = { ...jobs, favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([favouritedActivity, nonFavouritedActivity])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByRole('button', { name: 'Go for a walk' })
@@ -365,7 +364,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-031-AC-15: regression guard -- selection-row buttons stay unstyled', () => {
     it('leaves an activity selection-row button with no variant class', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const activityButton = await screen.findByRole('button', { name: 'Go for a walk' })
@@ -377,7 +376,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-032-AC-04: the Filters disclosure is collapsed by default, with zero changes to AssignActivityPicker.tsx itself', () => {
     it('shows the Filters disclosure collapsed via its unmodified ActivityPickerList render', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       const disclosure = (await screen.findByText('Filters')).closest('details')!
@@ -388,7 +387,7 @@ describe('AssignActivityPicker', () => {
   describe('FRONTEND-031-AC-11: "Assign" button is primary; Cancel is not', () => {
     it('applies primary to Assign and no variant to Cancel', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([])
-      vi.mocked(subTaskApi.getAll).mockResolvedValue([])
+      vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
       renderPicker()
 
       await screen.findByText(/no activities yet/i)

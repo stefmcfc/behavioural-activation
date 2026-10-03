@@ -92,6 +92,29 @@ describe('subTaskApi', () => {
     expect(del).toHaveBeenCalledWith('/activities/a1/sub-tasks/s1')
   })
 
+  it('getAllForOwner() unwraps the {data, count} envelope and hits the flat route', async () => {
+    const subTaskA = {
+      id: 's1',
+      activityId: 'a1',
+      name: 'Create a guest list',
+      category: 'PLEASURABLE',
+      createdAt: '2026-09-29T00:00:00Z',
+    }
+    const subTaskB = {
+      id: 's2',
+      activityId: 'a2',
+      name: 'Send invitations',
+      category: 'PLEASURABLE',
+      createdAt: '2026-09-29T00:00:00Z',
+    }
+    get.mockResolvedValue({ data: { data: [subTaskA, subTaskB], count: 2 } })
+
+    const result = await subTaskApi.getAllForOwner()
+
+    expect(result).toEqual([subTaskA, subTaskB])
+    expect(get).toHaveBeenCalledWith('/sub-tasks')
+  })
+
   it('rejects with a typed ApiError on failure', async () => {
     get.mockRejectedValue({
       isAxiosError: true,

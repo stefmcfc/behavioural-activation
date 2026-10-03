@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskListResponse;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskRequest;
@@ -24,10 +23,18 @@ import uk.co.stefirby.behaviouralactivation.service.SubTaskService;
  * Thin delegate to {@link SubTaskService} -- owner-scoping (including parent-activity ownership)
  * enforced there, not here. Auth itself is inherited unmodified from {@code SecurityConfig}'s
  * existing {@code .requestMatchers("/api/v1/**").authenticated()} rule (PLANNER-003-AC-21).
+ *
+ * <p>Hosts both the nested, single-activity sub-task endpoints (unchanged since
+ * planner_spec_003_sub_tasks.md) and the bulk {@code GET /api/v1/sub-tasks} endpoint added by
+ * planner_spec_018_bulk_sub_task_fetch.md. The class-level {@code @RequestMapping} prefix the nested
+ * endpoints used to share has been moved onto each of their methods individually -- Spring doesn't
+ * support a method-level mapping "escaping" a class-level prefix, and the bulk endpoint has no single
+ * {@code activityId} to nest under (see that spec's Overview for the "option (a) vs (b)" choice).
  */
 @RestController
-@RequestMapping("/api/v1/activities/{activityId}/sub-tasks")
 public class SubTaskController {
+
+    private static final String NESTED_BASE_PATH = "/api/v1/activities/{activityId}/sub-tasks";
 
     private final SubTaskService subTaskService;
 
@@ -35,7 +42,7 @@ public class SubTaskController {
         this.subTaskService = subTaskService;
     }
 
-    @PostMapping
+    @PostMapping(NESTED_BASE_PATH)
     public ResponseEntity<SubTaskResponse> create(@PathVariable UUID activityId,
             @Valid @RequestBody SubTaskRequest request, Authentication authentication) {
         return subTaskService.create(authentication.getName(), activityId, request)
@@ -43,14 +50,14 @@ public class SubTaskController {
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping
+    @GetMapping(NESTED_BASE_PATH)
     public ResponseEntity<SubTaskListResponse> list(@PathVariable UUID activityId, Authentication authentication) {
         return subTaskService.listForActivity(authentication.getName(), activityId)
             .map(SubTaskController::toListResponse)
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(NESTED_BASE_PATH + "/{id}")
     public ResponseEntity<SubTaskResponse> update(@PathVariable UUID activityId, @PathVariable UUID id,
             @Valid @RequestBody SubTaskRequest request, Authentication authentication) {
         return subTaskService.update(authentication.getName(), activityId, id, request)
@@ -58,11 +65,18 @@ public class SubTaskController {
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping(NESTED_BASE_PATH + "/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID activityId, @PathVariable UUID id,
             Authentication authentication) {
         boolean deleted = subTaskService.delete(authentication.getName(), activityId, id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02/AC-03) -- every sub-task
+    // owned by the authenticated user, across all of their activities, in one call.
+    @GetMapping("/api/v1/sub-tasks")
+    public ResponseEntity<SubTaskListResponse> listAll(Authentication authentication) {
+        return toListResponse(subTaskService.listForOwner(authentication.getName()));
     }
 
     private static ResponseEntity<SubTaskListResponse> toListResponse(List<SubTask> subTasks) {

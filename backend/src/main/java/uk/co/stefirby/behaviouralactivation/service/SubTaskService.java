@@ -53,6 +53,16 @@ public class SubTaskService {
             .map(activity -> subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activityId, owner));
     }
 
+    // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02) -- every sub-task owned by
+    // the authenticated user, across all of their activities, in one call. Unlike
+    // listForActivity(...), there's no parent activityId to own-check first -- owner-scoping is
+    // the only scoping here, enforced entirely by SubTaskRepository#findByOwner.
+    @Transactional(readOnly = true)
+    public List<SubTask> listForOwner(String ownerUsername) {
+        User owner = resolveOwner(ownerUsername);
+        return subTaskRepository.findByOwner(owner);
+    }
+
     @Transactional
     public Optional<SubTask> update(String ownerUsername, UUID activityId, UUID id, SubTaskRequest request) {
         User owner = resolveOwner(ownerUsername);

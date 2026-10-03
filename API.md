@@ -125,6 +125,11 @@ activity's own category.
   authenticated user.
 - **`DELETE /api/v1/activities/{activityId}/sub-tasks/{id}`** — permanently deletes the sub-task.
   Returns `204`, or `404` if `activityId` or `id` isn't owned by the authenticated user.
+- **`GET /api/v1/sub-tasks`** — returns `200` with `{ "data": [...], "count": N }`, every sub-task
+  owned by the authenticated user across *all* of their activities, in one call (not nested under an
+  `activityId` — each item's `activityId` field identifies its parent). No filtering, pagination, or
+  ordering guarantee, matching `GET /api/v1/activities`'s own "return everything for this user"
+  shape. A user with no sub-tasks at all returns `{ "data": [], "count": 0 }`, not an error.
 
 No `GET /api/v1/activities/{activityId}/sub-tasks/{id}` single-item endpoint — the frontend renders
 and edits sub-tasks from the already-fetched list. Deleting an activity cascade-deletes its
