@@ -1,6 +1,15 @@
 # Weekly Summary Tab (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-03). New "Summary" tab/route (`WeeklySummary.tsx`) with its own
+independent week navigation, built on a new shared `WeekNav` component (`WeeklyPlanner/WeekNav.tsx`
++ `.module.css`) extracted from `WeeklyPlanner.tsx`'s previously-inline nav markup with no behavior
+change (its own 53-test suite passes unmodified). Stats (planned/completed totals + completion
+rate, per-category Routine/Necessary/Pleasurable breakdown, scheduled-vs-bucket split) computed
+client-side by a new `computeStats` helper (`WeeklySummary/weeklySummaryStats.ts`) from
+`planApi.getWeek`'s existing response — no backend change. 526/526 Vitest tests pass (513 baseline
++ 13 new: 2 `WeekNav.test.tsx`, 6 `WeeklySummary.test.tsx`, 3 `TabNav.test.tsx`, 2 `App.test.tsx`),
+`npm run lint` (oxlint) clean, `tsc -b --noEmit` clean. `FRONTEND-036-AC-13` (real-browser Light/
+Dark check) left unchecked, to be verified separately.
 **Priority**: P2 — V1 polish, new top-level view
 **Depends on**: `frontend_spec_005_navigation_and_theme.md` (`TabNav.tsx`'s `TABS` array,
 `App.tsx`'s route table pattern this spec's new tab/route follows), `frontend_spec_004_week_
@@ -356,16 +365,16 @@ manually, per its own statement, in both Light and Dark.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-036-AC-01 — `TabNav` gains a "Summary" tab after "Today"
-- [ ] FRONTEND-036-AC-02 — `App.tsx` gains a `/summary` route rendering `WeeklySummary`
-- [ ] FRONTEND-036-AC-03 — `WeeklySummary` defaults to the real current week on mount, independent of other components
-- [ ] FRONTEND-036-AC-04 — previous/next controls shift `weekStart` by ±7 days and refetch
-- [ ] FRONTEND-036-AC-05 — `WeekNav` extracted as a shared component, no behavior change
-- [ ] FRONTEND-036-AC-06 — `WeeklyPlanner.tsx` uses the extracted `WeekNav`, existing tests stay green unmodified
-- [ ] FRONTEND-036-AC-07 — `WeeklySummary` renders the same `WeekNav` for its own state
-- [ ] FRONTEND-036-AC-08 — fetches `planApi.getWeek(weekStart)` on mount and on `weekStart` change
-- [ ] FRONTEND-036-AC-09 — displays planned/completed totals, completion rate, category breakdown, scheduled-vs-bucket split
-- [ ] FRONTEND-036-AC-10 — empty week shows a plain neutral-language empty-state message
-- [ ] FRONTEND-036-AC-11 — loading state shown while a fetch is in flight
-- [ ] FRONTEND-036-AC-12 — fetch failure shows an error with a working Retry control
+- [x] FRONTEND-036-AC-01 — `TabNav` gains a "Summary" tab after "Today"
+- [x] FRONTEND-036-AC-02 — `App.tsx` gains a `/summary` route rendering `WeeklySummary`
+- [x] FRONTEND-036-AC-03 — `WeeklySummary` defaults to the real current week on mount, independent of other components
+- [x] FRONTEND-036-AC-04 — previous/next controls shift `weekStart` by ±7 days and refetch
+- [x] FRONTEND-036-AC-05 — `WeekNav` extracted as a shared component, no behavior change
+- [x] FRONTEND-036-AC-06 — `WeeklyPlanner.tsx` uses the extracted `WeekNav`, existing tests stay green unmodified
+- [x] FRONTEND-036-AC-07 — `WeeklySummary` renders the same `WeekNav` for its own state
+- [x] FRONTEND-036-AC-08 — fetches `planApi.getWeek(weekStart)` on mount and on `weekStart` change
+- [x] FRONTEND-036-AC-09 — displays planned/completed totals, completion rate, category breakdown, scheduled-vs-bucket split
+- [x] FRONTEND-036-AC-10 — empty week shows a plain neutral-language empty-state message
+- [x] FRONTEND-036-AC-11 — loading state shown while a fetch is in flight
+- [x] FRONTEND-036-AC-12 — fetch failure shows an error with a working Retry control
 - [ ] FRONTEND-036-AC-13 — visually correct in Light and Dark (real-browser check)

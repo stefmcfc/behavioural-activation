@@ -4,6 +4,7 @@ import { LoginPage } from './components/LoginPage'
 import { ActivityBank } from './components/ActivityBank/ActivityBank'
 import { WeeklyPlanner } from './components/WeeklyPlanner/WeeklyPlanner'
 import { TodayView } from './components/WeeklyPlanner/TodayView'
+import { WeeklySummary } from './components/WeeklySummary/WeeklySummary'
 import { TabNav } from './components/Navigation/TabNav'
 import { SettingsMenu } from './components/Navigation/SettingsMenu'
 import { AccountMenu } from './components/Navigation/AccountMenu'
@@ -90,6 +91,7 @@ function App() {
         <Route path="/activities" element={<ActivityBank />} />
         <Route path="/planner" element={<WeeklyPlanner />} />
         <Route path="/today" element={<TodayView />} />
+        <Route path="/summary" element={<WeeklySummary />} />
         <Route path="/settings" element={<Navigate to="/activities" replace />} />
       </Routes>
     </main>

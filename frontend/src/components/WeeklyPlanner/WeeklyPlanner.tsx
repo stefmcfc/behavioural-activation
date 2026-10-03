@@ -3,6 +3,7 @@ import { AssignActivityPicker } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
+import { WeekNav } from './WeekNav'
 import { usePlanActions } from './usePlanActions'
 import {
   WEEKDAY_DAYS,
@@ -30,30 +31,6 @@ function shiftWeek(weekStart: string, days: number): string {
   const date = parseWeekStart(weekStart)
   date.setDate(date.getDate() + days)
   return formatDate(date)
-}
-
-function formatWeekCommencing(weekStart: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(parseWeekStart(weekStart))
-}
-
-function ChevronIcon({ direction }: { readonly direction: 'left' | 'right' }) {
-  const points = direction === 'left' ? '10,2 4,8 10,14' : '6,2 12,8 6,14'
-  return (
-    <svg className={styles.chevronIcon} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-      <polyline
-        points={points}
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
 }
 
 type GridTab = 'WEEKDAYS' | 'WEEKEND'
@@ -90,25 +67,7 @@ export function WeeklyPlanner() {
     <section>
       <h2>Weekly planner</h2>
 
-      <div className={styles.weekNav}>
-        <button
-          type="button"
-          className={styles.navButton}
-          onClick={handlePreviousWeek}
-          aria-label="Previous week"
-        >
-          <ChevronIcon direction="left" />
-        </button>
-        <span>Week Commencing {formatWeekCommencing(weekStart)}</span>
-        <button
-          type="button"
-          className={styles.navButton}
-          onClick={handleNextWeek}
-          aria-label="Next week"
-        >
-          <ChevronIcon direction="right" />
-        </button>
-      </div>
+      <WeekNav weekStart={weekStart} onPrevious={handlePreviousWeek} onNext={handleNextWeek} />
 
       {plan.loadError && (
         <p role="alert">

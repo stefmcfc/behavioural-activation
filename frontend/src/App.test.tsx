@@ -306,6 +306,33 @@ describe('App', () => {
     })
   })
 
+  describe('FRONTEND-036-AC-01/AC-02: Summary is a routed, protected top-level tab', () => {
+    it('navigates to /summary and renders WeeklySummary when the Summary tab is clicked', async () => {
+      vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
+      render(
+        <MemoryRouter initialEntries={['/activities']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      await screen.findByText(/steve/i)
+      await userEvent.click(screen.getByRole('link', { name: /summary/i }))
+
+      expect(await screen.findByRole('heading', { name: /weekly summary/i })).toBeInTheDocument()
+    })
+
+    it('redirects an unauthenticated visit to /summary to the login page', async () => {
+      vi.mocked(authApi.me).mockRejectedValue({ status: 401 })
+      render(
+        <MemoryRouter initialEntries={['/summary']}>
+          <App />
+        </MemoryRouter>,
+      )
+
+      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-005-AC-04: root redirects to /activities', () => {
     it('renders the Activities tab as active when loaded at /', async () => {
       vi.mocked(authApi.me).mockResolvedValue({ username: 'steve' })
