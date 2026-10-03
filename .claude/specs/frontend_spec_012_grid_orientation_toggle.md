@@ -56,16 +56,21 @@ there today). So the new `utils/gridOrientation.ts` deliberately does **not** ge
 `useState(() => getGridOrientation())` at render time, simpler than `theme.ts`'s shape (Requirement
 6).
 
-**Live update, no reload, no cross-component subscription needed**: `frontend_spec_005`'s category
-colours use an event-based `subscribeToCategoryColorChanges()` mechanism because `CategoryChip`
-instances can be simultaneously mounted in the same component that's changing the preference
-(`Settings` itself renders swatches next to the colour pickers). That doesn't apply here: `App.tsx`'s
-routing (`frontend_spec_005`) mounts `/planner` and `/settings` as mutually exclusive `<Route>`s, so
-`PlannerGrid` and `Settings` are never mounted at the same time. Changing the orientation in
-`Settings` and then navigating to the Weekly Planner tab causes `WeeklyPlanner`/`PlannerGrid` to
-mount fresh, which already reads the current `localStorage` value with no extra plumbing —
-confirmed by reading `App.tsx`'s route table. This spec therefore builds no
-`subscribeToGridOrientationChanges()`-style event mechanism (Requirement 6).
+**Live update — superseded by `frontend_spec_034_grid_orientation_live_update.md`**: this spec
+originally argued no cross-component subscription mechanism was needed, reasoning that `App.tsx`'s
+routing (`frontend_spec_005`) mounted `/planner` and `/settings` as mutually exclusive `<Route>`s,
+so `PlannerGrid` and `Settings` were never mounted at the same time, and a preference change would
+always reach `PlannerGrid` via a fresh mount. That reasoning held at the time this spec was written,
+but `frontend_spec_030_header_restructure.md` (implemented afterward) replaced the separate
+`/settings` route with a `Popover`-API overlay mounted over whichever page is already active —
+`PlannerGrid` and `Settings` are now routinely mounted at the same time, so a preference change made
+from the Settings popover while looking at the Weekly Planner had no visible effect until a reload
+or an unrelated navigation. `frontend_spec_034_grid_orientation_live_update.md` fixes this with an
+event-based `subscribeToGridOrientationChanges()` mechanism, mirroring `frontend_spec_005`'s own
+`subscribeToCategoryColorChanges()` (built for the identical problem: `CategoryChip` instances
+simultaneously mounted with the `Settings` panel changing their colour) — see that spec for the real
+contract going forward; `FRONTEND-012-AC-11` below is retained for history but its statement text is
+no longer accurate (superseded by `FRONTEND-034-AC-02`).
 
 **Structural conflict with `frontend_spec_008_occurrence_detail_card.md`, resolved**:
 `frontend_spec_008_occurrence_detail_card.md`'s `FRONTEND-008-AC-18` (not yet implemented) states
@@ -176,10 +181,13 @@ new layout — I shouldn't have to reload the page.
   level (see Overview).
 - **FRONTEND-012-AC-11** [AUTO]: When the user changes the grid-layout preference in `Settings` and
   then navigates to the Weekly Planner tab (`/planner`), `PlannerGrid` shall render using the newly
-  selected orientation — satisfied by React Router's route-exclusive mount/unmount of
-  `WeeklyPlanner`/`PlannerGrid` (`/planner` and `/settings` are mutually exclusive routes per
-  `frontend_spec_005_navigation_and_theme.md`), with no additional cross-component event/
-  subscription mechanism required.
+  selected orientation. **Superseded by `FRONTEND-034-AC-02`**: this AC's original satisfaction
+  argument (route-exclusive mount/unmount, no cross-component subscription needed) no longer holds
+  once `Settings` becomes a popover overlay rather than a separate route
+  (`frontend_spec_030_header_restructure.md`) — see Overview and
+  `frontend_spec_034_grid_orientation_live_update.md`, which adds the subscription mechanism this AC
+  said wouldn't be required. Retained, ID unchanged, as a historical record of this spec's original
+  (now-superseded) reasoning.
 
 ### Requirement 7 — Today-highlight consistency across orientations
 

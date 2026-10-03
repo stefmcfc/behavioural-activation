@@ -72,7 +72,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| _(none currently)_ | | | |
+| Live-update the grid-orientation preference across the Settings popover boundary (bug fix, found verifying `frontend_spec_012`) | — (frontend-only) | [`frontend_spec_034_grid_orientation_live_update.md`](.claude/specs/frontend_spec_034_grid_orientation_live_update.md) | Not started. Building on the same not-yet-merged `feature/grid-orientation-toggle` branch as `frontend_spec_012`. |
 
 ## Internal / maintenance specs
 
