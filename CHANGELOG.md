@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Hovering a primary (green) or destructive (red) button — Add activity, Complete, Delete, and
+  similar — no longer shows barely-readable text (white-on-near-white in Light theme, near-black-
+  on-near-black in Dark theme). The button's fill colour was being silently overridden on hover.
+
 ## [0.28.0] - 2026-10-03
 
 ### Added

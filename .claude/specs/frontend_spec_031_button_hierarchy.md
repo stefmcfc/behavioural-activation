@@ -1,7 +1,20 @@
 # Frontend Button Visual Hierarchy (Primary / Destructive)
 
 **Status**: Implemented (2026-10-02) — all 17 ACs green, including AC-17's real-browser contrast
-check (see Summary)
+check (see Summary). **Hover-state contrast bug found and fixed 2026-10-03** (`fix/button-hover-
+contrast` branch): `.primary:hover`/`.destructive:hover` originally declared only `box-shadow`, not
+`background`/`color` — the global `button:hover` rule (`index.css`) has higher specificity for the
+properties it declares (`background: var(--code-bg)`) than `.primary`/`.destructive`'s own
+(unhovered) `background`, so hovering any primary/destructive button silently replaced its
+background with `--code-bg` while `color` stayed at `--accent-ink`/`--error-ink` — white-on-
+near-white in Light theme, near-black-on-near-black in Dark theme, confirmed by the user across
+every coloured CTA app-wide. AC-17's original real-browser verification table only measured the
+resting (non-hover) state's rendered colours, which is why this passed review at the time. Fixed by
+re-asserting `background`/`color` in both hover rules (same values as the resting state — hover
+changes only the box-shadow, not the fill colour, matching the original design intent the Overview's
+specificity-math note already assumed was true). Regression-guarded by two new tests in
+`buttonVariants.test.ts` asserting hover re-asserts `background`/`color`. Pending a real-browser
+re-verification in both themes before merge.
 **Priority**: P3 — visual/UX polish, no new capability. Deferred scope from
 `frontend_spec_007_visual_refresh.md`'s Requirement 3 (see that spec's Out-of-scope section) and
 confirmed in `.claude/SPEC_CANDIDATES.md`'s "Frontend button visual hierarchy (primary/secondary)"
