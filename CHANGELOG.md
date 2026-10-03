@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-03
+
+### Added
+
+- A new "Summary" tab shows how a week is going: planned/completed counts and a completion
+  percentage, a breakdown by category (Routine/Necessary/Pleasurable), and a scheduled-vs-weekend-
+  bucket split — all computed from the existing weekly plan data, with its own independent week
+  navigation.
+
 ## [0.29.0] - 2026-10-03
 
 ### Added

@@ -54,6 +54,41 @@ describe('FRONTEND-016-AC-01: TabNav gains a Today entry', () => {
   })
 })
 
+describe('FRONTEND-036-AC-01: TabNav gains a Summary entry after Today', () => {
+  it('renders a Summary link routed to /summary', () => {
+    render(
+      <MemoryRouter initialEntries={['/activities']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    const summaryLink = screen.getByRole('link', { name: 'Summary' })
+    expect(summaryLink).toBeInTheDocument()
+    expect(summaryLink).toHaveAttribute('href', '/summary')
+  })
+
+  it('renders Summary after Today in the tab order', () => {
+    render(
+      <MemoryRouter initialEntries={['/activities']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    const labels = screen.getAllByRole('link').map((link) => link.textContent)
+    expect(labels.indexOf('Today')).toBeLessThan(labels.indexOf('Summary'))
+  })
+
+  it('marks the Summary link active when on /summary', () => {
+    render(
+      <MemoryRouter initialEntries={['/summary']}>
+        <TabNav />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Summary' })).toHaveAttribute('aria-current', 'page')
+  })
+})
+
 describe('FRONTEND-030-AC-02: TabNav no longer lists Settings', () => {
   it('does not render a Settings link', () => {
     render(

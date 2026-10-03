@@ -5,6 +5,7 @@ const TABS = [
   { to: '/activities', label: 'Activities' },
   { to: '/planner', label: 'Weekly Planner' },
   { to: '/today', label: 'Today' },
+  { to: '/summary', label: 'Summary' },
 ] as const
 
 export function TabNav() {
