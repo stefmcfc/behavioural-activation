@@ -67,7 +67,7 @@ spec-tidying effort this came out of).
 | Weekly grid orientation toggle (Settings) | — (frontend-only) | [`frontend_spec_012_grid_orientation_toggle.md`](.claude/specs/frontend_spec_012_grid_orientation_toggle.md) | ✅ Implemented (2026-10-03). New `utils/gridOrientation.ts` + Settings fieldset for an alternate "each day as its own section" `PlannerGrid` layout, read via `useState(() => getGridOrientation())` with no `main.tsx` change; today-highlight shared across both orientations; verified in a real browser in both Light and Dark. |
 | Live-update the grid-orientation preference across the Settings popover boundary (bug fix, found verifying `frontend_spec_012`) | — (frontend-only) | [`frontend_spec_034_grid_orientation_live_update.md`](.claude/specs/frontend_spec_034_grid_orientation_live_update.md) | ✅ Implemented (2026-10-03). `utils/gridOrientation.ts` now dispatches a `CustomEvent` on change (mirroring `categoryColors.ts`); `PlannerGrid` subscribes on mount and unsubscribes on unmount, so the Settings popover's layout toggle applies live, no reload/remount needed. |
 | Filter the Weekly Planner by category and completion status | — (frontend-only) | [`frontend_spec_035_weekly_planner_filter.md`](.claude/specs/frontend_spec_035_weekly_planner_filter.md) | ✅ Implemented (2026-10-03), AC-10 (real-browser check) pending. One shared `<details>`/`<summary>` "Filters" disclosure (category + status) dims, rather than hides, non-matching occurrences in both the grid and bucket list via a new `dimmedOccurrenceIds` prop threaded to `OccurrenceItem`. |
-| Weekly Summary tab | — (frontend-only) | [`frontend_spec_036_weekly_summary.md`](.claude/specs/frontend_spec_036_weekly_summary.md) | ✅ Implemented (2026-10-03), AC-13 (real-browser check) pending. New "Summary" tab/route with its own independent week navigation (via a new shared `WeekNav` component extracted from `WeeklyPlanner`); planned/completed totals + completion rate, per-category breakdown, and scheduled-vs-bucket split computed client-side from `planApi.getWeek`. |
+| Weekly Summary tab | — (frontend-only) | [`frontend_spec_036_weekly_summary.md`](.claude/specs/frontend_spec_036_weekly_summary.md) | ✅ Implemented (2026-10-03), v0.30.0. New "Summary" tab/route with its own independent week navigation (via a new shared `WeekNav` component extracted from `WeeklyPlanner`); planned/completed totals + completion rate, per-category breakdown, and scheduled-vs-bucket split computed client-side from `planApi.getWeek`; verified in a real browser in both themes. |
 
 ## Specced, coming soon
 
@@ -75,6 +75,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Weekly Summary visual refinements (segmented completion bar, lite grid/bucket view, location × category breakdown chart) | — (frontend-only) | [`frontend_spec_037_weekly_summary_visualizations.md`](.claude/specs/frontend_spec_037_weekly_summary_visualizations.md) | Not started. Colourblind-conscious: status (completed/not) is an opacity modulation of each occurrence's own category colour, never a new red/green hue; category identity in the breakdown chart never relies on hue alone since category colours are user-customizable and not guaranteed distinct. |
 
 ## Internal / maintenance specs
 
