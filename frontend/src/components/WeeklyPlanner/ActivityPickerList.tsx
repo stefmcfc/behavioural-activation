@@ -95,7 +95,8 @@ export function ActivityPickerList({
           fetchedActivities.map((activity) => [activity.id, [] as SubTask[]]),
         )
         for (const subTask of allSubTasks) {
-          ;(grouped[subTask.activityId] ??= []).push(subTask)
+          grouped[subTask.activityId] ??= []
+          grouped[subTask.activityId].push(subTask)
         }
 
         setActivities(fetchedActivities)

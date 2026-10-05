@@ -66,7 +66,7 @@
    the headers only -- the occurrence marks inside each .liteGridCell are unaffected. */
 .liteGridDayLabel,
 .liteGridSlotLabel {
-  font-family: var(--mono);
+  font-family: var(--mono), monospace;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-h);

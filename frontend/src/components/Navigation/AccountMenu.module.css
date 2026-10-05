@@ -68,7 +68,7 @@
   margin: 0 0 0.75rem;
   color: var(--text-h);
   font-weight: 600;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .logoutButton {
