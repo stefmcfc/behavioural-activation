@@ -1,0 +1,70 @@
+/* FRONTEND-037-AC-18: every mark gets a visible border regardless of its (user-customizable, not
+   guaranteed distinct, possibly page-surface-matching) fill colour -- a hue-independent visibility
+   floor, since these marks are decorative-only (no fallback text like CategoryChip has). */
+.block,
+.circle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  /* Dataviz-skill interaction guidance: at least a 24px hit target regardless of the mark's
+     painted size -- padding on the button, not just the visible circle/block. */
+  padding: 0.3rem;
+}
+
+.block {
+  border-radius: 3px;
+  width: 1rem;
+  height: 1.5rem;
+}
+
+.circle {
+  border-radius: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+}
+
+.block svg,
+.circle svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  color: var(--text-h);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.block:hover .tooltip,
+.block:focus-visible .tooltip,
+.circle:hover .tooltip,
+.circle:focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tooltip {
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
+}

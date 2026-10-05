@@ -6,6 +6,27 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-05
+
+### Added
+
+- The Weekly Summary tab now shows a segmented completion bar: one small block per planned
+  activity this week, completed activities grouped first, each coloured by its category and
+  hoverable/focusable for its name, day/slot, and completion status.
+- The Weekly Summary tab also shows a compact, read-only "lite" weekly grid and weekend bucket
+  list — the same small coloured marks placed where each activity actually landed, with no
+  Add/drag/remove controls.
+- The Weekly Summary tab now shows a location breakdown chart: three stacked bars (weekday grid,
+  weekend grid, weekend bucket) split by category, each segment directly labelled with its
+  category name and count so the chart stays readable even if two categories share a similar or
+  identical colour.
+
+### Fixed
+
+- Every completion mark across the Weekly Summary's new visualizations now has a visible border
+  regardless of its category colour, so a category coloured white/black (or matching the page
+  background) never renders as an invisible, contentless mark.
+
 ## [0.30.0] - 2026-10-03
 
 ### Added

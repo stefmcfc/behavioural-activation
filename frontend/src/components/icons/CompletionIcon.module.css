@@ -1,0 +1,4 @@
+.completionIcon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
