@@ -69,6 +69,15 @@ export function getTodayPlanDayOfWeek(): PlanDayOfWeek {
   return byJsDay[new Date().getDay()]
 }
 
+// FRONTEND-042: moved here from PlannerGrid.tsx (pure relocation, no behavior change) so
+// WeeklySummary's lite grid can look up the same (weekStart, day) -> ISO date string identically,
+// rather than duplicating the date math a second time.
+export function getDayDateIso(weekStart: string, day: PlanDayOfWeek): string {
+  const date = parseWeekStart(weekStart)
+  date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
+  return formatDate(date)
+}
+
 export const ALL_SLOTS: readonly PlanSlot[] = ['MORNING', 'AFTERNOON', 'EVENING']
 
 export const SLOT_LABELS: Record<PlanSlot, string> = {

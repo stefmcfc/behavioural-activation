@@ -77,6 +77,69 @@ this file.
 
 ---
 
+**Last updated:** `2026-10-06`
+
+- added three new candidates, raised by the user while reviewing the just-shipped Suggested
+  activities feature: marking days as "work days", per-occurrence notes, and Activity Bank
+  sorting/organization.
+- the "Mark specific days as work days" entry moved straight to a real spec pair
+  (`planner_spec_021_work_day_marking.md`/`frontend_spec_042_work_day_marking.md`, see
+  `ROADMAP.md`'s "Specced, coming soon") the same day it was raised, once the user confirmed the
+  hybrid-pattern/visual-only/both-surfaces scoping — removed from this file.
+
+---
+
+## Notes on individual planned occurrences
+
+```
+Status: Not specced.
+```
+
+Raised by the user 2026-10-06, with a concrete example: the same repeatable activity ("Read a
+book") might need different notes on different occurrences — "Book A" on Tuesday, "Book B" on
+Thursday. Distinct from `Activity.description` (confirmed by reading
+`frontend/src/types/activity.ts`): that field is shared across every occurrence of an activity, set
+once when the activity is created/edited, not per-instance. This idea is about free text attached
+to one specific `PlannedOccurrence` — today that type has no notes/freeform-text field at all
+(confirmed by reading `frontend/src/types/plan.ts`).
+
+Open questions for whenever this gets a real design pass:
+- Where does the note get entered/shown — inline in the existing occurrence detail card
+  (`frontend_spec_008_occurrence_detail_card.md`), or somewhere else?
+- Does the note persist if the occurrence is later moved (`planner_spec_004`'s move endpoint) or
+  carried forward (`planner_spec_011`)? Likely yes — it's about the specific occurrence, not the
+  slot it happens to be in.
+- Any length limit, and does it surface anywhere else (Weekly Summary, completion history) or stay
+  local to the occurrence card itself?
+- Backend: likely just a new nullable `notes` column on `PlannedOccurrence`, surfaced through the
+  existing `PATCH /api/v1/plan/occurrences/{id}` endpoint — no new concept needed, just a new field.
+
+## Sorting/organizing the Activity Bank as it grows
+
+```
+Status: Not specced.
+```
+
+Raised by the user 2026-10-06, after adding a larger set of suggested activities
+(`frontend_spec_040_preset_starter_activities.md`) made the Activity Bank noticeably longer and
+harder to scan. Confirmed by reading the code: today's order is fixed server-side
+(`ActivityRepository.findByOwnerOrderByFavouriteDescNameAsc`/`...AndArchivedFalseOrderBy...`) —
+favourites first, then alphabetical by name — with no user-facing control over it beyond the
+existing category/favourites/archived *filters*, which narrow the list rather than reorder it.
+
+Open questions for whenever this gets a real design pass:
+- What's actually wanted: a different default sort (e.g. by category, by most-recently-used), a
+  user-selectable sort control, or manual drag-to-reorder (like the weekend bucket list already
+  has, `frontend_spec_010_bucket_reordering.md`)? These are quite different in scope — manual
+  reorder needs a persisted position field per activity; a sort-order control needs none.
+- Could category-grouped *display* (matching the pattern `frontend_spec_040`'s Suggested
+  activities section already established — grouped headings, not one flat list) solve the
+  "hard to scan" problem without needing any new sort/reorder mechanism at all, just a different
+  rendering of the favourite/category/name data already available? Worth considering before
+  reaching for a more complex sort/reorder feature.
+
+---
+
 ## Finer-grained/custom time slots for planned activities
 
 ```

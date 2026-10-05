@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlannerGrid } from './PlannerGrid'
 import styles from './PlannerGrid.module.css'
@@ -489,5 +490,75 @@ describe('FRONTEND-012-AC-12: today-highlight is consistent across orientations'
 
     const mondayHeading = screen.getByRole('heading', { name: /monday/i, level: 4 })
     expect(mondayHeading.closest(`.${styles.today}`)).toBeNull()
+  })
+})
+
+describe('FRONTEND-042-AC-05: each day header shows a work-day toggle reflecting that date\'s status', () => {
+  it('defaults every toggle to unmarked (aria-pressed=false) when workDays is omitted', () => {
+    renderGrid()
+
+    const toggle = screen.getByRole('button', { name: /mark monday.*work day/i })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('shows a marked toggle for a date present and true in workDays', () => {
+    // weekStart is 2026-09-28 (a Monday)
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        workDays={new Map([['2026-09-28', true]])}
+      />,
+    )
+
+    const mondayToggle = screen.getByRole('button', { name: /unmark monday.*work day/i })
+    expect(mondayToggle).toHaveAttribute('aria-pressed', 'true')
+    const tuesdayToggle = screen.getByRole('button', { name: /mark tuesday.*work day/i })
+    expect(tuesdayToggle).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('renders a toggle in both the day-rows and day-columns layouts', () => {
+    const { unmount } = render(
+      <PlannerGrid {...baseGridProps()} workDays={new Map([['2026-09-28', true]])} />,
+    )
+    expect(screen.getByRole('button', { name: /unmark monday.*work day/i })).toBeInTheDocument()
+    unmount()
+
+    setGridOrientation('day-rows')
+    render(<PlannerGrid {...baseGridProps()} workDays={new Map([['2026-09-28', true]])} />)
+    expect(screen.getByRole('button', { name: /unmark monday.*work day/i })).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-042-AC-06: clicking the toggle calls onToggleWorkDay with that exact date', () => {
+  it('calls onToggleWorkDay with the ISO date for the clicked day', async () => {
+    const onToggleWorkDay = vi.fn()
+    render(<PlannerGrid {...baseGridProps()} onToggleWorkDay={onToggleWorkDay} />)
+
+    await userEvent.click(screen.getByRole('button', { name: /mark monday.*work day/i }))
+
+    expect(onToggleWorkDay).toHaveBeenCalledWith('2026-09-28')
+  })
+
+  it('does not throw when onToggleWorkDay is omitted', async () => {
+    renderGrid()
+
+    await userEvent.click(screen.getByRole('button', { name: /mark monday.*work day/i }))
+  })
+})
+
+describe('FRONTEND-042-AC-07: regression guard -- the work-day toggle never changes slots/plannability', () => {
+  it('leaves Add buttons and occurrence rendering unaffected by workDays/onToggleWorkDay', () => {
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[occurrenceOnMonMorning]}
+        workDays={new Map([['2026-09-28', true]])}
+      />,
+    )
+
+    expect(screen.getByText(occurrenceOnMonMorning.name)).toBeInTheDocument()
+    expect(screen.getByLabelText('Add to Monday Morning')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add to Monday Afternoon')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add to Monday Evening')).toBeInTheDocument()
   })
 })

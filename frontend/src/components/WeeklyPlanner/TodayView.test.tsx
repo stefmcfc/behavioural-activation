@@ -5,8 +5,11 @@ import { TodayView } from './TodayView'
 import { planApi } from '../../services/planApi'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
+import { workDayApi } from '../../services/workDayApi'
 import type { Activity } from '../../types/activity'
 import type { PlannedOccurrence } from '../../types/plan'
+
+vi.mock('../../services/workDayApi')
 
 vi.mock('../../services/planApi')
 vi.mock('../../services/activityApi')
@@ -60,6 +63,10 @@ describe('TodayView', () => {
     // activities" drawer) now always calls subTaskApi.getAllForOwner() unconditionally
     // (frontend_spec_033), even when a test only cares about activityApi.getAll's result.
     vi.mocked(subTaskApi.getAllForOwner).mockReset().mockResolvedValue([])
+    // FRONTEND-042: useWorkDays fetches independently of usePlanActions on every mount -- default
+    // every test to an empty week of work-days (no badges) unless a test below cares otherwise.
+    vi.mocked(workDayApi.getWeek).mockReset().mockResolvedValue([])
+    vi.mocked(workDayApi.setOverride).mockReset()
   })
 
   afterEach(() => {
@@ -220,6 +227,69 @@ describe('TodayView', () => {
         ),
       )
       await waitFor(() => expect(screen.getAllByText(drawerActivity.name)).toHaveLength(2))
+    })
+  })
+
+  describe('FRONTEND-042-AC-05/AC-06: grid toggle reflects and updates a date\'s status', () => {
+    it('shows the active badge for a marked date, and flips it on click', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday, week of 2026-09-28
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(workDayApi.getWeek).mockResolvedValue([
+        { date: '2026-09-28', dayOfWeek: 'MONDAY', workDay: true },
+        { date: '2026-09-29', dayOfWeek: 'TUESDAY', workDay: true },
+        { date: '2026-09-30', dayOfWeek: 'WEDNESDAY', workDay: false },
+        { date: '2026-10-01', dayOfWeek: 'THURSDAY', workDay: true },
+        { date: '2026-10-02', dayOfWeek: 'FRIDAY', workDay: true },
+        { date: '2026-10-03', dayOfWeek: 'SATURDAY', workDay: false },
+        { date: '2026-10-04', dayOfWeek: 'SUNDAY', workDay: false },
+      ])
+      vi.mocked(workDayApi.setOverride).mockResolvedValue({
+        date: '2026-09-30',
+        dayOfWeek: 'WEDNESDAY',
+        workDay: true,
+      })
+      render(<TodayView />)
+
+      const toggle = await screen.findByRole('button', { name: /mark wednesday.*work day/i })
+      await userEvent.click(toggle)
+
+      expect(workDayApi.setOverride).toHaveBeenCalledWith('2026-09-30', true)
+      expect(
+        await screen.findByRole('button', { name: /unmark wednesday.*work day/i }),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-042-AC-08: a failure toggling a day shows an inline error, badge unchanged', () => {
+    it('shows an alert and leaves the badge at its pre-click state when setOverride rejects', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(workDayApi.getWeek).mockResolvedValue([
+        { date: '2026-09-30', dayOfWeek: 'WEDNESDAY', workDay: false },
+      ])
+      vi.mocked(workDayApi.setOverride).mockRejectedValue(new Error('Server error'))
+      render(<TodayView />)
+
+      const toggle = await screen.findByRole('button', { name: /mark wednesday.*work day/i })
+      await userEvent.click(toggle)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
+      expect(screen.getByRole('button', { name: /mark wednesday.*work day/i })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      )
+    })
+  })
+
+  describe('FRONTEND-042-AC-09: TodayView fetches its own week\'s work-days independently', () => {
+    it('calls workDayApi.getWeek with the real current week\'s Monday on mount', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday, week of 2026-09-28
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(workDayApi.getWeek).mockResolvedValue([])
+      render(<TodayView />)
+
+      await screen.findByText(/no activities planned for today/i)
+      expect(workDayApi.getWeek).toHaveBeenCalledWith('2026-09-28')
     })
   })
 })

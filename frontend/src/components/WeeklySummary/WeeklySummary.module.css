@@ -77,6 +77,16 @@
   text-align: left;
 }
 
+/* FRONTEND-042: badges a work day with the same WorkDayIcon used by the real grid's toggle --
+   read-only here (no button), shown only for marked days rather than every day, to avoid cluttering
+   this already-compact header row with an icon for the common (unmarked) case. */
+.liteGridDayLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
 .liteGridCell {
   display: flex;
   flex-wrap: wrap;

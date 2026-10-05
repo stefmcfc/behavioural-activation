@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-06
+
+### Added
+
+- Mark days as work days: a recurring weekly pattern (Settings → "Work days") plus a per-date
+  override (an inline toggle on each day header in the Weekly Planner/Today grid), where the
+  override always wins. Purely informational — no change to slots or what can be planned on a
+  marked day.
+- The Weekly Summary's read-only "lite grid" now badges marked work days too, matching the Weekly
+  Planner/Today grid.
+
 ## [0.33.1] - 2026-10-06
 
 ### Fixed

@@ -5,6 +5,7 @@ import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
 import { WeekNav } from './WeekNav'
 import { usePlanActions } from './usePlanActions'
+import { useWorkDays } from './useWorkDays'
 import {
   WEEKDAY_DAYS,
   WEEKEND_DAYS,
@@ -46,6 +47,7 @@ export function WeeklyPlanner() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const plan = usePlanActions(weekStart)
+  const workDays = useWorkDays(weekStart)
   const todayColumn = weekStart === getMondayOfCurrentWeek() ? getTodayPlanDayOfWeek() : null
 
   const dimmedOccurrenceIds = useMemo(
@@ -78,6 +80,7 @@ export function WeeklyPlanner() {
         </p>
       )}
       {plan.actionError && <p role="alert">{plan.actionError}</p>}
+      {workDays.actionError && <p role="alert">{workDays.actionError}</p>}
 
       {plan.occurrences === null && !plan.loadError && <output>Loading plan…</output>}
 
@@ -170,6 +173,8 @@ export function WeeklyPlanner() {
             movingId={plan.movingId}
             todayColumn={todayColumn}
             dimmedOccurrenceIds={dimmedOccurrenceIds}
+            workDays={workDays.workDaysByDate}
+            onToggleWorkDay={workDays.handleToggle}
             onAdd={(dayOfWeek, slot) => plan.setAssignTarget({ dayOfWeek, slot })}
             onOpenDetail={plan.handleOpenDetail}
             onCloseDetail={plan.handleCloseDetail}

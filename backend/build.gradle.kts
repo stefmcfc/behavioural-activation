@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "uk.co.stefirby"
-version = "0.33.1"
+version = "0.34.0"
 description = "Behavioural Activation Planner backend"
 
 // Centralized here (kotlin:S6624) rather than inline in the dependencies block below --

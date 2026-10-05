@@ -2,7 +2,15 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import type { DragPayload } from './dragPayload'
 import { OccurrenceItem } from './OccurrenceItem'
-import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, parseWeekStart } from './planLabels'
+import { WorkDayIcon } from '../icons/WorkDayIcon'
+import {
+  ALL_DAYS,
+  ALL_SLOTS,
+  DAY_LABELS,
+  SLOT_LABELS,
+  getDayDateIso,
+  parseWeekStart,
+} from './planLabels'
 import { getGridOrientation, subscribeToGridOrientationChanges } from '../../utils/gridOrientation'
 import styles from './PlannerGrid.module.css'
 
@@ -11,6 +19,38 @@ function getDayDate(weekStart: string, day: PlanDayOfWeek): number {
   date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
   return date.getDate()
 }
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+]
+
+// e.g. "6 October" -- used only in the work-day toggle's aria-label, not the day-of-month-only
+// header display (getDayDate above), so kept local rather than added to planLabels.ts.
+function formatDayMonthLabel(weekStart: string, day: PlanDayOfWeek): string {
+  const date = parseWeekStart(weekStart)
+  date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`
+}
+
+function workDayToggleLabel(weekStart: string, day: PlanDayOfWeek, isWorkDay: boolean): string {
+  const verb = isWorkDay ? 'Unmark' : 'Mark'
+  return `${verb} ${DAY_LABELS[day]} ${formatDayMonthLabel(weekStart, day)} as a work day`
+}
+
+// FRONTEND-042-AC-05: a stable, shared empty default so omitting workDays (every pre-existing
+// caller/test) behaves exactly as if no day were marked -- mirrors NO_DIMMED_IDS below.
+const NO_WORK_DAYS: ReadonlyMap<string, boolean> = new Map()
 
 interface PlannerGridProps {
   readonly weekStart: string
@@ -24,6 +64,7 @@ interface PlannerGridProps {
   readonly movingId: string | null
   readonly todayColumn: PlanDayOfWeek | null
   readonly dimmedOccurrenceIds?: ReadonlySet<string>
+  readonly workDays?: ReadonlyMap<string, boolean>
   readonly onAdd: (dayOfWeek: PlanDayOfWeek, slot: PlanSlot) => void
   readonly onOpenDetail: (id: string) => void
   readonly onCloseDetail: () => void
@@ -44,6 +85,7 @@ interface PlannerGridProps {
     dayOfWeek: PlanDayOfWeek | null,
     slot: PlanSlot | null,
   ) => void
+  readonly onToggleWorkDay?: (date: string) => void
 }
 
 // FRONTEND-035-AC-08: a stable, shared empty default so omitting dimmedOccurrenceIds (every
@@ -74,6 +116,7 @@ export function PlannerGrid({
   movingId,
   todayColumn,
   dimmedOccurrenceIds = NO_DIMMED_IDS,
+  workDays = NO_WORK_DAYS,
   onAdd,
   onOpenDetail,
   onCloseDetail,
@@ -90,6 +133,7 @@ export function PlannerGrid({
   onDragStart,
   onDragEnd,
   onAssignFromDrawer,
+  onToggleWorkDay,
 }: PlannerGridProps) {
   const [orientation, setOrientation] = useState(() => getGridOrientation())
 
@@ -120,6 +164,25 @@ export function PlannerGrid({
     if (!dragged) return
     if (dragged.dayOfWeek === targetDay && dragged.slot === targetSlot) return
     onConfirmMove(id, targetDay, targetSlot)
+  }
+
+  // FRONTEND-042-AC-05/AC-06: a toggle badge reflecting (and, on click, flipping) a date's
+  // effective work-day status -- visual-only, no effect on slots/plannability (AC-07, renderCell
+  // below is untouched by this feature).
+  const renderWorkDayToggle = (day: PlanDayOfWeek): ReactNode => {
+    const date = getDayDateIso(weekStart, day)
+    const isWorkDay = workDays.get(date) ?? false
+    return (
+      <button
+        type="button"
+        className={styles.workDayToggle}
+        aria-pressed={isWorkDay}
+        aria-label={workDayToggleLabel(weekStart, day, isWorkDay)}
+        onClick={() => onToggleWorkDay?.(date)}
+      >
+        <WorkDayIcon active={isWorkDay} />
+      </button>
+    )
   }
 
   const renderCell = (day: PlanDayOfWeek, slot: PlanSlot): ReactNode => {
@@ -191,6 +254,7 @@ export function PlannerGrid({
                   <h4 className={dayHeadingClassName(isToday)}>
                     <span>{getDayDate(weekStart, day)}</span>
                     <span>{DAY_LABELS[day]}</span>
+                    {renderWorkDayToggle(day)}
                   </h4>
                   <div className={styles.daySlots}>
                     {ALL_SLOTS.map((slot) => renderCell(day, slot))}
@@ -205,6 +269,7 @@ export function PlannerGrid({
               <div key={day} className={dayLabelClassName(day === todayColumn)}>
                 <span>{getDayDate(weekStart, day)}</span>
                 <span>{DAY_LABELS[day]}</span>
+                {renderWorkDayToggle(day)}
               </div>
             ))}
             {ALL_SLOTS.map((slot) => days.map((day) => renderCell(day, slot)))}

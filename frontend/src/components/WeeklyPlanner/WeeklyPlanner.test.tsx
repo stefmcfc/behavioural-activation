@@ -6,6 +6,7 @@ import { computeDimmedIds } from './weeklyPlannerFilters'
 import { planApi } from '../../services/planApi'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
+import { workDayApi } from '../../services/workDayApi'
 import { ApiError } from '../../types/api'
 import type { PlannedOccurrence } from '../../types/plan'
 import plannerGridStyles from './PlannerGrid.module.css'
@@ -15,6 +16,7 @@ import buttonStyles from '../../styles/buttonVariants.module.css'
 vi.mock('../../services/planApi')
 vi.mock('../../services/activityApi')
 vi.mock('../../services/subTaskApi')
+vi.mock('../../services/workDayApi')
 
 const walk: PlannedOccurrence = {
   id: '1',
@@ -114,6 +116,10 @@ describe('WeeklyPlanner', () => {
     // (frontend_spec_033), even when a test only cares about activityApi.getAll's result. Individual
     // tests below override this with their own mockResolvedValue where sub-task content matters.
     vi.mocked(subTaskApi.getAllForOwner).mockReset().mockResolvedValue([])
+    // FRONTEND-042: useWorkDays fetches independently of usePlanActions on every mount -- default
+    // every test to an empty week of work-days (no badges) unless a test below cares otherwise.
+    vi.mocked(workDayApi.getWeek).mockReset().mockResolvedValue([])
+    vi.mocked(workDayApi.setOverride).mockReset()
     // Most tests in this file don't care what day "today" is, but WeeklyPlanner.tsx's
     // getDefaultGridTab() picks WEEKEND over WEEKDAYS whenever the real system clock lands on a
     // Saturday/Sunday -- without this, every test below that renders a Monday-Friday occurrence
@@ -889,6 +895,54 @@ describe('WeeklyPlanner', () => {
       const retryButton = await screen.findByRole('button', { name: /retry/i })
       expect(retryButton).not.toHaveClass(buttonStyles.primary)
       expect(retryButton).not.toHaveClass(buttonStyles.destructive)
+    })
+  })
+
+  describe('FRONTEND-042-AC-09: WeeklyPlanner fetches its own week\'s work-days independently', () => {
+    it('calls workDayApi.getWeek with the displayed weekStart on mount', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      render(<WeeklyPlanner />)
+
+      await screen.findByText(/no activities planned/i)
+      expect(workDayApi.getWeek).toHaveBeenCalledWith(
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      )
+    })
+
+    it('shows a marked badge for a date returned true by workDayApi.getWeek', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(workDayApi.getWeek).mockResolvedValue([
+        { date: '2026-09-28', dayOfWeek: 'MONDAY', workDay: true },
+      ])
+      render(<WeeklyPlanner />)
+
+      expect(
+        await screen.findByRole('button', { name: /unmark monday.*work day/i }),
+      ).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
+  describe('FRONTEND-042-AC-10: changing weeks refetches that week\'s work-days', () => {
+    it('calls workDayApi.getWeek again with the new weekStart on Next week, replacing the badge', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(workDayApi.getWeek).mockResolvedValueOnce([
+        { date: '2026-09-28', dayOfWeek: 'MONDAY', workDay: true },
+      ])
+      render(<WeeklyPlanner />)
+
+      expect(
+        await screen.findByRole('button', { name: /unmark monday.*work day/i }),
+      ).toBeInTheDocument()
+
+      vi.mocked(workDayApi.getWeek).mockResolvedValueOnce([
+        { date: '2026-10-05', dayOfWeek: 'MONDAY', workDay: false },
+      ])
+      await userEvent.click(screen.getByRole('button', { name: /next week/i }))
+
+      expect(workDayApi.getWeek).toHaveBeenCalledTimes(2)
+      expect(
+        await screen.findByRole('button', { name: /mark monday.*work day/i }),
+      ).toBeInTheDocument()
     })
   })
 })

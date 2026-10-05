@@ -6,9 +6,11 @@ import { getCategoryColor } from '../../utils/categoryColors'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import { getReadableTextColor } from '../../utils/contrast'
 import { CompletionMark } from './CompletionMark'
-import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from '../WeeklyPlanner/planLabels'
+import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, getDayDateIso } from '../WeeklyPlanner/planLabels'
 import { WeekNav } from '../WeeklyPlanner/WeekNav'
 import { formatDate, getMondayOfCurrentWeek, parseWeekStart } from '../WeeklyPlanner/planLabels'
+import { useWorkDays } from '../WeeklyPlanner/useWorkDays'
+import { WorkDayIcon } from '../icons/WorkDayIcon'
 import {
   computeStats,
   isPastWeek,
@@ -177,6 +179,9 @@ export function WeeklySummary({ initialWeekStart }: WeeklySummaryProps = {}) {
   const [occurrences, setOccurrences] = useState<PlannedOccurrence[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  // FRONTEND-042: read-only -- only workDaysByDate is used, badging the lite grid's day labels;
+  // the hook's own actionError/handleToggle have no purpose here since this view has no controls.
+  const { workDaysByDate } = useWorkDays(weekStart)
 
   // Mirrors usePlanActions.ts's own fetch-on-mount effect: state is only ever updated from inside
   // the promise callbacks, never synchronously in the effect body itself (oxlint's
@@ -306,6 +311,9 @@ export function WeeklySummary({ initialWeekStart }: WeeklySummaryProps = {}) {
               {ALL_DAYS.map((day) => (
                 <span key={day} className={styles.liteGridDayLabel}>
                   {DAY_LABELS[day]}
+                  {workDaysByDate.get(getDayDateIso(weekStart, day)) === true && (
+                    <WorkDayIcon active />
+                  )}
                 </span>
               ))}
               {ALL_SLOTS.map((slot) => (
