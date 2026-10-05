@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { planApi } from '../../services/planApi'
 import type { ActivityCategory } from '../../types/activity'
-import type { PlannedOccurrence } from '../../types/plan'
+import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { getCategoryColor } from '../../utils/categoryColors'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import { getReadableTextColor } from '../../utils/contrast'
@@ -9,7 +9,13 @@ import { CompletionMark } from './CompletionMark'
 import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS } from '../WeeklyPlanner/planLabels'
 import { WeekNav } from '../WeeklyPlanner/WeekNav'
 import { formatDate, getMondayOfCurrentWeek, parseWeekStart } from '../WeeklyPlanner/planLabels'
-import { computeStats, type CategoryStat, type LocationStat, type SummaryLocation } from './weeklySummaryStats'
+import {
+  computeStats,
+  isPastWeek,
+  type CategoryStat,
+  type LocationStat,
+  type SummaryLocation,
+} from './weeklySummaryStats'
 import styles from './WeeklySummary.module.css'
 
 function shiftWeek(weekStart: string, days: number): string {
@@ -19,6 +25,40 @@ function shiftWeek(weekStart: string, days: number): string {
 }
 
 const CATEGORY_ORDER: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
+
+type ScheduledOccurrence = PlannedOccurrence & { dayOfWeek: PlanDayOfWeek; slot: PlanSlot }
+
+function isScheduled(occurrence: PlannedOccurrence): occurrence is ScheduledOccurrence {
+  return occurrence.dayOfWeek !== null && occurrence.slot !== null
+}
+
+// FRONTEND-039-AC-09: within one category's row, completed occurrences come before not-completed
+// ones (matching the removed flat bar's own ordering rule); within each of those two groups,
+// scheduled occurrences order by day (ALL_DAYS' Monday->Sunday order) then slot (ALL_SLOTS'
+// Morning->Evening order), followed by that category's weekend-bucket occurrences ordered by
+// bucketPosition -- the same ordering bucketOrder already applies to the lite bucket list below.
+function orderBySchedule(occurrences: readonly PlannedOccurrence[]): PlannedOccurrence[] {
+  const scheduled = occurrences.filter(isScheduled).sort((a, b) => {
+    const dayDiff = ALL_DAYS.indexOf(a.dayOfWeek) - ALL_DAYS.indexOf(b.dayOfWeek)
+    return dayDiff !== 0 ? dayDiff : ALL_SLOTS.indexOf(a.slot) - ALL_SLOTS.indexOf(b.slot)
+  })
+  const bucket = occurrences
+    .filter((o) => !isScheduled(o))
+    .slice()
+    .sort((a, b) => (a.bucketPosition ?? 0) - (b.bucketPosition ?? 0))
+  return [...scheduled, ...bucket]
+}
+
+function categoryMarkOrder(
+  occurrences: readonly PlannedOccurrence[],
+  category: ActivityCategory,
+): readonly PlannedOccurrence[] {
+  const inCategory = occurrences.filter((o) => o.category === category)
+  return [
+    ...orderBySchedule(inCategory.filter((o) => o.completed)),
+    ...orderBySchedule(inCategory.filter((o) => !o.completed)),
+  ]
+}
 
 const LOCATION_GROUP_LABELS: Record<SummaryLocation, string> = {
   WEEKDAY: 'Weekday grid',
@@ -119,14 +159,21 @@ function BreakdownChart({ byLocation }: BreakdownChartProps) {
   )
 }
 
+interface WeeklySummaryProps {
+  // FRONTEND-039-AC-04/AC-05/AC-06: lets callers (and tests) pin the initially-viewed week without
+  // depending on the real system clock -- normal usage (the /summary route) omits this and gets
+  // today's real current week, per FRONTEND-036-AC-03.
+  readonly initialWeekStart?: string
+}
+
 // FRONTEND-036: a read-only, client-side-computed view of how a week is going -- planned vs
 // completed counts, a per-category breakdown, and a scheduled-vs-bucket split -- derived entirely
 // from the existing GET /api/v1/plan response via planApi.getWeek. Deliberately bypasses
 // usePlanActions (its complete/undo/move/drag/bucket-reorder machinery has no purpose in a
 // read-only summary) in favour of a plain fetch-on-mount, mirroring ActivityBank.tsx's own
 // direct-fetch pattern. Owns its own independent weekStart, never synced with WeeklyPlanner's.
-export function WeeklySummary() {
-  const [weekStart, setWeekStart] = useState(() => getMondayOfCurrentWeek())
+export function WeeklySummary({ initialWeekStart }: WeeklySummaryProps = {}) {
+  const [weekStart, setWeekStart] = useState(() => initialWeekStart ?? getMondayOfCurrentWeek())
   const [occurrences, setOccurrences] = useState<PlannedOccurrence[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -179,13 +226,6 @@ export function WeeklySummary() {
   const completionRate =
     stats !== null && stats.planned > 0 ? Math.round((stats.completed / stats.planned) * 100) : 0
 
-  // FRONTEND-037-AC-01/AC-02: one block per occurrence, completed occurrences first, order within
-  // each group otherwise unchanged (no additional sort).
-  const completionOrder =
-    occurrences !== null
-      ? [...occurrences.filter((o) => o.completed), ...occurrences.filter((o) => !o.completed)]
-      : []
-
   // FRONTEND-037-AC-08: the weekend bucket's occurrences, ordered by bucketPosition -- matching
   // BucketList.tsx's own existing ordering (frontend_spec_010).
   const bucketOrder =
@@ -219,52 +259,48 @@ export function WeeklySummary() {
 
       {occurrences !== null && occurrences.length > 0 && stats !== null && (
         <div className={styles.stats}>
-          <p className={styles.totals}>
-            <strong>
-              {stats.completed} of {stats.planned}
-            </strong>{' '}
-            activities completed ({completionRate}%)
-          </p>
-
-          <p>
-            {stats.scheduled} scheduled, {stats.bucket} in the weekend bucket
-          </p>
-
-          <table className={styles.categoryTable}>
-            <caption>By category</caption>
-            <thead>
-              <tr>
-                <th scope="col">Category</th>
-                <th scope="col">Planned</th>
-                <th scope="col">Completed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.byCategory.map((row) => (
-                <tr key={row.category}>
-                  <th scope="row">{CATEGORY_LABELS[row.category]}</th>
-                  <td>{row.planned}</td>
-                  <td>{row.completed}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* FRONTEND-037 Requirement 1: a segmented completion bar -- one block per occurrence,
-              completed blocks first, each block hoverable/focusable for its own detail. */}
-          <section aria-label="Completion for the week" className={styles.section}>
+          {/* FRONTEND-039 Requirement 1 + 3: "This week at a glance" now absorbs the completion
+              count, the conditional scheduled/bucket split, and one merged, no-header table of
+              per-category marks -- replacing both the old flat completion bar and the old numeric
+              "By category" table. */}
+          <section aria-label="This week at a glance" className={styles.section}>
             <h3>This week at a glance</h3>
-            <div className={styles.completionBar}>
-              {completionOrder.map((occurrence) => (
-                <CompletionMark key={occurrence.id} occurrence={occurrence} shape="block" />
-              ))}
-            </div>
+            <p className={styles.totals}>
+              <strong>
+                {stats.completed} of {stats.planned}
+              </strong>{' '}
+              activities completed ({completionRate}%)
+            </p>
+
+            {/* FRONTEND-039-AC-05/AC-06: only meaningful for a week that isn't already over --
+                a past week's bucket count is stale by the time you look back, since any items
+                still incomplete at week's end have already auto-migrated forward. */}
+            {!isPastWeek(weekStart) && (
+              <p>
+                {stats.scheduled} scheduled, {stats.bucket} in the weekend bucket
+              </p>
+            )}
+
+            <table className={styles.categoryMarksTable}>
+              <tbody>
+                {CATEGORY_ORDER.map((category) => (
+                  <tr key={category}>
+                    <th scope="row">{CATEGORY_LABELS[category]}</th>
+                    <td className={styles.categoryMarksCell}>
+                      {categoryMarkOrder(occurrences, category).map((occurrence) => (
+                        <CompletionMark key={occurrence.id} occurrence={occurrence} shape="block" />
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           {/* FRONTEND-037 Requirement 2: a compact, read-only lite grid + lite bucket list -- same
               marks as above, no Add/drag/remove controls. */}
-          <section aria-label="Where this week's activities landed" className={styles.section}>
-            <h3>Where things landed</h3>
+          <section aria-label="This week's placement" className={styles.section}>
+            <h3>This week's placement</h3>
             <div className={styles.liteGrid}>
               <span className={styles.liteGridCorner} aria-hidden="true" />
               {ALL_DAYS.map((day) => (
@@ -291,17 +327,21 @@ export function WeeklySummary() {
               ))}
             </div>
 
-            <h4>Weekend bucket</h4>
-            <div className={styles.liteBucket}>
-              {bucketOrder.map((occurrence) => (
-                <CompletionMark key={occurrence.id} occurrence={occurrence} shape="circle" />
-              ))}
-            </div>
+            {bucketOrder.length > 0 && (
+              <>
+                <h4>Weekend bucket</h4>
+                <div className={styles.liteBucket}>
+                  {bucketOrder.map((occurrence) => (
+                    <CompletionMark key={occurrence.id} occurrence={occurrence} shape="circle" />
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
           {/* FRONTEND-037 Requirement 3: location x category breakdown chart. */}
-          <section aria-label="Breakdown by location and category" className={styles.section}>
-            <h3>By location and category</h3>
+          <section aria-label="Breakdown by schedule and category" className={styles.section}>
+            <h3>By schedule and category</h3>
             <BreakdownChart byLocation={stats.byLocation} />
           </section>
         </div>

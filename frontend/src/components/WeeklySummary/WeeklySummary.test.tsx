@@ -1,11 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WeeklySummary } from './WeeklySummary'
 import { planApi } from '../../services/planApi'
 import { getCategoryColor } from '../../utils/categoryColors'
 import type { PlannedOccurrence } from '../../types/plan'
 import markStyles from './CompletionMark.module.css'
+import styles from './WeeklySummary.module.css'
 
 vi.mock('../../services/planApi')
 
@@ -45,6 +46,10 @@ describe('WeeklySummary', () => {
     const actual =
       await vi.importActual<typeof import('../../utils/categoryColors')>('../../utils/categoryColors')
     vi.mocked(getCategoryColor).mockImplementation(actual.getCategoryColor)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('FRONTEND-036-AC-08/AC-11: fetches the current week on mount, shows a loading indicator', () => {
@@ -125,35 +130,45 @@ describe('WeeklySummary', () => {
     })
   })
 
-  describe('FRONTEND-037-AC-01/AC-02/AC-03: completion bar renders blocks, completed first', () => {
-    it('renders one block per occurrence, completed before not-completed', async () => {
-      vi.mocked(planApi.getWeek).mockResolvedValue([
-        makeOccurrence({ id: '1', name: 'Walk', completed: true }),
-        makeOccurrence({ id: '2', name: 'Read', completed: false }),
-      ])
+  describe('FRONTEND-039-AC-01/AC-02/AC-03: section order and renamed headings', () => {
+    it('renders sections in order: glance, placement, breakdown, with renamed headings', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({})])
       render(<WeeklySummary />)
 
-      const bar = await screen.findByRole('region', { name: /completion for the week/i })
-      const blocks = within(bar).getAllByRole('button', { name: /walk|read/i })
-      expect(blocks).toHaveLength(2)
-      expect(blocks[0]).toHaveAccessibleName(/walk/i)
-      expect(blocks[0]).not.toHaveStyle({ opacity: '0.55' })
-      expect(blocks[1]).toHaveAccessibleName(/read/i)
-      expect(blocks[1]).toHaveStyle({ opacity: '0.55' })
+      const headings = (await screen.findAllByRole('heading', { level: 3 })).map(
+        (h) => h.textContent,
+      )
+      expect(headings).toEqual([
+        'This week at a glance',
+        "This week's placement",
+        'By schedule and category',
+      ])
+    })
+
+    it('AC-03: labels the breakdown section "Breakdown by schedule and category"', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({})])
+      render(<WeeklySummary />)
+
+      expect(
+        await screen.findByRole('region', { name: /breakdown by schedule and category/i }),
+      ).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-037-AC-04: each mark carries a full detail aria-label', () => {
-    it('names the activity, its day/slot, and completion state', async () => {
+  describe('FRONTEND-039-AC-10 (regression): marks keep their CompletionMark "block" contract', () => {
+    it('names the activity, its day/slot, and completion state within the merged table', async () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([
         makeOccurrence({ name: 'Walk', dayOfWeek: 'MONDAY', slot: 'MORNING', completed: true }),
       ])
       render(<WeeklySummary />)
 
-      const bar = await screen.findByRole('region', { name: /completion for the week/i })
-      expect(
-        within(bar).getByRole('button', { name: /walk.*monday morning.*completed/i }),
-      ).toBeInTheDocument()
+      const routineRow = (await screen.findByRole('rowheader', { name: /routine/i })).closest(
+        'tr',
+      )!
+      const mark = within(routineRow).getByRole('button', {
+        name: /walk.*monday morning.*completed/i,
+      })
+      expect(mark).toHaveClass(markStyles.block)
     })
 
     it('labels a bucket item with "Weekend bucket" instead of a day/slot', async () => {
@@ -162,22 +177,24 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const bar = await screen.findByRole('region', { name: /completion for the week/i })
+      const routineRow = (await screen.findByRole('rowheader', { name: /routine/i })).closest(
+        'tr',
+      )!
       expect(
-        within(bar).getByRole('button', { name: /apply for jobs.*weekend bucket.*not completed/i }),
+        within(routineRow).getByRole('button', {
+          name: /apply for jobs.*weekend bucket.*not completed/i,
+        }),
       ).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-037-AC-05: a zero-occurrence week renders no completion bar', () => {
-    it('shows only the empty-state message, no marks at all', async () => {
+  describe('FRONTEND-037-AC-05 (regression): a zero-occurrence week renders no stats sections', () => {
+    it('shows only the empty-state message, no table, no marks at all', async () => {
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       render(<WeeklySummary />)
 
       expect(await screen.findByText(/no activities planned for this week/i)).toBeInTheDocument()
-      expect(
-        screen.queryByRole('region', { name: /completion for the week/i }),
-      ).not.toBeInTheDocument()
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
       expect(screen.queryByRole('group')).not.toBeInTheDocument()
     })
   })
@@ -189,11 +206,11 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const landed = await screen.findByRole('region', {
-        name: /where this week's activities landed/i,
+      const placement = await screen.findByRole('region', {
+        name: /this week's placement/i,
       })
       expect(
-        within(landed).getByRole('button', { name: /walk.*tuesday evening/i }),
+        within(placement).getByRole('button', { name: /walk.*tuesday evening/i }),
       ).toBeInTheDocument()
     })
 
@@ -203,11 +220,11 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const landed = await screen.findByRole('region', {
-        name: /where this week's activities landed/i,
+      const placement = await screen.findByRole('region', {
+        name: /this week's placement/i,
       })
-      within(landed).getByRole('button', { name: /walk.*tuesday evening/i })
-      expect(within(landed).queryByRole('button', { name: /^add to/i })).not.toBeInTheDocument()
+      within(placement).getByRole('button', { name: /walk.*tuesday evening/i })
+      expect(within(placement).queryByRole('button', { name: /^add to/i })).not.toBeInTheDocument()
     })
   })
 
@@ -231,12 +248,144 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const landed = await screen.findByRole('region', {
-        name: /where this week's activities landed/i,
+      const placement = await screen.findByRole('region', {
+        name: /this week's placement/i,
       })
-      const bucketMarks = within(landed).getAllByRole('button', { name: /first|second/i })
+      const bucketMarks = within(placement).getAllByRole('button', { name: /first|second/i })
       expect(bucketMarks[0]).toHaveAccessibleName(/first/i)
       expect(bucketMarks[1]).toHaveAccessibleName(/second/i)
+    })
+
+    it('does not render the "Weekend bucket" heading when the bucket is empty', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([
+        makeOccurrence({ id: '1', name: 'Walk', dayOfWeek: 'MONDAY', slot: 'MORNING' }),
+      ])
+      render(<WeeklySummary />)
+
+      const placement = await screen.findByRole('region', {
+        name: /this week's placement/i,
+      })
+      expect(within(placement).queryByText('Weekend bucket')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-039-AC-05/AC-06/AC-07: scheduled/bucket line respects past-week status', () => {
+    it('AC-06: hides the scheduled/bucket line for a past week, keeps the completion count', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00'))
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({})])
+      render(<WeeklySummary initialWeekStart="2026-09-21" />)
+
+      expect(await screen.findByText(/activities completed/i)).toBeInTheDocument()
+      expect(screen.queryByText(/in the weekend bucket/i)).not.toBeInTheDocument()
+    })
+
+    it('AC-05: shows the scheduled/bucket line for the current week', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00'))
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({})])
+      render(<WeeklySummary initialWeekStart="2026-09-29" />)
+
+      expect(await screen.findByText(/in the weekend bucket/i)).toBeInTheDocument()
+    })
+
+    it('AC-05: shows the scheduled/bucket line for a future week', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00'))
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({})])
+      render(<WeeklySummary initialWeekStart="2026-10-12" />)
+
+      expect(await screen.findByText(/in the weekend bucket/i)).toBeInTheDocument()
+    })
+
+    it('AC-07: the completion-count line still renders for a past week', async () => {
+      vi.setSystemTime(new Date('2026-10-05T09:00:00'))
+      vi.mocked(planApi.getWeek).mockResolvedValue([
+        makeOccurrence({ id: '1', completed: true }),
+        makeOccurrence({ id: '2', completed: false }),
+      ])
+      render(<WeeklySummary initialWeekStart="2026-09-21" />)
+
+      expect(await screen.findByText(/1 of 2/i)).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-039-AC-08/AC-11: merged per-category table replaces the flat bar and numeric table', () => {
+    it('AC-08: renders one table with no column headers and three category rows', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({ category: 'ROUTINE' })])
+      render(<WeeklySummary />)
+
+      const table = await screen.findByRole('table')
+      expect(within(table).queryByRole('columnheader')).not.toBeInTheDocument()
+      expect(within(table).getByRole('rowheader', { name: /routine/i })).toBeInTheDocument()
+      expect(within(table).getByRole('rowheader', { name: /necessary/i })).toBeInTheDocument()
+      expect(within(table).getByRole('rowheader', { name: /pleasurable/i })).toBeInTheDocument()
+    })
+
+    it('AC-11: a category with no occurrences still renders its row, empty', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([makeOccurrence({ category: 'ROUTINE' })])
+      render(<WeeklySummary />)
+
+      const necessaryRow = (
+        await screen.findByRole('rowheader', { name: /necessary/i })
+      ).closest('tr')!
+      expect(within(necessaryRow).queryAllByRole('button')).toHaveLength(0)
+    })
+  })
+
+  describe('FRONTEND-039-AC-09: marks ordered completed-first, then scheduled-before-bucket', () => {
+    it("orders a category's marks completed-first, then day/slot, then bucket position", async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([
+        makeOccurrence({
+          id: '1',
+          name: 'Bucket item',
+          category: 'ROUTINE',
+          dayOfWeek: null,
+          slot: null,
+          completed: false,
+          bucketPosition: 0,
+        }),
+        makeOccurrence({
+          id: '2',
+          name: 'Tue walk',
+          category: 'ROUTINE',
+          dayOfWeek: 'TUESDAY',
+          slot: 'MORNING',
+          completed: false,
+        }),
+        makeOccurrence({
+          id: '3',
+          name: 'Mon walk',
+          category: 'ROUTINE',
+          dayOfWeek: 'MONDAY',
+          slot: 'MORNING',
+          completed: true,
+        }),
+      ])
+      render(<WeeklySummary />)
+
+      const routineRow = (await screen.findByRole('rowheader', { name: /routine/i })).closest(
+        'tr',
+      )!
+      const marks = within(routineRow).getAllByRole('button')
+      expect(marks).toHaveLength(3)
+      expect(marks[0]).toHaveAccessibleName(/mon walk.*completed/i)
+      expect(marks[1]).toHaveAccessibleName(/tue walk.*not completed/i)
+      expect(marks[2]).toHaveAccessibleName(/bucket item.*weekend bucket.*not completed/i)
+    })
+  })
+
+  describe('FRONTEND-039-AC-12/AC-13: lite grid styling classes applied', () => {
+    it('applies the grid-line/monospace classes to the day and slot header labels', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([
+        makeOccurrence({ dayOfWeek: 'MONDAY', slot: 'MORNING' }),
+      ])
+      render(<WeeklySummary />)
+
+      const dayLabel = await screen.findByText('Monday')
+      expect(dayLabel).toHaveClass(styles.liteGridDayLabel)
+      const slotLabel = screen.getByText('Morning')
+      expect(slotLabel).toHaveClass(styles.liteGridSlotLabel)
+      // .liteGridDayLabel/.liteGridSlotLabel/.liteGridCell carry the border/font-family rules in
+      // WeeklySummary.module.css -- a real-browser pass (AC-14) confirms actual rendered
+      // appearance, since jsdom doesn't render CSS.
     })
   })
 
@@ -274,7 +423,7 @@ describe('WeeklySummary', () => {
       render(<WeeklySummary />)
 
       await screen.findByRole('group', { name: /weekday grid/i })
-      expect(screen.getAllByText('Routine')).toHaveLength(2) // legend + category table
+      expect(screen.getAllByText('Routine')).toHaveLength(2) // legend + merged per-category table row header
     })
   })
 
@@ -286,7 +435,7 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const bar = await screen.findByRole('region', { name: /completion for the week/i })
+      const bar = await screen.findByRole('region', { name: /this week at a glance/i })
       const block = within(bar).getByRole('button', { name: /walk/i })
       expect(block).toHaveClass(markStyles.block)
       // the .block class itself carries the border in CompletionMark.module.css -- this asserts
@@ -304,7 +453,7 @@ describe('WeeklySummary', () => {
       ])
       render(<WeeklySummary />)
 
-      const bar = await screen.findByRole('region', { name: /completion for the week/i })
+      const bar = await screen.findByRole('region', { name: /this week at a glance/i })
       const walkBlock = within(bar).getByRole('button', { name: /walk/i })
       const readBlock = within(bar).getByRole('button', { name: /read/i })
       expect(walkBlock).not.toHaveStyle({ opacity: '0.55' })
