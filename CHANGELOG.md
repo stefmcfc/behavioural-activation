@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-10-06
+
 ### Added
 
 - A "Suggested activities" disclosure in the Activity Bank, below a new "My Activities" heading
