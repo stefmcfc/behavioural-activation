@@ -6,10 +6,12 @@ import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
 import { SuggestedActivities } from './SuggestedActivities'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { CategoryGroupHeading } from '../CategoryGroupHeading/CategoryGroupHeading'
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
+import { CATEGORY_ORDER } from '../../utils/categoryLabels'
 import styles from './ActivityBank.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -234,6 +236,12 @@ export function ActivityBank() {
       (!favouriteFilter || activity.favourite),
   )
 
+  // FRONTEND-044-AC-03/AC-04: fixed category order, respecting the existing category filter --
+  // partitioned via .filter() (never re-sorted) so within-group order stays exactly what the
+  // backend already provides.
+  const visibleCategories =
+    categoryFilter === 'ALL' ? CATEGORY_ORDER : CATEGORY_ORDER.filter((c) => c === categoryFilter)
+
   return (
     <section>
       <h2>Activity Bank</h2>
@@ -325,41 +333,59 @@ export function ActivityBank() {
         <p>No activities in this category.</p>
       )}
 
-      {visibleActivities.length > 0 && (
-        <ul className={styles.list}>
-          {visibleActivities.map((activity) => (
-            <li key={activity.id} className={styles.row}>
-              <button
-                type="button"
-                className={styles.favouriteToggle}
-                aria-pressed={activity.favourite}
-                aria-label={activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`}
-                onClick={() => handleToggleFavourite(activity)}
-                disabled={favouritingId === activity.id}
+      {visibleActivities.length > 0 &&
+        visibleCategories.map((category) => {
+          const activitiesInCategory = visibleActivities.filter((a) => a.category === category)
+          if (activitiesInCategory.length === 0) {
+            return null
+          }
+          return (
+            <div key={category}>
+              <CategoryGroupHeading category={category} />
+              <ul // NOSONAR(typescript:S6819): deliberate -- the heading above already labels
+                // this group, so this <ul>'s own list semantics would be redundant noise for
+                // screen reader users (matching SuggestedActivities.tsx's own category-group
+                // <ul> for the same reason).
+                className={styles.list}
+                role="presentation"
               >
-                <FavouriteIcon filled={activity.favourite} />
-              </button>
-              <span>{activity.name}</span> <CategoryChip category={activity.category} />
-              {activity.repeatable && <RepeatableIcon />}
-              {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
+                {activitiesInCategory.map((activity) => (
+                  <li key={activity.id} className={styles.row}>
+                    <button
+                      type="button"
+                      className={styles.favouriteToggle}
+                      aria-pressed={activity.favourite}
+                      aria-label={
+                        activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`
+                      }
+                      onClick={() => handleToggleFavourite(activity)}
+                      disabled={favouritingId === activity.id}
+                    >
+                      <FavouriteIcon filled={activity.favourite} />
+                    </button>
+                    <span>{activity.name}</span> <CategoryChip category={activity.category} />
+                    {activity.repeatable && <RepeatableIcon />}
+                    {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
 
-              <span className={styles.actions}>{renderRowActions(activity)}</span>
+                    <span className={styles.actions}>{renderRowActions(activity)}</span>
 
-              {activity.description && <p>{activity.description}</p>}
+                    {activity.description && <p>{activity.description}</p>}
 
-              {expandedActivityId === activity.id && (
-                <div className={styles.details}>
-                  <SubTaskList
-                    key={`${activity.id}-${refreshKey}`}
-                    activityId={activity.id}
-                    readOnly={activity.archived}
-                  />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                    {expandedActivityId === activity.id && (
+                      <div className={styles.details}>
+                        <SubTaskList
+                          key={`${activity.id}-${refreshKey}`}
+                          activityId={activity.id}
+                          readOnly={activity.archived}
+                        />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
 
       <SuggestedActivities
         activities={activities ?? []}

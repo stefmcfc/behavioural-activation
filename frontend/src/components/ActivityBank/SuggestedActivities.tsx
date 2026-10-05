@@ -1,13 +1,12 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useState } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
-import type { Activity, ActivityCategory } from '../../types/activity'
+import type { Activity } from '../../types/activity'
 import { PRESET_ACTIVITIES, type PresetActivity } from '../../utils/presetActivities'
-import { CATEGORY_LABELS } from '../../utils/categoryLabels'
-import { getCategoryColor, subscribeToCategoryColorChanges } from '../../utils/categoryColors'
-import { getReadableTextColor } from '../../utils/contrast'
+import { CATEGORY_ORDER } from '../../utils/categoryLabels'
 import type { CategoryFilter } from '../../utils/categoryFilter'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import { CategoryGroupHeading } from '../CategoryGroupHeading/CategoryGroupHeading'
 import { ChevronIcon } from '../icons/ChevronIcon'
 import styles from './SuggestedActivities.module.css'
 
@@ -31,28 +30,6 @@ function getErrorMessage(error: unknown): string {
     return (error as { message: string }).message
   }
   return 'Something went wrong. Please try again.'
-}
-
-// Fixed display order, matching CATEGORY_LABELS' own key order.
-const CATEGORY_ORDER: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
-
-interface CategoryGroupHeadingProps {
-  readonly category: ActivityCategory
-}
-
-// FRONTEND-040-AC-09: same live-updating colour/contrast pattern CategoryChip already uses, so a
-// Settings colour change applies here immediately too, no reload.
-function CategoryGroupHeading({ category }: CategoryGroupHeadingProps) {
-  const backgroundColor = useSyncExternalStore(subscribeToCategoryColorChanges, () =>
-    getCategoryColor(category),
-  )
-  const color = getReadableTextColor(backgroundColor)
-
-  return (
-    <h4 className={styles.groupHeading} style={{ backgroundColor, color }}>
-      {CATEGORY_LABELS[category]}
-    </h4>
-  )
 }
 
 export function SuggestedActivities({

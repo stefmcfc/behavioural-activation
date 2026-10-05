@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Changed
+
+- The Activity Bank's "My Activities" list is now grouped into Routine/Necessary/Pleasurable
+  sections with coloured headings, instead of one flat list — reuses the same grouping pattern
+  Suggested Activities already used. Row content, filters, and within-group order (favourites
+  first, then alphabetical) are unchanged; "My Activities" always stays expanded, unlike the
+  collapsible Suggested Activities disclosure.
+
 ## [0.35.0] - 2026-10-05
 
 ### Added

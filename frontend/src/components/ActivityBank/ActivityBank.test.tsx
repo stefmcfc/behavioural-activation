@@ -99,10 +99,9 @@ describe('ActivityBank', () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
 
-      expect(await screen.findByText('Walk')).toBeInTheDocument()
-      const list = within(screen.getByRole('list'))
-      expect(list.getByText('Routine')).toBeInTheDocument()
-      expect(list.getByText('Around the block')).toBeInTheDocument()
+      const row = (await screen.findByText('Walk')).closest('li')!
+      expect(within(row).getByText('Routine')).toBeInTheDocument()
+      expect(within(row).getByText('Around the block')).toBeInTheDocument()
     })
   })
 
@@ -785,21 +784,31 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-027-AC-04: Activity Bank list preserves backend-provided order', () => {
-    it('renders activities in the exact order activityApi.getAll returns', async () => {
+  describe('FRONTEND-044-AC-10: order preservation across the grouped structure (rescoped from FRONTEND-027-AC-04)', () => {
+    it('renders activities in the exact order activityApi.getAll returns, even across categories', async () => {
       const zebraFavourite: Activity = { ...walk, id: '10', name: 'Zebra', favourite: true }
-      const appleActivity: Activity = { ...walk, id: '11', name: 'Apple', favourite: false }
-      const mangoActivity: Activity = { ...walk, id: '12', name: 'Mango', favourite: false }
+      const appleActivity: Activity = { ...jobs, id: '11', name: 'Apple', favourite: false }
+      const mangoActivity: Activity = { ...read, id: '12', name: 'Mango', favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([zebraFavourite, appleActivity, mangoActivity])
       render(<ActivityBank />)
 
       await screen.findByText('Zebra')
-      const names = within(screen.getByRole('list'))
-        .getAllByRole('listitem')
-        .map((row) => row.textContent)
-      expect(names[0]).toContain('Zebra')
-      expect(names[1]).toContain('Apple')
-      expect(names[2]).toContain('Mango')
+      // FRONTEND-044-AC-10: resolved via red/green -- role="presentation" on the grouped <ul>s
+      // does NOT demote their child <li>s' implicit "listitem" role in this project's jsdom/RTL
+      // setup (confirmed: screen.getAllByRole('listitem') still finds them). The reason an
+      // unscoped getAllByRole('listitem') query doesn't work here is different: it also picks up
+      // unrelated <li>s from sibling sections on the same page -- the category-filter fieldset's
+      // own radio <li>s ('All'/'Routine'/...) and SuggestedActivities' preset rows (rendered
+      // regardless of its <details> open/closed state in jsdom) -- so a class-based query against
+      // the row class (already imported as `styles` elsewhere in this file) is the fallback that
+      // actually isolates "My Activities"' own rows.
+      const textContents = Array.from(
+        document.querySelectorAll(`.${styles.row}`),
+        (row) => row.textContent,
+      )
+      expect(textContents[0]).toContain('Zebra')
+      expect(textContents[1]).toContain('Apple')
+      expect(textContents[2]).toContain('Mango')
     })
   })
 
@@ -940,6 +949,44 @@ describe('ActivityBank', () => {
 
       await userEvent.click(checkbox)
       expect(screen.getByText('Non-favourited one')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-044-AC-03: category-grouped headings in My Activities', () => {
+    // Scoped to headings outside any <details> -- SuggestedActivities (which also renders
+    // CategoryGroupHeadings, inside its own <details>) is a sibling section on the same page and
+    // must not be mistaken for "My Activities"' own headings.
+    function myActivitiesHeadings() {
+      return screen
+        .getAllByRole('heading', { level: 4 })
+        .filter((heading) => heading.closest('details') === null)
+        .map((heading) => heading.textContent)
+    }
+
+    it('renders one heading per category with activities, in fixed order', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([read, walk, jobs])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      expect(myActivitiesHeadings()).toEqual(['Routine', 'Necessary', 'Pleasurable'])
+    })
+
+    it('omits a heading for a category with no visible activities', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      await screen.findByText('Walk')
+      expect(myActivitiesHeadings()).toEqual(['Routine'])
+    })
+  })
+
+  describe('FRONTEND-044-AC-06: My Activities is never collapsed', () => {
+    it('renders activity rows with no enclosing <details>', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+
+      const row = await screen.findByText('Walk')
+      expect(row.closest('details')).toBeNull()
     })
   })
 })
