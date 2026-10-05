@@ -104,7 +104,8 @@ export function SuggestedActivities({
       </summary>
 
       {/* FRONTEND-040-AC-12 */}
-      <p className={styles.preamble}>A few common activities you can add with one click:</p>
+      <p className={styles.preamble}>A few common activities you can add with one click.
+      You can always edit the activity after you've added it to your list</p>
 
       {visibleCategories.map((category) => {
         const presetsInCategory = remainingPresets.filter((preset) => preset.category === category)

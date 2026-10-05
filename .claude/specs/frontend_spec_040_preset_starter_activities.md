@@ -70,8 +70,15 @@ Verified live: a real `getComputedStyle` check on the icon confirmed `transform:
 matrix(-1, 0, 0, -1, 0, 0)` (i.e. `rotate(180deg)`) once the disclosure was opened, matching the
 collapsed-state screenshot showing a plain down-pointing chevron beforehand.
 
-**Final total**: 16 ACs across three implementation rounds, all implemented and tested (584/584
-frontend tests passing, 0 regressions; `npm run lint`/`npx tsc -b --noEmit` both clean throughout).
+**A fourth, CSS-only tweak**: the `AC-12` preamble gained a quote-block treatment (`background:
+var(--code-bg)`, a left accent border, rounded corners, padding) at the user's request, so it reads
+as a distinct callout rather than plain paragraph text — no change to `AC-12`'s content requirement,
+confirmed in both themes. The user also edited the preamble's own wording directly in
+`SuggestedActivities.tsx` (now two sentences) — left as their own edit, not reverted.
+
+**Final total**: 16 ACs across four implementation/polish rounds, all implemented and tested
+(584/584 frontend tests passing, 0 regressions; `npm run lint`/`npx tsc -b --noEmit` both clean
+throughout).
 
 ## Overview
 
