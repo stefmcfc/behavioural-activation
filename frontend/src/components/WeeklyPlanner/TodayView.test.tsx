@@ -93,9 +93,12 @@ describe('TodayView', () => {
       render(<TodayView />)
 
       expect(await screen.findByRole('heading', { name: /today/i })).toBeInTheDocument()
-      // "Wednesday" renders twice: PlannerGrid's own <h3> heading (named via the `heading` prop)
-      // and the single day column's date/day-name label -- both confirm AC-04's day name.
-      expect(screen.getByRole('heading', { name: 'Wednesday', level: 3 })).toBeInTheDocument()
+      // FRONTEND-041-AC-01/AC-02: the grid's own <h3> is a generic "Today's plan" heading, not
+      // the day name -- the real day name appears exactly once, via the single day column's own
+      // date/day-name label, not duplicated via the heading prop too.
+      expect(screen.getByRole('heading', { name: "Today's plan", level: 3 })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Wednesday', level: 3 })).not.toBeInTheDocument()
+      expect(screen.getAllByText('Wednesday')).toHaveLength(1)
     })
   })
 

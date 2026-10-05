@@ -5,7 +5,7 @@ import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
 import { usePlanActions } from './usePlanActions'
-import { DAY_LABELS, getMondayOfCurrentWeek, getTodayPlanDayOfWeek } from './planLabels'
+import { getMondayOfCurrentWeek, getTodayPlanDayOfWeek } from './planLabels'
 import styles from './TodayView.module.css'
 
 // FRONTEND-016: a dedicated single-day view of the real current week's plan -- always "today",
@@ -49,7 +49,7 @@ export function TodayView() {
               <PlannerGrid
                 weekStart={weekStart}
                 days={[today]}
-                heading={DAY_LABELS[today]}
+                heading="Today's plan"
                 emptyMessage="No activities planned for today."
                 occurrences={plan.occurrences}
                 busyId={plan.busyId}

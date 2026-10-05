@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-10-06
+
+### Fixed
+
+- The Today tab's grid heading no longer duplicates today's day name — it now reads "Today's
+  plan", with the actual day/date shown once via the grid's own day label below it.
+
 ## [0.33.0] - 2026-10-06
 
 ### Added
