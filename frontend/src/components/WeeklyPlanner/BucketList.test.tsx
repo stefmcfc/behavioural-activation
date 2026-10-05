@@ -324,6 +324,81 @@ describe('FRONTEND-026-AC-06: a move in flight blocks a new cross-section drop o
   })
 })
 
+describe('FRONTEND-038-AC-03/AC-04: dropping on the bucket respects completion state', () => {
+  it('AC-03: a completed occurrence dropped on the bucket panel does not call onMoveToBucket', () => {
+    const onMoveToBucket = vi.fn()
+    const draggedOccurrence = bucketOccurrence({
+      id: 'grid-origin',
+      dayOfWeek: 'MONDAY',
+      slot: 'MORNING',
+      bucketPosition: null,
+      completed: true,
+    })
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences: [draggedOccurrence],
+          dragPayload: { kind: 'occurrence', id: 'grid-origin' },
+          onMoveToBucket,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
+
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+
+  it('AC-03: a completed occurrence dropped on an existing bucket item does not call onMoveToBucket', () => {
+    const onMoveToBucket = vi.fn()
+    const draggedOccurrence = bucketOccurrence({
+      id: 'grid-origin',
+      dayOfWeek: 'MONDAY',
+      slot: 'MORNING',
+      bucketPosition: null,
+      completed: true,
+    })
+    const existingItem = bucketOccurrence({ id: 'a', name: 'First', bucketPosition: 0 })
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences: [draggedOccurrence, existingItem],
+          dragPayload: { kind: 'occurrence', id: 'grid-origin' },
+          onMoveToBucket,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByText('First').closest('li')!)
+
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+
+  it('AC-04: a not-completed occurrence dropped on the bucket panel still calls onMoveToBucket (regression guard)', () => {
+    const onMoveToBucket = vi.fn()
+    const draggedOccurrence = bucketOccurrence({
+      id: 'grid-origin',
+      dayOfWeek: 'MONDAY',
+      slot: 'MORNING',
+      bucketPosition: null,
+      completed: false,
+    })
+    render(
+      <BucketList
+        {...baseBucketProps({
+          occurrences: [draggedOccurrence],
+          dragPayload: { kind: 'occurrence', id: 'grid-origin' },
+          onMoveToBucket,
+        })}
+      />,
+    )
+
+    fireEvent.drop(screen.getByRole('region', { name: 'Weekend bucket list' }))
+
+    expect(onMoveToBucket).toHaveBeenCalledWith('grid-origin')
+  })
+})
+
 describe('FRONTEND-028-AC-13/AC-14: dropping a drawer item onto the bucket', () => {
   it('AC-13: dropping on the panel calls onAssignFromDrawer with null day/slot', () => {
     const onAssignFromDrawer = vi.fn()

@@ -165,6 +165,10 @@ belongs to a different user returns `404` in every case identically, never `403`
   be promoted into *any* day, not just Saturday/Sunday); both null demotes it back to the weekend
   bucket, leaving `weekStart` unchanged. Exactly one set returns `400` without applying any change.
   Returns `200` with the updated occurrence, `404` if `id` isn't owned by the authenticated user.
+  Demoting an already-completed occurrence to the bucket (`dayOfWeek`/`slot` both null, and the
+  occurrence has a `CompletionRecord`) returns `409` without applying any change — a completed
+  activity is done for the week, so it cannot be turned back into an unscheduled bucket item;
+  rescheduling a completed occurrence to a different day/slot is unaffected and still returns `200`.
 - **`DELETE /api/v1/plan/occurrences/{id}`** — permanently removes the planned occurrence from the
   week without touching the underlying `Activity`/`SubTask` in the user's bank. Returns `204`, or
   `404` if `id` isn't owned by the authenticated user.

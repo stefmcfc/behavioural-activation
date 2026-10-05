@@ -96,6 +96,12 @@ export function BucketList({
   const zeroCategories = computeZeroCategories(bucketOccurrences)
   const idsInOrder = bucketOccurrences.map((occurrence) => occurrence.id)
 
+  // FRONTEND-038-AC-03: `occurrences` carries the full list (grid + bucket, per WeeklyPlanner's
+  // shared-state wiring), so a dragged id not yet in the bucket can still be looked up here to
+  // check completion before allowing the drop to demote it.
+  const isCompletedOccurrence = (id: string): boolean =>
+    occurrences.find((occurrence) => occurrence.id === id)?.completed === true
+
   const handleMoveUp = (id: string) => {
     const index = idsInOrder.indexOf(id)
     if (index <= 0) return
@@ -137,10 +143,11 @@ export function BucketList({
         ...withoutDragged.slice(originalTargetIndex),
       ]
       onReorder(next)
-    } else if (busyId === null) {
+    } else if (busyId === null && !isCompletedOccurrence(id)) {
       // FRONTEND-026-AC-03: a grid-origin (not-yet-bucketed) occurrence dropped on an existing
       // bucket item demotes it the same as dropping anywhere else in the bucket; it is not
       // spliced into a specific position. FRONTEND-026-AC-06: gated by busyId like the grid side.
+      // FRONTEND-038-AC-03: a completed occurrence is never demoted to the bucket this way either.
       onMoveToBucket(id)
     }
   }
@@ -155,7 +162,8 @@ export function BucketList({
       return
     }
     const id = payload.id
-    if (idsInOrder.includes(id) || busyId !== null) return
+    // FRONTEND-038-AC-03: a completed occurrence is never moved to the bucket via drag-and-drop.
+    if (idsInOrder.includes(id) || busyId !== null || isCompletedOccurrence(id)) return
     onMoveToBucket(id)
   }
 

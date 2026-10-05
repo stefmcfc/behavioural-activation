@@ -14,7 +14,9 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-03 (the "Filter the Weekly Planner by completed status and by category"
+Last updated: 2026-10-05 (added the dev-script window-closes-before-you-can-read-it candidate,
+raised by the user while reviewing the RUNBOOK's Quick Start section; see entry below.)
+Earlier note: 2026-10-03 (the "Filter the Weekly Planner by completed status and by category"
 candidate moved to a real spec — `frontend_spec_035_weekly_planner_filter.md`, see `ROADMAP.md`'s
 "Specced, coming soon" — removed from this file.)
 Earlier note: 2026-10-03, added the preset/starter activity bank candidate, raised by the user while
@@ -56,6 +58,31 @@ soon". The weekly grid orientation toggle candidate is now also written up
 ---
 
 ## Candidates
+
+## Dev scripts: failure window closes before the diagnostic can be read
+
+**Status**: Confirmed, not yet specced. Raised by the user 2026-10-05, while reviewing
+`RUNBOOK.md`'s Quick Start section. When `start-dev.sh`/`restart-dev.sh` is launched in a way that
+spawns a fresh Git Bash window scoped to just that one invocation (e.g. typing
+`.\scripts\restart-dev.sh --debug` from PowerShell, or double-clicking the `.sh` file in Explorer —
+both go through Windows' `.sh` file association), that window closes itself the instant the script
+process exits, success or failure alike. If `scripts/lib/docker-common.sh`'s `docker_preflight`
+fails (Docker Desktop not running, or Postgres not up/healthy), its diagnostic is printed correctly
+and the script exits non-zero exactly as designed — confirmed by stubbing `docker()` to fail and
+sourcing `docker_preflight` directly, which printed `Docker isn't running -- start Docker Desktop,
+then try again.` and returned exit 1 — but the spawned window vanishes before the message can
+actually be read, so in practice it looks like the script "does nothing."
+
+Only reproducible as a UX gap, not a logic bug: running the same scripts from inside an
+already-open, persistent Git Bash session (the common case documented in `RUNBOOK.md`) doesn't hit
+this at all, since that window stays open regardless of what the script prints or returns.
+
+Likely fix: a shared helper in `scripts/lib/dev-common.sh` (e.g. `pause_on_failure`, invoked via an
+`EXIT` trap keyed off `$?`) that blocks on a keypress only when the script is about to exit
+non-zero, so a disposable spawned window stays up long enough to read the diagnostic, without
+adding an extra keypress to the normal success path that users typing directly into an open Git
+Bash session already rely on today. Would apply to `start-dev.sh`, `restart-dev.sh`, and
+`stop-dev.sh` uniformly once written, so all three get consistent behavior on failure.
 
 ## Preset/starter activity bank for new users
 

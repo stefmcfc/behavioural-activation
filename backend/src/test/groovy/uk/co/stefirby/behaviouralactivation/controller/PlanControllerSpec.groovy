@@ -13,6 +13,7 @@ import uk.co.stefirby.behaviouralactivation.config.CorsConfig
 import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
+import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException
@@ -360,6 +361,24 @@ class PlanControllerSpec extends Specification {
 
         then: "the response is 400"
             result.andExpect(status().isBadRequest())
+    }
+
+    def "PLANNER-020-AC-02: PATCH /api/v1/plan/occurrences/{id} returns 409 when the service rejects a completed occurrence's bucket move"() {
+        given: "the service rejects the bucket-targeting move as ineligible"
+            def id = UUID.randomUUID()
+            planService.move("steve", id, _ as PlannedOccurrenceMoveRequest) >>
+                { throw new BucketMoveNotAllowedException("A completed occurrence cannot be moved to the bucket") }
+            def body = objectMapper.writeValueAsString([dayOfWeek: null, slot: null])
+
+        when: "PATCH /api/v1/plan/occurrences/{id} is requested"
+            def result = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 409 with a clear message"
+            result.andExpect(status().isConflict())
+            result.andExpect(jsonPath('$.message').value("A completed occurrence cannot be moved to the bucket"))
     }
 
     def "PLANNER-004-AC-19: PATCH /api/v1/plan/occurrences/{id} returns 404 for a not-found-or-not-owned id"() {

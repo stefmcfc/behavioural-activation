@@ -254,7 +254,7 @@ export function OccurrenceItem({
                   </span>
 
                   <span className={styles.moveActions}>
-                    {!isBucketItem && (
+                    {!isBucketItem && !occurrence.completed && (
                       <button
                         type="button"
                         className={styles.sendToBucketButton}
