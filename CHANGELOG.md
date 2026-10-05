@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-10-06
+
+### Fixed
+
+- `scripts/start-dev.sh`/`stop-dev.sh`/`restart-dev.sh` now pause for a keypress before exiting on
+  failure, so a disposable spawned window (double-clicked, or launched from PowerShell rather than
+  an already-open Git Bash session) doesn't close itself before the failure diagnostic can be read.
+  A successful run is unaffected. `restart-dev.sh` also now correctly reflects a failure in either
+  its stop or start step in its own exit code, instead of only the last one run.
+
 ## [0.32.0] - 2026-10-05
 
 ### Changed
