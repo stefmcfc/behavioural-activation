@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-05
+
 ### Added
 
 - The Weekly Summary tab now shows a segmented completion bar: one small block per planned
