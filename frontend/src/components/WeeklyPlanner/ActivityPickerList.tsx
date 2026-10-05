@@ -88,8 +88,11 @@ export function ActivityPickerList({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
   const [favouriteFilter, setFavouriteFilter] = useState<FavouriteFilter>('ALL')
-  // FRONTEND-045-AC-06/AC-10: select-mode-only, single-expansion sub-task disclosure state --
-  // mirrors ActivityBank.tsx's own expandedActivityId pattern. Unused in drag mode.
+  // FRONTEND-045-AC-06/AC-10, extended to drag mode by FRONTEND-046-AC-04/AC-06: single-expansion
+  // sub-task disclosure state, shared by both modes -- mirrors ActivityBank.tsx's own
+  // expandedActivityId pattern. The `select`-mode instance (AssignActivityPicker) and `drag`-mode
+  // instance (ActivityDrawer) are never mounted simultaneously, so each has entirely independent
+  // local state.
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -245,69 +248,16 @@ export function ActivityPickerList({
         <p>No activities match these filters.</p>
       )}
 
-      {/* FRONTEND-045-AC-05/AC-12: drag mode keeps today's exact flat-list, always-expanded render
-          path, byte-for-byte unchanged -- branching here on isDragMode (rather than threading new
-          select-mode conditionals through one shared block) keeps that regression guard true by
-          construction. */}
-      {isDragMode && visibleActivities.length > 0 && (
-        <ul className={styles.panel}>
-          {visibleActivities.map((activity) => {
-            const subTasks = (subTasksByActivity[activity.id] ?? []).filter(
-              (subTask) => categoryFilter === 'ALL' || subTask.category === categoryFilter,
-            )
-            return (
-              <li
-                key={activity.id}
-                className={styles.activityGroup}
-                draggable={isDragMode}
-                onDragStart={isDragMode ? () => handleActivityDragStart(activity.id) : undefined}
-                onDragEnd={isDragMode ? onDragEnd : undefined}
-              >
-                <div className={styles.activityRow}>
-                  {/* `mode` is always `'drag'` in this branch (gated by isDragMode above), so this
-                      renders identically to the pre-FRONTEND-045 unified block's `else` case --
-                      kept as a plain span rather than a `mode === 'select'` ternary here since
-                      that comparison is now unreachable in this branch and TS (correctly) flags
-                      it as such. */}
-                  <span className={styles.activityName}>{activity.name}</span>
-                  <CategoryChip category={activity.category} />
-                  {activity.repeatable && <RepeatableIcon />}
-                  {activity.favourite && <FavouriteIcon />}
-                </div>
-
-                {subTasks.length > 0 && (
-                  <ul className={styles.subTaskList}>
-                    {subTasks.map((subTask) => (
-                      <li
-                        key={subTask.id}
-                        className={styles.subTaskRow}
-                        draggable={isDragMode}
-                        onDragStart={
-                          isDragMode
-                            ? (event) => handleSubTaskDragStart(event, subTask.id)
-                            : undefined
-                        }
-                        onDragEnd={isDragMode ? handleSubTaskDragEnd : undefined}
-                      >
-                        <span className={styles.activityName}>{subTask.name}</span>
-                        <CategoryChip category={subTask.category} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-
-      {/* FRONTEND-045-AC-01/AC-02/AC-03/AC-04: select mode only -- activities grouped into fixed
-          CATEGORY_ORDER sections (reusing ActivityBank.tsx's own precedent), partitioned with
-          .filter() only (no new sort) so within-group order stays exactly what the backend
-          provides. Sub-tasks are collapsed by default behind a per-activity toggle
-          (FRONTEND-045-AC-06 through AC-11). */}
-      {!isDragMode &&
-        visibleActivities.length > 0 &&
+      {/* FRONTEND-045-AC-01/AC-02/AC-03/AC-04, extended to drag mode by FRONTEND-046-AC-01/AC-02/
+          AC-03: both modes share the identical category-grouping + collapsible-sub-tasks
+          derivation (CATEGORY_ORDER sections, reusing ActivityBank.tsx's own precedent,
+          partitioned with .filter() only -- no new sort -- plus a per-activity collapsed-by-
+          default sub-task disclosure, FRONTEND-045-AC-06 through AC-11 / FRONTEND-046-AC-04
+          through AC-09). frontend_spec_046 deliberately superseded the previous
+          FRONTEND-045-AC-05/AC-12 regression guards that kept this block select-mode-only and
+          drag mode flat/always-expanded -- only the leaf row content below now differs per mode:
+          a select button (select mode) vs. a plain draggable span (drag mode). */}
+      {visibleActivities.length > 0 &&
         CATEGORY_ORDER.map((category) => {
           const activitiesInCategory = visibleActivities.filter((a) => a.category === category)
           if (activitiesInCategory.length === 0) {
@@ -328,21 +278,39 @@ export function ActivityPickerList({
                     )
 
                   return (
-                    <li key={activity.id} className={styles.activityGroup}>
+                    <li
+                      key={activity.id}
+                      className={styles.activityGroup}
+                      draggable={isDragMode}
+                      onDragStart={
+                        isDragMode ? () => handleActivityDragStart(activity.id) : undefined
+                      }
+                      onDragEnd={isDragMode ? onDragEnd : undefined}
+                    >
                       <div className={styles.activityRow}>
-                        <button
-                          type="button"
-                          aria-pressed={selected?.activityId === activity.id}
-                          onClick={() => onSelectActivity?.(activity.id)}
-                        >
-                          {activity.name}
-                        </button>
+                        {isDragMode ? (
+                          <span className={styles.activityName}>{activity.name}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-pressed={selected?.activityId === activity.id}
+                            onClick={() => onSelectActivity?.(activity.id)}
+                          >
+                            {activity.name}
+                          </button>
+                        )}
                         <CategoryChip category={activity.category} />
                         {activity.repeatable && <RepeatableIcon />}
                         {activity.favourite && <FavouriteIcon />}
                         {subTasks.length > 0 && (
                           <span className={styles.actions}>
-                            <button type="button" onClick={toggleSubTasks}>
+                            {/* FRONTEND-046-AC-08: explicitly draggable={false}, overriding the
+                                draggable ancestor <li> above (in drag mode) -- without this, a
+                                click with any pointer movement on this nested control risks the
+                                browser starting a native drag of the whole activity row instead
+                                of registering the click. Harmless in select mode, where the
+                                ancestor <li> is never draggable in the first place. */}
+                            <button type="button" draggable={false} onClick={toggleSubTasks}>
                               {getSubTasksToggleLabel(subTasks.length, isExpanded)}
                             </button>
                           </span>
@@ -352,14 +320,28 @@ export function ActivityPickerList({
                       {subTasks.length > 0 && isExpanded && (
                         <ul className={styles.subTaskList}>
                           {subTasks.map((subTask) => (
-                            <li key={subTask.id} className={styles.subTaskRow}>
-                              <button
-                                type="button"
-                                aria-pressed={selected?.subTaskId === subTask.id}
-                                onClick={() => onSelectSubTask?.(subTask.id)}
-                              >
-                                {subTask.name}
-                              </button>
+                            <li
+                              key={subTask.id}
+                              className={styles.subTaskRow}
+                              draggable={isDragMode}
+                              onDragStart={
+                                isDragMode
+                                  ? (event) => handleSubTaskDragStart(event, subTask.id)
+                                  : undefined
+                              }
+                              onDragEnd={isDragMode ? handleSubTaskDragEnd : undefined}
+                            >
+                              {isDragMode ? (
+                                <span className={styles.activityName}>{subTask.name}</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  aria-pressed={selected?.subTaskId === subTask.id}
+                                  onClick={() => onSelectSubTask?.(subTask.id)}
+                                >
+                                  {subTask.name}
+                                </button>
+                              )}
                               <CategoryChip category={subTask.category} />
                             </li>
                           ))}
