@@ -71,6 +71,7 @@ spec-tidying effort this came out of).
 | Weekly Summary tab | — (frontend-only) | [`frontend_spec_036_weekly_summary.md`](.claude/specs/frontend_spec_036_weekly_summary.md) | ✅ Implemented (2026-10-03), v0.30.0. New "Summary" tab/route with its own independent week navigation (via a new shared `WeekNav` component extracted from `WeeklyPlanner`); planned/completed totals + completion rate, per-category breakdown, and scheduled-vs-bucket split computed client-side from `planApi.getWeek`; verified in a real browser in both themes. |
 | Weekly Summary visual refinements (segmented completion bar, lite grid/bucket view, location × category breakdown chart) | — (frontend-only) | [`frontend_spec_037_weekly_summary_visualizations.md`](.claude/specs/frontend_spec_037_weekly_summary_visualizations.md) | ✅ Implemented (2026-10-03). Status (completed/not) is an opacity modulation of each occurrence's own category colour, never a new red/green hue, always paired with a checkmark icon; the breakdown chart never relies on hue alone (direct labels + fixed order + surface gaps) since category colours are user-customizable and not guaranteed distinct; every mark gets a fixed border as a hue-independent visibility floor for white/black/near-surface colours. Verified in a real browser: both themes, full monochrome, white/black extremes, shared-colour-across-categories, and keyboard-only tooltip parity. |
 | Weekly Summary reorganization (section reorder/rename, merged per-category table, lite grid polish) | — (frontend-only) | [`frontend_spec_039_weekly_summary_reorganization.md`](.claude/specs/frontend_spec_039_weekly_summary_reorganization.md) | ✅ Implemented (2026-10-05). Sections reordered (glance → placement → breakdown), two headings renamed to drop past-tense/location ambiguity, the flat completion bar + numeric category table merged into one no-header per-category table, the scheduled/bucket line hidden for past weeks, lite grid gained visible gridlines + monospace headers, and the "Weekend bucket" sub-section hides entirely when empty. Verified in a real browser in both themes, including a real-system-clock past-week check. |
+| Preset/starter activity bank for new users | — (frontend-only) | [`frontend_spec_040_preset_starter_activities.md`](.claude/specs/frontend_spec_040_preset_starter_activities.md) | ✅ Implemented (2026-10-06). New "Suggested activities" `<details>`/`<summary>` disclosure in the Activity Bank with a one-click Add per preset (grouped Routine/Necessary/Pleasurable); open by default only when the bank is empty, already-added presets (by case-insensitive name) drop out of the list. |
 
 ## Specced, coming soon
 
@@ -78,7 +79,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| Preset/starter activity bank for new users | — (frontend-only) | [`frontend_spec_040_preset_starter_activities.md`](.claude/specs/frontend_spec_040_preset_starter_activities.md) | Not started. |
+| *(none currently)* | | | |
 
 ## Internal / maintenance specs
 

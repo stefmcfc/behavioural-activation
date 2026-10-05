@@ -891,6 +891,22 @@ describe('ActivityBank', () => {
     })
   })
 
+  describe('FRONTEND-040-AC-06/AC-07/AC-08: suggested activities disclosure visibility', () => {
+    it('AC-06/AC-08: renders closed by default when the bank already has activities', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      const details = (await screen.findByText(/suggested activities/i)).closest('details')!
+      expect(details).not.toHaveAttribute('open')
+    })
+
+    it('AC-07: renders open by default when the bank is empty', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<ActivityBank />)
+      const details = (await screen.findByText(/suggested activities/i)).closest('details')!
+      expect(details).toHaveAttribute('open')
+    })
+  })
+
   describe('FRONTEND-027-AC-12: unchecking the filter restores previously-hidden activities', () => {
     it('restores non-favourited activities after unchecking', async () => {
       const favouritedActivity: Activity = { ...walk, id: '30', name: 'Favourited one', favourite: true }

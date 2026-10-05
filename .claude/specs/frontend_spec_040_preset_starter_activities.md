@@ -1,6 +1,6 @@
 # Preset/Starter Activity Bank for New Users (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06)
 **Priority**: P3 — V1 polish, lowers the cold-start barrier for a brand-new Activity Bank
 **Depends on**: `planner_spec_002_activity_bank.md`/`frontend_spec_002_activity_bank.md` (origin of
 `ActivityBank.tsx`, `activityApi.create`, the `Activity`/`ActivityInput` shapes this spec reuses
@@ -9,6 +9,39 @@ spec's preset list showcases), `frontend_spec_032_collapsible_filters.md` (estab
 `<details>`/`<summary>` disclosure pattern this spec follows)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 polish
+
+## Summary
+
+All 8 ACs implemented and tested (9 new Vitest/RTL tests in `SuggestedActivities.test.tsx`, plus 2
+more added to `ActivityBank.test.tsx` for the disclosure's open/closed wiring — 575 total frontend
+tests passing, no regressions). `npm run lint` and `npx tsc -b --noEmit` are both clean.
+
+**Real findings**:
+- The per-category `<ul>` inside `SuggestedActivities` needed `role="presentation"` (its `<h4>`
+  sibling already labels the group) — without it, `ActivityBank.test.tsx`'s existing
+  `screen.getByRole('list')` assertions (which expect exactly one list: the activity rows) broke,
+  since the suggestion groups' own `<ul>`s were matching too. Same pattern `ActivityBank.tsx`'s own
+  category-filter group already uses for the identical reason.
+- `getErrorMessage` is duplicated verbatim into `SuggestedActivities.tsx` rather than extracted to a
+  shared util — matches this codebase's existing convention of 8 other components each carrying
+  their own copy rather than a shared helper module.
+- The preset wording/selection in `presetActivities.ts` is used as-sketched in the spec, per the
+  user's own note that it's a placeholder to be edited later — not treated as final copy.
+
+**Real-browser verification** (done by the coordinator against the live dev stack, logged in as
+the seeded user — no `[MANUAL]` ACs required it, but a sanity pass regardless): confirmed the
+disclosure opens closed-by-default against the real account's existing activities (`AC-06`/`AC-08`)
+and that "Go for a walk"/"Apply for jobs" — both already real activities in this account — are
+correctly absent from their preset groups (`AC-05`, live, not just mocked); clicked "Add Tidy up
+for 10 minutes", confirmed it actually created the activity (appeared in the real list) and
+immediately disappeared from the suggestions (`AC-01` plus the live-reactivity side of `AC-05`);
+deleted it again and confirmed it reappeared in suggestions, matching the spec's "a deleted preset
+becomes suggestable again" design decision; confirmed category grouping (`AC-03`) and legible
+rendering in both Light and Dark themes. One minor, non-blocking cosmetic note: each suggestion's
+visible name and its "Add {name}" button text sit right next to each other, reading slightly
+redundant (e.g. "Tidy up for 10 minutes" next to "Add Tidy up for 10 minutes") — not a spec
+violation (the button text matches the AC-01 test sketches' accessible-name expectations), just
+worth a look if it reads as cluttered once the user's own preset wording is in.
 
 ## Overview
 
@@ -307,11 +340,11 @@ into `ActivityBank.tsx` until every sketch above passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-040-AC-01 — clicking "Add" creates the preset via the existing `activityApi.create`
-- [ ] FRONTEND-040-AC-02 — busy state while in flight, error shown (not hidden) on failure
-- [ ] FRONTEND-040-AC-03 — suggestions grouped into three fixed-order category headings
-- [ ] FRONTEND-040-AC-04 — a category with no remaining suggestions renders no empty group
-- [ ] FRONTEND-040-AC-05 — a preset is hidden once a same-named activity already exists (case-insensitive, any archived status)
-- [ ] FRONTEND-040-AC-06 — suggestions render inside a closed-by-default disclosure
-- [ ] FRONTEND-040-AC-07 — the disclosure defaults open when the Activity Bank is empty
-- [ ] FRONTEND-040-AC-08 — suggestions remain reachable (collapsed) once the bank has activities
+- [x] FRONTEND-040-AC-01 — clicking "Add" creates the preset via the existing `activityApi.create`
+- [x] FRONTEND-040-AC-02 — busy state while in flight, error shown (not hidden) on failure
+- [x] FRONTEND-040-AC-03 — suggestions grouped into three fixed-order category headings
+- [x] FRONTEND-040-AC-04 — a category with no remaining suggestions renders no empty group
+- [x] FRONTEND-040-AC-05 — a preset is hidden once a same-named activity already exists (case-insensitive, any archived status)
+- [x] FRONTEND-040-AC-06 — suggestions render inside a closed-by-default disclosure
+- [x] FRONTEND-040-AC-07 — the disclosure defaults open when the Activity Bank is empty
+- [x] FRONTEND-040-AC-08 — suggestions remain reachable (collapsed) once the bank has activities
