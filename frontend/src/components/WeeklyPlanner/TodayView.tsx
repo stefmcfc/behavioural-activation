@@ -5,6 +5,7 @@ import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
 import { usePlanActions } from './usePlanActions'
+import { useWorkDays } from './useWorkDays'
 import { getMondayOfCurrentWeek, getTodayPlanDayOfWeek } from './planLabels'
 import styles from './TodayView.module.css'
 
@@ -17,6 +18,7 @@ import styles from './TodayView.module.css'
 export function TodayView() {
   const weekStart = getMondayOfCurrentWeek()
   const plan = usePlanActions(weekStart)
+  const workDays = useWorkDays(weekStart)
   const today = getTodayPlanDayOfWeek()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -41,6 +43,7 @@ export function TodayView() {
             </p>
           )}
           {plan.actionError && <p role="alert">{plan.actionError}</p>}
+          {workDays.actionError && <p role="alert">{workDays.actionError}</p>}
 
           {plan.occurrences === null && !plan.loadError && <output>Loading plan…</output>}
 
@@ -57,6 +60,8 @@ export function TodayView() {
                 confirmingRemoveId={plan.confirmingRemoveId}
                 movingId={plan.movingId}
                 todayColumn={today}
+                workDays={workDays.workDaysByDate}
+                onToggleWorkDay={workDays.handleToggle}
                 onAdd={(dayOfWeek, slot) => plan.setAssignTarget({ dayOfWeek, slot })}
                 onOpenDetail={plan.handleOpenDetail}
                 onCloseDetail={plan.handleCloseDetail}

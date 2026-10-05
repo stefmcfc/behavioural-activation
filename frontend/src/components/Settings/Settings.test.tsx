@@ -3,12 +3,18 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Settings } from './Settings'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { workDayApi } from '../../services/workDayApi'
+import { ApiError } from '../../types/api'
 import buttonStyles from '../../styles/buttonVariants.module.css'
+
+vi.mock('../../services/workDayApi')
 
 describe('Settings', () => {
   beforeEach(() => {
     localStorage.clear()
     document.documentElement.removeAttribute('data-theme')
+    vi.mocked(workDayApi.getPattern).mockReset().mockResolvedValue([])
+    vi.mocked(workDayApi.setPattern).mockReset()
   })
 
   describe('FRONTEND-005-AC-07: shows Light/Dark/System, defaulting to System when unset', () => {
@@ -191,6 +197,73 @@ describe('Settings', () => {
 
       expect(localStorage.getItem('bap-grid-orientation')).toBe('day-rows')
       expect(screen.getByRole('radio', { name: /each day as its own section/i })).toBeChecked()
+    })
+  })
+
+  describe('FRONTEND-042-AC-01/AC-02: Work days fieldset reflects and saves the recurring pattern', () => {
+    it('shows checked days from the fetched pattern, and saves on toggle', async () => {
+      vi.mocked(workDayApi.getPattern).mockResolvedValue(['MONDAY', 'TUESDAY'])
+      vi.mocked(workDayApi.setPattern).mockResolvedValue(['MONDAY', 'TUESDAY', 'WEDNESDAY'])
+      render(<Settings />)
+
+      expect(await screen.findByRole('checkbox', { name: 'Monday' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Wednesday' })).not.toBeChecked()
+
+      await userEvent.click(screen.getByRole('checkbox', { name: 'Wednesday' }))
+
+      expect(workDayApi.setPattern).toHaveBeenCalledWith(['MONDAY', 'TUESDAY', 'WEDNESDAY'])
+      expect(await screen.findByRole('checkbox', { name: 'Wednesday' })).toBeChecked()
+    })
+
+    it('unchecking a day saves the pattern without it', async () => {
+      vi.mocked(workDayApi.getPattern).mockResolvedValue(['MONDAY', 'TUESDAY'])
+      vi.mocked(workDayApi.setPattern).mockResolvedValue(['TUESDAY'])
+      render(<Settings />)
+
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'Monday' }))
+
+      expect(workDayApi.setPattern).toHaveBeenCalledWith(['TUESDAY'])
+      expect(await screen.findByRole('checkbox', { name: 'Monday' })).not.toBeChecked()
+    })
+
+    it('renders all 7 days Monday through Sunday', async () => {
+      vi.mocked(workDayApi.getPattern).mockResolvedValue([])
+      render(<Settings />)
+
+      expect(await screen.findByRole('checkbox', { name: 'Monday' })).toBeInTheDocument()
+      for (const day of ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']) {
+        expect(screen.getByRole('checkbox', { name: day })).toBeInTheDocument()
+      }
+    })
+  })
+
+  describe('FRONTEND-042-AC-03: a failure loading the pattern shows an inline error with retry', () => {
+    it('shows an alert with a Retry button that re-fetches on click', async () => {
+      vi.mocked(workDayApi.getPattern).mockRejectedValueOnce(new ApiError(500, 'Server error'))
+      render(<Settings />)
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
+      expect(screen.queryByRole('checkbox', { name: 'Monday' })).not.toBeInTheDocument()
+
+      vi.mocked(workDayApi.getPattern).mockResolvedValueOnce(['MONDAY'])
+      await userEvent.click(screen.getByRole('button', { name: /retry/i }))
+
+      expect(await screen.findByRole('checkbox', { name: 'Monday' })).toBeChecked()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-042-AC-04: a failure saving a change shows an error and reverts the checkbox', () => {
+    it('shows an alert and leaves the checkbox at its last-saved state when setPattern rejects', async () => {
+      vi.mocked(workDayApi.getPattern).mockResolvedValue(['MONDAY'])
+      vi.mocked(workDayApi.setPattern).mockRejectedValue(new ApiError(500, 'Server error'))
+      render(<Settings />)
+
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'Wednesday' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
+      expect(screen.getByRole('checkbox', { name: 'Wednesday' })).not.toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Monday' })).toBeChecked()
     })
   })
 })

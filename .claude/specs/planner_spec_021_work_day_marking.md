@@ -1,6 +1,6 @@
 # Work Day Marking: Recurring Pattern + Per-Date Override (Backend)
 
-**Status**: Draft
+**Status**: Implemented (2026-10-06)
 **Priority**: P3 — new feature, raised by the user as an idea 2026-10-06, scoped into a spec
 2026-10-06
 **Depends on**: `planner_spec_002_authentication.md` (owner-scoping pattern this spec follows for
@@ -11,7 +11,45 @@ this spec mirrors for its own week-effective-days endpoint)
 
 ## Summary
 
-Not yet implemented — see Acceptance Criteria Summary.
+All 10 ACs implemented and tested (21 new Spock tests across `WorkDayServiceSpec`/
+`WorkDayControllerSpec`, 308 backend tests total, 0 regressions). Two new entities
+(`WorkDayPattern`, `WorkDayOverride`) follow the existing `@ManyToOne User owner` shape used by
+`Activity`/`SubTask`/`PlannedOccurrence`; `WorkDayPattern` carries no timestamps since it's always
+fully replaced, never edited in place, while `WorkDayOverride` carries `createdAt`/`updatedAt` and
+is upserted by `(owner, date)`. `WorkDayPatternRepository`/`WorkDayOverrideRepository` are plain
+`JpaRepository` extensions with derived query methods only (`findByOwner`, `deleteByOwner`,
+`findByOwnerAndDate`, `findByOwnerAndDateBetween`). `WorkDayService` resolves the owner from the
+authenticated username exactly like `ActivityService`/`PlanService`, and reuses
+`InvalidPlanRequestException` with `PlanService#validateWeekStart`'s exact message text for the
+`weekStart`-must-be-a-Monday check (no new exception type, no change to `GlobalExceptionHandler`
+since that mapping already existed). `WorkDayController` is a four-endpoint thin delegate at
+`/api/v1/work-days`, inheriting auth unmodified from the existing `SecurityConfig` rule. New Flyway
+migration `V009__create_work_day_tables.sql` creates `work_day_patterns` and `work_day_overrides`
+with the specified unique constraints. `API.md` has a new "Work Days" section.
+
+**No deviations from the spec's design.** One production bug found and fixed during manual
+real-browser verification (not caught by the mock-based Spock suite, since it's a real-Hibernate
+flush-ordering effect): `WorkDayService#setPattern` called `workDayPatternRepository.deleteByOwner`
+and then `.save(...)` for each new day within the same transaction, with no flush in between.
+Hibernate's action queue always executes every pending insert before any pending delete within one
+flush, regardless of call order — so resaving a day still present in the old pattern (e.g. keeping
+Monday checked while also checking Wednesday) inserted the new Monday row before the old one was
+deleted, and tripped `work_day_patterns`' unique `(user_id, day_of_week)` constraint with a real
+`500` in Postgres, reproduced live via the Settings "Work days" fieldset. Fixed by adding an
+explicit `workDayPatternRepository.flush()` between the delete and the save loop, forcing the
+delete to actually execute first; added a Spock regression test asserting the
+delete-then-flush-then-save call order. Re-verified live in the browser afterward: toggling
+overlapping days in Settings now saves without error and persists correctly.
+
+**Real findings while writing the Spock tests** (test-only, no production code affected): (1) inside
+a Groovy closure (e.g. `.collect { new WorkDayPattern(owner, it) }`), the bare name `owner` resolves
+to the built-in `Closure.owner` property (the enclosing object), shadowing the specification's own
+`owner` field of the same name — fixed by capturing the field into a local variable before the
+closure. (2) Spock's last-interaction-wins matching means a `then:`-block cardinality check for the
+same mocked invocation as an earlier `given:`-block stub shadows that stub's return value, defaulting
+to `null` — surfaced as a `NullPointerException` one level down in `WorkDayService.setOverride`
+(`Optional.map` on a `null` receiver); fixed by moving the return-value stubbing onto the `then:`
+block's own interaction instead of leaving it on the `given:` block's now-shadowed one.
 
 ## Overview
 
@@ -286,13 +324,13 @@ endpoints, and the DTOs (`WorkDayPatternRequest`/`Response`, `WorkDayOverrideReq
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-021-AC-01 — fetching the pattern for a user with none set returns empty
-- [ ] PLANNER-021-AC-02 — setting the pattern fully replaces the previous one
-- [ ] PLANNER-021-AC-03 — the pattern is strictly scoped to its owner
-- [ ] PLANNER-021-AC-04 — a week's effective work-days are computed from pattern + overrides
-- [ ] PLANNER-021-AC-05 — a missing or non-Monday `weekStart` is rejected
-- [ ] PLANNER-021-AC-06 — a brand-new user sees no work days anywhere
-- [ ] PLANNER-021-AC-07 — setting an override creates or updates it for that exact date
-- [ ] PLANNER-021-AC-08 — an override always wins over the recurring pattern for its date
-- [ ] PLANNER-021-AC-09 — setting an override for the same date twice updates, not duplicates
-- [ ] PLANNER-021-AC-10 — overrides are strictly scoped to their owner
+- [x] PLANNER-021-AC-01 — fetching the pattern for a user with none set returns empty
+- [x] PLANNER-021-AC-02 — setting the pattern fully replaces the previous one
+- [x] PLANNER-021-AC-03 — the pattern is strictly scoped to its owner
+- [x] PLANNER-021-AC-04 — a week's effective work-days are computed from pattern + overrides
+- [x] PLANNER-021-AC-05 — a missing or non-Monday `weekStart` is rejected
+- [x] PLANNER-021-AC-06 — a brand-new user sees no work days anywhere
+- [x] PLANNER-021-AC-07 — setting an override creates or updates it for that exact date
+- [x] PLANNER-021-AC-08 — an override always wins over the recurring pattern for its date
+- [x] PLANNER-021-AC-09 — setting an override for the same date twice updates, not duplicates
+- [x] PLANNER-021-AC-10 — overrides are strictly scoped to their owner

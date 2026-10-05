@@ -3,9 +3,10 @@
 **Maintenance rule**: update this file in the same change that creates, amends, or deletes an
 endpoint — don't defer it to a later documentation pass.
 
-**Status**: `Auth`, `Activities` (including its Sub-tasks section), and `Planner / Weekly Grid`
-below are real, implemented sections — `Mood & Reflection` and `AI Suggestions` are still pending
-their own spec/pass. This file establishes where endpoint documentation lives from the start (see
+**Status**: `Auth`, `Activities` (including its Sub-tasks section), `Planner / Weekly Grid`, and
+`Work Days` below are real, implemented sections — `Mood & Reflection` and `AI Suggestions` are
+still pending their own spec/pass. This file establishes where endpoint documentation lives from the
+start (see
 `PROCESS_CHANGES.md` for why: a per-endpoint table/list belongs in its own file, not folded into
 `README.md`, since it's high-churn and unrelated to a general project overview).
 
@@ -207,6 +208,35 @@ endpoint call.
 *(folded into the "Planner / Weekly Grid" section above — completion, undo, and carry-forward are
 all `PlannedOccurrence`/`CompletionRecord` operations under `/api/v1/plan/occurrences/...`, not a
 separate resource)*
+
+## Work Days
+
+A hybrid recurring-pattern-plus-per-date-override surface for marking work days — purely
+informational (a badge, see `frontend_spec_042_work_day_marking.md`), with no effect on slot counts
+or planning/validation logic. See `.claude/specs/planner_spec_021_work_day_marking.md`. All
+endpoints below require an authenticated session and are scoped to the authenticated user.
+
+**Effective work-day status for a date** = the matching `WorkDayOverride`'s value if one exists for
+that exact date, else whether that date's day-of-week is present in the owner's `WorkDayPattern`,
+else `false`. An override always wins over the pattern for its date, in both directions.
+
+- **`GET /api/v1/work-days/pattern`** — returns `200` with `{ "days": [...] }`, the set of
+  `DayOfWeek` values (`"MONDAY".."SUNDAY"`) the authenticated user has marked as normally work days.
+  An owner who has never set a pattern returns `{ "days": [] }`, not an error.
+- **`PUT /api/v1/work-days/pattern`** — body `{ "days": ["MONDAY", ...] }`. Fully replaces the
+  owner's recurring pattern with the submitted set (not a merge/add/remove) — an empty `days` array
+  is valid and clears the pattern entirely. Returns `200` with the new `{ "days": [...] }`. `400` if
+  `days` is missing.
+- **`GET /api/v1/work-days?weekStart=`** — `weekStart` must be a Monday (`YYYY-MM-DD`); returns `400`
+  (same message/shape as `GET /api/v1/plan`'s equivalent check) if missing or not a Monday. Returns
+  `200` with `{ "data": [...], "count": 7 }`, one entry per date from `weekStart` to `weekStart + 6`
+  days inclusive, each shaped `{ "date": "...", "dayOfWeek": "...", "workDay": true | false }` —
+  pattern and overrides already combined, so the caller never needs to merge the two itself.
+- **`PUT /api/v1/work-days/{date}`** — body `{ "workDay": true | false }`. Creates a new override for
+  that exact date if none exists, or updates the existing one (never a second row for the same
+  `(owner, date)` pair). Returns `200` with `{ "date": "...", "dayOfWeek": "...", "workDay": ... }`.
+  `400` if `workDay` is missing. No endpoint to clear an override back to the pattern default —
+  toggling always submits an explicit value.
 
 ## Mood & Reflection
 

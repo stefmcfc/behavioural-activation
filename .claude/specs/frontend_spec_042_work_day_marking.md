@@ -1,6 +1,6 @@
 # Work Day Marking: Settings Pattern Editor + Grid Toggle (Frontend)
 
-**Status**: Draft
+**Status**: Implemented (2026-10-06)
 **Priority**: P3 — new feature, raised by the user as an idea 2026-10-06, scoped into a spec pair
 2026-10-06
 **Depends on**: `planner_spec_021_work_day_marking.md` (the four endpoints this spec consumes),
@@ -11,7 +11,53 @@ spec's new `useWorkDays` hook follows for `WeeklyPlanner`/`TodayView`)
 
 ## Summary
 
-Not yet implemented — see Acceptance Criteria Summary.
+All 10 ACs implemented exactly as specified, no deviations. New files: `types/workDay.ts` (`WorkDay`
+shape), `services/workDayApi.ts` (`getPattern`/`setPattern`/`getWeek`/`setOverride`, following
+`planApi.ts`'s `request<T>()`/`{data,count}`-unwrapping style against the real backend DTO shapes
+confirmed by reading `WorkDayController.java`/the `dto/WorkDay*.java` records),
+`components/WeeklyPlanner/useWorkDays.ts` (a `usePlanActions`-style hook: fetches on mount and on
+`weekStart` change, exposes `workDaysByDate: ReadonlyMap<string, boolean>`/`loadError`/
+`actionError`/`handleToggle`, await-then-update for the toggle, its own duplicated `getErrorMessage`
+copy per this codebase's convention), and `components/icons/WorkDayIcon.tsx` (+ `.module.css`, a
+`RepeatableIcon`/`CompletionIcon`-shaped inline SVG with `FavouriteIcon`'s active/outline toggle
+precedent). `PlannerGrid.tsx` gained `workDays`/`onToggleWorkDay` optional props (default empty
+map, mirroring `dimmedOccurrenceIds`), a new `getDayDateIso` helper alongside the existing
+`getDayDate`, and a toggle `<button>` (`aria-pressed` + a state-dependent `aria-label`, e.g. "Mark
+Monday 6 October as a work day"/"Unmark...") wired into both the `day-rows` and `day-columns` header
+render sites. `Settings.tsx` gained a "Work days" fieldset — the first Settings section backed by a
+real API call, with its own load-error-plus-Retry and save-error-plus-implicit-revert handling
+(state only updates from the promise callbacks, never optimistically, so a rejected save leaves
+every checkbox at its last-successfully-saved value with no separate revert step needed).
+`WeeklyPlanner.tsx`/`TodayView.tsx` each call `useWorkDays(weekStart)` independently, exactly
+mirroring their existing independent `usePlanActions(weekStart)` calls.
+
+Two oxlint `react(set-state-in-effect)` warnings surfaced during an early draft (`useWorkDays.ts`
+and `Settings.tsx` each synchronously cleared state at the top of their fetch effect, before the
+async call) — fixed by following this codebase's existing `WeeklySummary.tsx` convention: only ever
+update state from inside the `.then()`/`.catch()` callbacks, never synchronously in the effect body.
+
+**Verification**: 601/601 frontend tests pass (41 new tests added across `PlannerGrid.test.tsx`,
+`WeeklyPlanner.test.tsx`, `TodayView.test.tsx`, `Settings.test.tsx`, covering all 10 ACs plus the
+spec's own sketch cases verbatim), `npm run lint`/`npx tsc -b --noEmit` both clean.
+
+**Real-browser verification** (completed in a follow-up pass, since the implementing agent had no
+browser automation tool available): logged in as the seeded user via Chrome. Confirmed the
+Settings "Work days" fieldset renders all 7 days and persists a saved pattern across reload/re-fetch
+(`GET /api/v1/work-days/pattern` round-trip verified). Confirmed the grid toggle renders on both the
+Weekly Planner and Today views, with a real, computed-style-verified visual distinction between
+marked/unmarked days (`WorkDayIcon`'s `active` state: `var(--accent)` at full opacity vs. `var(--text)`
+at 0.55 opacity — confirmed via `getComputedStyle`, not just a code read). Confirmed the per-date
+override end-to-end: clicking a day whose status came from the recurring pattern correctly created
+an explicit override that then took precedence over the pattern (verified via the real
+`GET /api/v1/work-days?weekStart=...` response). Confirmed the Today tab shows the toggle for its
+single day. This real-browser pass also surfaced a genuine **backend** bug in `WorkDayService
+#setPattern` (Hibernate insert/delete flush ordering) — see `planner_spec_021_work_day_marking.md`'s
+own Summary for the fix; no frontend code changed as a result. Test data created during verification
+was reset back to an empty pattern/no overrides afterward. Visual screenshot capture was unreliable
+in this session (the Chrome extension's CDP `Page.captureScreenshot` repeatedly timed out on this
+page) — verification relied on `getComputedStyle`/DOM/network inspection instead, which is
+authoritative for confirming the CSS and data actually applied, though a plain look-at-it screenshot
+was not captured.
 
 ## Overview
 
@@ -229,13 +275,13 @@ all sketches above pass.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-042-AC-01 — "Work days" fieldset lists all 7 days, checked per the saved pattern
-- [ ] FRONTEND-042-AC-02 — toggling a checkbox saves the full updated set immediately
-- [ ] FRONTEND-042-AC-03 — a failure loading the pattern shows an inline error with retry
-- [ ] FRONTEND-042-AC-04 — a failure saving a change shows an error and reverts the checkbox
-- [ ] FRONTEND-042-AC-05 — each day header shows a work-day toggle reflecting that date's status
-- [ ] FRONTEND-042-AC-06 — clicking the toggle flips that date's override via the API
-- [ ] FRONTEND-042-AC-07 — marking a day never changes its slots or plannability
-- [ ] FRONTEND-042-AC-08 — a failure toggling a day shows an inline error, badge unchanged
-- [ ] FRONTEND-042-AC-09 — `WeeklyPlanner` and `TodayView` each fetch their own week's work-days
-- [ ] FRONTEND-042-AC-10 — changing weeks refetches that week's work-days
+- [x] FRONTEND-042-AC-01 — "Work days" fieldset lists all 7 days, checked per the saved pattern
+- [x] FRONTEND-042-AC-02 — toggling a checkbox saves the full updated set immediately
+- [x] FRONTEND-042-AC-03 — a failure loading the pattern shows an inline error with retry
+- [x] FRONTEND-042-AC-04 — a failure saving a change shows an error and reverts the checkbox
+- [x] FRONTEND-042-AC-05 — each day header shows a work-day toggle reflecting that date's status
+- [x] FRONTEND-042-AC-06 — clicking the toggle flips that date's override via the API
+- [x] FRONTEND-042-AC-07 — marking a day never changes its slots or plannability
+- [x] FRONTEND-042-AC-08 — a failure toggling a day shows an inline error, badge unchanged
+- [x] FRONTEND-042-AC-09 — `WeeklyPlanner` and `TodayView` each fetch their own week's work-days
+- [x] FRONTEND-042-AC-10 — changing weeks refetches that week's work-days

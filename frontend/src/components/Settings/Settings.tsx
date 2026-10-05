@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ActivityCategory } from '../../types/activity'
+import type { PlanDayOfWeek } from '../../types/plan'
+import { ApiError } from '../../types/api'
+import { workDayApi } from '../../services/workDayApi'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import {
   getCategoryColor,
@@ -32,8 +35,39 @@ const GRID_ORIENTATION_OPTIONS: readonly { value: GridOrientation; label: string
 
 const ALL_CATEGORIES: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
 
+// FRONTEND-042: defined locally rather than imported from WeeklyPlanner/planLabels.ts's DAY_LABELS,
+// matching this file's existing convention of defining its own option lists locally (THEME_OPTIONS,
+// GRID_ORIENTATION_OPTIONS, ALL_CATEGORIES above) rather than reaching into another feature folder.
+const WORK_DAYS: readonly { value: PlanDayOfWeek; label: string }[] = [
+  { value: 'MONDAY', label: 'Monday' },
+  { value: 'TUESDAY', label: 'Tuesday' },
+  { value: 'WEDNESDAY', label: 'Wednesday' },
+  { value: 'THURSDAY', label: 'Thursday' },
+  { value: 'FRIDAY', label: 'Friday' },
+  { value: 'SATURDAY', label: 'Saturday' },
+  { value: 'SUNDAY', label: 'Sunday' },
+]
+
 function getSystemPrefersDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+// FRONTEND-042: this project's per-component-duplicated error-formatting helper (see
+// usePlanActions.ts's identical copy) -- this is the first Settings section with a real network
+// dependency, so it needs its own copy, unlike its localStorage-only sibling fieldsets.
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.message
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message
+  }
+  return 'Something went wrong. Please try again.'
 }
 
 function getCategoryColorSnapshot(): Record<ActivityCategory, string> {
@@ -55,6 +89,10 @@ export function Settings() {
   const [categoryColors, setCategoryColors] = useState<Record<ActivityCategory, string>>(() =>
     getCategoryColorSnapshot(),
   )
+  const [workDayPattern, setWorkDayPattern] = useState<PlanDayOfWeek[] | null>(null)
+  const [workDayLoadError, setWorkDayLoadError] = useState<string | null>(null)
+  const [workDaySaveError, setWorkDaySaveError] = useState<string | null>(null)
+  const [workDayRetryCount, setWorkDayRetryCount] = useState(0)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -67,6 +105,32 @@ export function Settings() {
     () => subscribeToCategoryColorChanges(() => setCategoryColors(getCategoryColorSnapshot())),
     [],
   )
+
+  // FRONTEND-042-AC-01/AC-03: fetches the recurring pattern on mount (and on Retry), unlike every
+  // other fieldset above which reads synchronously from localStorage at initial state. State is
+  // only ever updated from inside the promise callbacks, never synchronously in the effect body
+  // itself (oxlint's react(set-state-in-effect) rule, same convention as useWorkDays.ts).
+  useEffect(() => {
+    let cancelled = false
+
+    workDayApi
+      .getPattern()
+      .then((days) => {
+        if (!cancelled) {
+          setWorkDayPattern(days)
+          setWorkDayLoadError(null)
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setWorkDayLoadError(getErrorMessage(error))
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [workDayRetryCount])
 
   const handleThemeChange = (preference: ThemePreference) => {
     persistThemePreference(preference)
@@ -84,6 +148,30 @@ export function Settings() {
 
   const handleReset = (category: ActivityCategory) => {
     resetCategoryColor(category)
+  }
+
+  const handleRetryWorkDayPattern = () => {
+    setWorkDayPattern(null)
+    setWorkDayLoadError(null)
+    setWorkDayRetryCount((count) => count + 1)
+  }
+
+  // FRONTEND-042-AC-02/AC-04: saves the full new set immediately, no Save button -- state (and
+  // therefore every checkbox's checked value) only updates once the server confirms the change, so
+  // a rejection naturally leaves every checkbox at its last-successfully-saved state rather than
+  // needing a separate explicit revert step.
+  const handleToggleWorkDay = async (day: PlanDayOfWeek) => {
+    if (!workDayPattern) return
+    setWorkDaySaveError(null)
+    const newDays = workDayPattern.includes(day)
+      ? workDayPattern.filter((existing) => existing !== day)
+      : [...workDayPattern, day]
+    try {
+      const updated = await workDayApi.setPattern(newDays)
+      setWorkDayPattern(updated)
+    } catch (error) {
+      setWorkDaySaveError(getErrorMessage(error))
+    }
   }
 
   return (
@@ -160,6 +248,36 @@ export function Settings() {
             )
           })}
         </ul>
+      </fieldset>
+
+      <fieldset>
+        <legend>Work days</legend>
+        {workDayLoadError && (
+          <p role="alert">
+            {workDayLoadError}{' '}
+            <button type="button" onClick={handleRetryWorkDayPattern}>
+              Retry
+            </button>
+          </p>
+        )}
+        {workDaySaveError && <p role="alert">{workDaySaveError}</p>}
+        {workDayPattern === null && !workDayLoadError && <output>Loading work days…</output>}
+        {workDayPattern !== null && (
+          <ul className={styles.themeList}>
+            {WORK_DAYS.map((day) => (
+              <li key={day.value}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={workDayPattern.includes(day.value)}
+                    onChange={() => handleToggleWorkDay(day.value)}
+                  />
+                  {day.label}
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
       </fieldset>
     </section>
   )
