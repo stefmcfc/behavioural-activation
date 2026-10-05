@@ -129,6 +129,14 @@
   gap: 0.5rem;
 }
 
+/* FRONTEND-045: right-aligned, matching ActivityBank.module.css's own .actions treatment for its
+   "Show sub-tasks" toggle. */
+.actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
 .subTaskList {
   list-style: none;
   margin: 0.5rem 0 0;

@@ -341,9 +341,11 @@ export function ActivityPickerList({
                         {activity.repeatable && <RepeatableIcon />}
                         {activity.favourite && <FavouriteIcon />}
                         {subTasks.length > 0 && (
-                          <button type="button" onClick={toggleSubTasks}>
-                            {getSubTasksToggleLabel(subTasks.length, isExpanded)}
-                          </button>
+                          <span className={styles.actions}>
+                            <button type="button" onClick={toggleSubTasks}>
+                              {getSubTasksToggleLabel(subTasks.length, isExpanded)}
+                            </button>
+                          </span>
                         )}
                       </div>
 
