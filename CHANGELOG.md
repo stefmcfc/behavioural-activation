@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-10-05
+
 ### Changed
 
 - The Activity Bank's "My Activities" list is now grouped into Routine/Necessary/Pleasurable
