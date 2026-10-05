@@ -59,6 +59,18 @@ page) — verification relied on `getComputedStyle`/DOM/network inspection inste
 authoritative for confirming the CSS and data actually applied, though a plain look-at-it screenshot
 was not captured.
 
+**Requirement 4 addition** (FRONTEND-042-AC-11/AC-12, added 2026-10-06 after the user asked for the
+badge on the Summary tab's lite grid too): `getDayDateIso` was promoted from a `PlannerGrid.tsx`-
+local helper to `planLabels.ts` (pure relocation) so `WeeklySummary.tsx` could reuse it;
+`WeeklySummary.tsx` gained its own read-only `useWorkDays(weekStart)` call, badging each
+`.liteGridDayLabel` with `<WorkDayIcon active />` only when that date's effective status is `true`
+(no icon for `false`/not-yet-loaded, and no button/click handler — this view stays read-only). One
+new Vitest case added. Full suite re-run: 602/602 passing, lint/tsc clean. Verified live in the
+browser via `getComputedStyle`/DOM inspection (same screenshot-tool limitation as above): confirmed
+the lite grid's day labels show the icon exactly where the real `GET /api/v1/work-days?weekStart=...`
+response says `true`, and nowhere else — cross-checked label-by-label against the raw API response
+for a week with a live pattern, not just a code read.
+
 ## Overview
 
 Paired with `planner_spec_021_work_day_marking.md`. Per the user's own answers when this idea was
@@ -215,6 +227,45 @@ values after navigating.
 **References**: `useWorkDays.ts` (effect keyed on `weekStart`, mirroring `usePlanActions`'s own
 `weekStart`-keyed effect)
 
+## Requirement 4 — Badge on the Weekly Summary's lite grid
+
+**User story**: As a user reviewing a week's summary, I want to see which days were work days
+there too, not just on the Weekly Planner/Today grid, so the "lite grid" reflects the same
+information at a glance.
+
+Added 2026-10-06, after the rest of this spec shipped to this same branch but before the PR
+merged — the user asked for the badge to also appear on `WeeklySummary.tsx`'s existing read-only
+"lite grid" (`frontend_spec_037_weekly_summary_visualizations.md`'s Requirement 2). Treated as an
+addition to this spec rather than a new one, since it's the same feature, not yet merged to `main`.
+
+### FRONTEND-042-AC-11 [AUTO]: The lite grid's day labels badge marked work days
+**Statement**: In `WeeklySummary.tsx`'s lite grid, each day-of-week header (`.liteGridDayLabel`)
+shall show the same `WorkDayIcon` (in its active/filled state) when that exact calendar date's
+effective `workDay` flag — from the view's own `useWorkDays(weekStart)` call — is `true`, and shall
+show nothing extra when it is `false` or not yet loaded.
+
+**Rationale**: Consistency — the Summary's lite grid already mirrors the real grid's placement
+data (`frontend_spec_037`'s Requirement 2); work-day status is part of that same picture. Shown
+only for marked days (not an outline icon for every day, unlike the real grid's toggle) since this
+view has no interaction to prompt — an icon on every header would be pure clutter with nothing to
+click.
+
+**References**: Component: `frontend/src/components/WeeklySummary/WeeklySummary.tsx` (new
+`useWorkDays(weekStart)` call, read-only — only `workDaysByDate` is used, not `handleToggle`);
+`frontend/src/components/WeeklyPlanner/planLabels.ts`'s `getDayDateIso` (promoted here from a
+`PlannerGrid.tsx`-local helper, pure relocation, so both call sites share one implementation);
+`WorkDayIcon` (reused as-is, no new component)
+
+### FRONTEND-042-AC-12 [AUTO]: The lite grid is still read-only — no toggle added
+**Statement**: The lite grid's work-day badge shall not be a `<button>` and shall have no click
+handler — purely a `WorkDayIcon`, matching every other element in `WeeklySummary.tsx`'s lite grid
+(`frontend_spec_037`'s "read-only, no Add/drag/remove controls" design).
+
+**Rationale**: Regression guard — this view's entire point is being a read-only reflection of the
+real grid; this spec must not quietly turn it interactive.
+
+**References**: `WeeklySummary.tsx`
+
 ## Cross-references
 
 | Reference | What it provides |
@@ -224,6 +275,7 @@ values after navigating.
 | `usePlanActions.ts` | Per-view-independent fetch, await-then-update action, and per-component `getErrorMessage` precedents this spec's `useWorkDays` hook follows |
 | `PlannerGrid.tsx` | The two day-header render sites this spec adds a toggle to |
 | `RepeatableIcon.tsx` | Existing small inline-SVG icon component shape, matched by the new `WorkDayIcon` |
+| `frontend_spec_037_weekly_summary_visualizations.md` | Origin of the lite grid Requirement 4 adds the badge to |
 | `API.md` | Needs a new "Work Days" section once `planner_spec_021` ships |
 
 ## Test case sketches (Vitest + RTL, red before implementation)
@@ -285,3 +337,5 @@ all sketches above pass.
 - [x] FRONTEND-042-AC-08 — a failure toggling a day shows an inline error, badge unchanged
 - [x] FRONTEND-042-AC-09 — `WeeklyPlanner` and `TodayView` each fetch their own week's work-days
 - [x] FRONTEND-042-AC-10 — changing weeks refetches that week's work-days
+- [x] FRONTEND-042-AC-11 — the lite grid's day labels badge marked work days
+- [x] FRONTEND-042-AC-12 — the lite grid is still read-only — no toggle added

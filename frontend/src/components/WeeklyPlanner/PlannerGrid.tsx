@@ -8,7 +8,7 @@ import {
   ALL_SLOTS,
   DAY_LABELS,
   SLOT_LABELS,
-  formatDate,
+  getDayDateIso,
   parseWeekStart,
 } from './planLabels'
 import { getGridOrientation, subscribeToGridOrientationChanges } from '../../utils/gridOrientation'
@@ -18,15 +18,6 @@ function getDayDate(weekStart: string, day: PlanDayOfWeek): number {
   const date = parseWeekStart(weekStart)
   date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
   return date.getDate()
-}
-
-// FRONTEND-042: the full ISO date string for a given (weekStart, day) pair -- the key used by
-// workDayApi.getWeek's response and by onToggleWorkDay, distinct from getDayDate's day-of-month
-// display number above.
-function getDayDateIso(weekStart: string, day: PlanDayOfWeek): string {
-  const date = parseWeekStart(weekStart)
-  date.setDate(date.getDate() + ALL_DAYS.indexOf(day))
-  return formatDate(date)
 }
 
 const MONTH_NAMES = [

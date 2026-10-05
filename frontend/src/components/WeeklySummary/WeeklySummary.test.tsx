@@ -3,12 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { WeeklySummary } from './WeeklySummary'
 import { planApi } from '../../services/planApi'
+import { workDayApi } from '../../services/workDayApi'
 import { getCategoryColor } from '../../utils/categoryColors'
 import type { PlannedOccurrence } from '../../types/plan'
 import markStyles from './CompletionMark.module.css'
 import styles from './WeeklySummary.module.css'
 
 vi.mock('../../services/planApi')
+vi.mock('../../services/workDayApi')
 
 // FRONTEND-037-AC-18/AC-20: getCategoryColor is mocked at the module level so individual tests can
 // force a specific colour (white, or a colour shared by two categories) without touching real
@@ -43,6 +45,9 @@ function makeOccurrence(overrides: Partial<PlannedOccurrence> = {}): PlannedOccu
 describe('WeeklySummary', () => {
   beforeEach(async () => {
     vi.mocked(planApi.getWeek).mockReset()
+    // FRONTEND-042-AC-11: defaults to no work days for every test that doesn't care about the
+    // badge, mirroring every other per-component service reset in this file.
+    vi.mocked(workDayApi.getWeek).mockReset().mockResolvedValue([])
     const actual =
       await vi.importActual<typeof import('../../utils/categoryColors')>('../../utils/categoryColors')
     vi.mocked(getCategoryColor).mockImplementation(actual.getCategoryColor)
@@ -225,6 +230,32 @@ describe('WeeklySummary', () => {
       })
       within(placement).getByRole('button', { name: /walk.*tuesday evening/i })
       expect(within(placement).queryByRole('button', { name: /^add to/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-042-AC-11/AC-12: lite grid badges marked work days, read-only', () => {
+    it('shows the work-day icon only on marked days, with no button/click handler', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([
+        makeOccurrence({ name: 'Walk', dayOfWeek: 'MONDAY', slot: 'MORNING' }),
+      ])
+      vi.mocked(workDayApi.getWeek).mockResolvedValue([
+        { date: '2026-10-05', dayOfWeek: 'MONDAY', workDay: true },
+        { date: '2026-10-06', dayOfWeek: 'TUESDAY', workDay: false },
+        { date: '2026-10-07', dayOfWeek: 'WEDNESDAY', workDay: false },
+        { date: '2026-10-08', dayOfWeek: 'THURSDAY', workDay: false },
+        { date: '2026-10-09', dayOfWeek: 'FRIDAY', workDay: false },
+        { date: '2026-10-10', dayOfWeek: 'SATURDAY', workDay: false },
+        { date: '2026-10-11', dayOfWeek: 'SUNDAY', workDay: false },
+      ])
+      render(<WeeklySummary initialWeekStart="2026-10-05" />)
+
+      const placement = await screen.findByRole('region', { name: /this week's placement/i })
+      const mondayLabel = within(placement).getByText('Monday').closest('span')!
+      const tuesdayLabel = within(placement).getByText('Tuesday').closest('span')!
+
+      expect(within(mondayLabel).getByRole('img', { name: 'Work day' })).toBeInTheDocument()
+      expect(within(tuesdayLabel).queryByRole('img', { name: 'Work day' })).not.toBeInTheDocument()
+      expect(within(placement).queryByRole('button', { name: /work day/i })).not.toBeInTheDocument()
     })
   })
 
