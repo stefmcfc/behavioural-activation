@@ -76,6 +76,8 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Prevent a completed occurrence from being moved to the bucket (bug fix) | [`planner_spec_020_prevent_completed_occurrence_bucket_move.md`](.claude/specs/planner_spec_020_prevent_completed_occurrence_bucket_move.md) | [`frontend_spec_038_prevent_completed_occurrence_bucket_move.md`](.claude/specs/frontend_spec_038_prevent_completed_occurrence_bucket_move.md) | Not started. |
+| Weekly Summary reorganization (section reorder/rename, merged per-category table, lite grid polish) | — (frontend-only) | [`frontend_spec_039_weekly_summary_reorganization.md`](.claude/specs/frontend_spec_039_weekly_summary_reorganization.md) | Not started. |
 
 ## Internal / maintenance specs
 
