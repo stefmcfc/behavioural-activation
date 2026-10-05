@@ -17,12 +17,14 @@ trap pause_on_failure EXIT
 # DEV_SCRIPT_NESTED tells stop-dev.sh/start-dev.sh's own pause_on_failure trap to stay silent --
 # they run as real subprocesses sharing this terminal, so without this a single failure could
 # pause up to three times (TOOLING-004-AC-03). Only this, the outermost invocation, pauses.
-export DEV_SCRIPT_NESTED=1
-
+# Scoped to each nested call's own environment only (VAR=value cmd), NOT `export`ed into this
+# script's own shell -- an earlier version exported it instead, which meant it was still set when
+# THIS script's own trap fired at the bottom, incorrectly suppressing its own pause too.
+#
 # Exit codes captured independently (not a bare fall-through to the last command's own exit
 # code) so this script's own exit status -- and therefore its pause_on_failure trap -- correctly
 # reflects a failure in *either* step, not just start-dev.sh's (TOOLING-004-AC-06).
 status=0
-"$DIR/stop-dev.sh" "$@" || status=1
-"$DIR/start-dev.sh" "$@" || status=1
+DEV_SCRIPT_NESTED=1 "$DIR/stop-dev.sh" "$@" || status=1
+DEV_SCRIPT_NESTED=1 "$DIR/start-dev.sh" "$@" || status=1
 exit $status
