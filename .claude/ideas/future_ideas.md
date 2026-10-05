@@ -92,32 +92,13 @@ this file.
   tile and the Weekly Summary tooltip) — moved straight to a real spec pair
   (`planner_spec_022_occurrence_notes.md`/`frontend_spec_043_occurrence_notes.md`, see
   `ROADMAP.md`'s "Specced, coming soon") — removed from this file.
-
----
-
-## Sorting/organizing the Activity Bank as it grows
-
-```
-Status: Not specced.
-```
-
-Raised by the user 2026-10-06, after adding a larger set of suggested activities
-(`frontend_spec_040_preset_starter_activities.md`) made the Activity Bank noticeably longer and
-harder to scan. Confirmed by reading the code: today's order is fixed server-side
-(`ActivityRepository.findByOwnerOrderByFavouriteDescNameAsc`/`...AndArchivedFalseOrderBy...`) —
-favourites first, then alphabetical by name — with no user-facing control over it beyond the
-existing category/favourites/archived *filters*, which narrow the list rather than reorder it.
-
-Open questions for whenever this gets a real design pass:
-- What's actually wanted: a different default sort (e.g. by category, by most-recently-used), a
-  user-selectable sort control, or manual drag-to-reorder (like the weekend bucket list already
-  has, `frontend_spec_010_bucket_reordering.md`)? These are quite different in scope — manual
-  reorder needs a persisted position field per activity; a sort-order control needs none.
-- Could category-grouped *display* (matching the pattern `frontend_spec_040`'s Suggested
-  activities section already established — grouped headings, not one flat list) solve the
-  "hard to scan" problem without needing any new sort/reorder mechanism at all, just a different
-  rendering of the favourite/category/name data already available? Worth considering before
-  reaching for a more complex sort/reorder feature.
+- the "Sorting/organizing the Activity Bank as it grows" entry's open question was resolved
+  the same day: category-grouped display (reusing `frontend_spec_040`'s Suggested Activities
+  pattern) over a sort control or manual drag-to-reorder, given no `position` field exists on
+  `Activity` and the bucket list's own drag gesture is known to be untestable by automated
+  browser tooling — moved straight to a real frontend-only spec
+  (`frontend_spec_044_activity_bank_grouping.md`, see `ROADMAP.md`'s "Specced, coming soon") —
+  removed from this file.
 
 ---
 

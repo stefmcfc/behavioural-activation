@@ -37,14 +37,6 @@
   border-radius: 6px;
 }
 
-.groupHeading {
-  display: inline-block;
-  border-radius: 6px;
-  padding: 0.2rem 0.6rem;
-  margin: 0.6rem 0 0.15rem;
-  font-size: 0.85rem;
-}
-
 .list {
   list-style: none;
   margin: 0;
