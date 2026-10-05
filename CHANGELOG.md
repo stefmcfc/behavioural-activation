@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-10-05
+
 ### Added
 
 - Per-occurrence notes: a short freeform note (up to 200 characters) can be attached to one
