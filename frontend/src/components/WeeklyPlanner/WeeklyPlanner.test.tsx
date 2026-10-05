@@ -352,6 +352,9 @@ describe('WeeklyPlanner', () => {
       render(<WeeklyPlanner />)
 
       await userEvent.click(await screen.findByRole('button', { name: /add to weekend bucket list/i }))
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before selecting its sub-task.
+      await userEvent.click(await screen.findByRole('button', { name: /show sub-tasks/i }))
       await userEvent.click(await screen.findByRole('button', { name: /send invites/i }))
       await userEvent.click(screen.getByRole('button', { name: /confirm|assign/i }))
 

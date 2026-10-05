@@ -6,9 +6,11 @@ import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { CategoryGroupHeading } from '../CategoryGroupHeading/CategoryGroupHeading'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
+import { CATEGORY_ORDER } from '../../utils/categoryLabels'
 // FRONTEND-028-AC-01: this extraction reuses AssignActivityPicker's own CSS module rather than
 // introducing a parallel one -- the two components render identical markup/classnames in `select`
 // mode, so sharing the module keeps the one `moduleStyles.test.ts` check on this file's selectors
@@ -29,6 +31,13 @@ const FAVOURITE_FILTER_OPTIONS: readonly { value: FavouriteFilter; label: string
   { value: 'ALL', label: 'All' },
   { value: 'FAVOURITES_ONLY', label: 'Favourites only' },
 ]
+
+// FRONTEND-045-AC-07: mirrors ActivityBank.tsx's own getSubTasksLabel wording convention, but
+// takes the locally category-filtered sub-task count directly rather than activity.subTaskCount,
+// which doesn't reflect the active category filter.
+function getSubTasksToggleLabel(count: number, isExpanded: boolean): string {
+  return isExpanded ? 'Hide sub-tasks' : `Show sub-tasks (${count})`
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -79,6 +88,9 @@ export function ActivityPickerList({
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [repeatableFilter, setRepeatableFilter] = useState<RepeatableFilter>('ALL')
   const [favouriteFilter, setFavouriteFilter] = useState<FavouriteFilter>('ALL')
+  // FRONTEND-045-AC-06/AC-10: select-mode-only, single-expansion sub-task disclosure state --
+  // mirrors ActivityBank.tsx's own expandedActivityId pattern. Unused in drag mode.
+  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -233,7 +245,11 @@ export function ActivityPickerList({
         <p>No activities match these filters.</p>
       )}
 
-      {visibleActivities.length > 0 && (
+      {/* FRONTEND-045-AC-05/AC-12: drag mode keeps today's exact flat-list, always-expanded render
+          path, byte-for-byte unchanged -- branching here on isDragMode (rather than threading new
+          select-mode conditionals through one shared block) keeps that regression guard true by
+          construction. */}
+      {isDragMode && visibleActivities.length > 0 && (
         <ul className={styles.panel}>
           {visibleActivities.map((activity) => {
             const subTasks = (subTasksByActivity[activity.id] ?? []).filter(
@@ -248,17 +264,12 @@ export function ActivityPickerList({
                 onDragEnd={isDragMode ? onDragEnd : undefined}
               >
                 <div className={styles.activityRow}>
-                  {mode === 'select' ? (
-                    <button
-                      type="button"
-                      aria-pressed={selected?.activityId === activity.id}
-                      onClick={() => onSelectActivity?.(activity.id)}
-                    >
-                      {activity.name}
-                    </button>
-                  ) : (
-                    <span className={styles.activityName}>{activity.name}</span>
-                  )}
+                  {/* `mode` is always `'drag'` in this branch (gated by isDragMode above), so this
+                      renders identically to the pre-FRONTEND-045 unified block's `else` case --
+                      kept as a plain span rather than a `mode === 'select'` ternary here since
+                      that comparison is now unreachable in this branch and TS (correctly) flags
+                      it as such. */}
+                  <span className={styles.activityName}>{activity.name}</span>
                   <CategoryChip category={activity.category} />
                   {activity.repeatable && <RepeatableIcon />}
                   {activity.favourite && <FavouriteIcon />}
@@ -278,17 +289,7 @@ export function ActivityPickerList({
                         }
                         onDragEnd={isDragMode ? handleSubTaskDragEnd : undefined}
                       >
-                        {mode === 'select' ? (
-                          <button
-                            type="button"
-                            aria-pressed={selected?.subTaskId === subTask.id}
-                            onClick={() => onSelectSubTask?.(subTask.id)}
-                          >
-                            {subTask.name}
-                          </button>
-                        ) : (
-                          <span className={styles.activityName}>{subTask.name}</span>
-                        )}
+                        <span className={styles.activityName}>{subTask.name}</span>
                         <CategoryChip category={subTask.category} />
                       </li>
                     ))}
@@ -299,6 +300,78 @@ export function ActivityPickerList({
           })}
         </ul>
       )}
+
+      {/* FRONTEND-045-AC-01/AC-02/AC-03/AC-04: select mode only -- activities grouped into fixed
+          CATEGORY_ORDER sections (reusing ActivityBank.tsx's own precedent), partitioned with
+          .filter() only (no new sort) so within-group order stays exactly what the backend
+          provides. Sub-tasks are collapsed by default behind a per-activity toggle
+          (FRONTEND-045-AC-06 through AC-11). */}
+      {!isDragMode &&
+        visibleActivities.length > 0 &&
+        CATEGORY_ORDER.map((category) => {
+          const activitiesInCategory = visibleActivities.filter((a) => a.category === category)
+          if (activitiesInCategory.length === 0) {
+            return null
+          }
+          return (
+            <div key={category}>
+              <CategoryGroupHeading category={category} />
+              <ul className={styles.panel}>
+                {activitiesInCategory.map((activity) => {
+                  const subTasks = (subTasksByActivity[activity.id] ?? []).filter(
+                    (subTask) => categoryFilter === 'ALL' || subTask.category === categoryFilter,
+                  )
+                  const isExpanded = expandedActivityId === activity.id
+                  const toggleSubTasks = () =>
+                    setExpandedActivityId((current) =>
+                      current === activity.id ? null : activity.id,
+                    )
+
+                  return (
+                    <li key={activity.id} className={styles.activityGroup}>
+                      <div className={styles.activityRow}>
+                        <button
+                          type="button"
+                          aria-pressed={selected?.activityId === activity.id}
+                          onClick={() => onSelectActivity?.(activity.id)}
+                        >
+                          {activity.name}
+                        </button>
+                        <CategoryChip category={activity.category} />
+                        {activity.repeatable && <RepeatableIcon />}
+                        {activity.favourite && <FavouriteIcon />}
+                        {subTasks.length > 0 && (
+                          <span className={styles.actions}>
+                            <button type="button" onClick={toggleSubTasks}>
+                              {getSubTasksToggleLabel(subTasks.length, isExpanded)}
+                            </button>
+                          </span>
+                        )}
+                      </div>
+
+                      {subTasks.length > 0 && isExpanded && (
+                        <ul className={styles.subTaskList}>
+                          {subTasks.map((subTask) => (
+                            <li key={subTask.id} className={styles.subTaskRow}>
+                              <button
+                                type="button"
+                                aria-pressed={selected?.subTaskId === subTask.id}
+                                onClick={() => onSelectSubTask?.(subTask.id)}
+                              >
+                                {subTask.name}
+                              </button>
+                              <CategoryChip category={subTask.category} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )
+        })}
     </>
   )
 }

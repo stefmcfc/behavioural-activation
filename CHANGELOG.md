@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-05
+
+### Changed
+
+- The Assign Activity modal's activity list is now grouped into Routine/Necessary/Pleasurable
+  sections, matching the Activity Bank, and each activity's sub-tasks are collapsed by default
+  behind a "Show sub-tasks (N)" toggle instead of always showing. Today's drag-and-drop activity
+  drawer is unaffected — it keeps its existing flat, always-expanded list.
+
 ## [0.36.0] - 2026-10-05
 
 ### Changed

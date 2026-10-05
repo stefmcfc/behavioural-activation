@@ -54,6 +54,26 @@ const jobs: Activity = {
   subTaskCount: 0,
 }
 
+const anotherPartyLikeActivity: Activity = {
+  id: 'activity-4',
+  name: 'Plan a venue booking',
+  category: 'NECESSARY',
+  description: null,
+  repeatable: true,
+  archived: false,
+  favourite: false,
+  createdAt: '2026-09-01T00:00:00Z',
+  subTaskCount: 1,
+}
+
+const bookVenue: SubTask = {
+  id: 'subtask-2',
+  activityId: 'activity-4',
+  name: 'Book venue',
+  category: 'PLEASURABLE',
+  createdAt: '2026-09-01T00:00:00Z',
+}
+
 const noop = () => {}
 
 function dragProps(
@@ -64,6 +84,18 @@ function dragProps(
     onDragStartActivity: noop,
     onDragStartSubTask: noop,
     onDragEnd: noop,
+    ...overrides,
+  }
+}
+
+function selectProps(
+  overrides: Partial<Parameters<typeof ActivityPickerList>[0]> = {},
+): Parameters<typeof ActivityPickerList>[0] {
+  return {
+    mode: 'select',
+    selected: null,
+    onSelectActivity: noop,
+    onSelectSubTask: noop,
     ...overrides,
   }
 }
@@ -258,8 +290,204 @@ describe('FRONTEND-033-AC-02/AC-03/AC-04: bulk fetch replaces the per-activity f
       />,
     )
 
-    expect(await screen.findByText(sendInvitations.name)).toBeInTheDocument()
+    // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode, so party's sub-task
+    // toggle must be activated before its sub-task row is queryable.
+    await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+    expect(screen.getByText(sendInvitations.name)).toBeInTheDocument()
     // walk renders with no sub-task rows beneath it, not an error/missing-key crash
     expect(screen.getByText(walk.name)).toBeInTheDocument()
+  })
+})
+
+// frontend_spec_045_assign_picker_collapsible_subtasks.md: select mode groups activities into
+// CATEGORY_ORDER sections and collapses sub-tasks by default; drag mode is explicitly unaffected.
+describe('FRONTEND-045-AC-01/AC-02: category-grouped select-mode list', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('renders one heading per category with activities, in fixed order', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party, walk])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await screen.findByText('Go for a walk')
+    const headings = screen.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)
+    expect(headings).toEqual(['Routine', 'Necessary'])
+  })
+
+  it('renders no heading for a category with no matching activities', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await screen.findByText('Go for a walk')
+    expect(screen.queryByRole('heading', { name: 'Necessary' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Pleasurable' })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-03: grouping key is the activity\'s own category', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('groups an activity under its own category even when only a sub-task matches the active filter', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party]) // NECESSARY
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations]) // PLEASURABLE
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await screen.findByRole('button', { name: 'Organise a leaving party' })
+    await userEvent.click(screen.getByText('Filters'))
+    await userEvent.click(screen.getByRole('radio', { name: 'Pleasurable' }))
+
+    expect(screen.getByRole('heading', { name: 'Necessary' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Pleasurable' })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-04: within-group order is unchanged (no new sort)', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('preserves backend-provided order within a category group', async () => {
+    const zebra: Activity = { ...walk, id: 'z1', name: 'Zebra' }
+    const apple: Activity = { ...walk, id: 'z2', name: 'Apple' }
+    vi.mocked(activityApi.getAll).mockResolvedValue([zebra, apple])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await screen.findByRole('button', { name: 'Zebra' })
+    const buttons = screen.getAllByRole('button', { name: /Zebra|Apple/ })
+    expect(buttons[0]).toHaveTextContent('Zebra')
+    expect(buttons[1]).toHaveTextContent('Apple')
+  })
+})
+
+describe('FRONTEND-045-AC-05: drag mode has no grouping (regression guard)', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('renders no category headings in drag mode', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party, walk])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+    render(<ActivityPickerList {...dragProps()} />)
+
+    await screen.findByText('Go for a walk')
+    expect(screen.queryByRole('heading', { level: 4 })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-06/AC-07: sub-tasks collapsed by default with a labelled toggle', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('shows "Show sub-tasks (N)" and hides sub-task rows until activated', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
+    render(<ActivityPickerList {...selectProps()} />)
+    await screen.findByText('Organise a leaving party')
+
+    expect(screen.getByRole('button', { name: 'Show sub-tasks (1)' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Send invitations' })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-08: no toggle for an activity with zero (filtered) sub-tasks', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('renders no "Show sub-tasks"/"Hide sub-tasks" toggle for an activity with no sub-tasks', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await screen.findByText('Go for a walk')
+    expect(screen.queryByRole('button', { name: /show sub-tasks/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /hide sub-tasks/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-09/AC-10: expand/collapse and single-expansion', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('expands the clicked activity and collapses a previously-expanded one', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party, anotherPartyLikeActivity])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations, bookVenue])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    const toggles = await screen.findAllByRole('button', { name: 'Show sub-tasks (1)' })
+    await userEvent.click(toggles[0])
+    expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show sub-tasks (1)' })) // the second activity's toggle
+    expect(screen.queryByRole('button', { name: 'Send invitations' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Book venue' })).toBeInTheDocument()
+  })
+
+  it('activating an already-expanded activity\'s toggle collapses it', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+    expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hide sub-tasks' }))
+    expect(screen.queryByRole('button', { name: 'Send invitations' })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-11: toggle and select stay independent', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('does not call onSelectActivity when the sub-task toggle is clicked', async () => {
+    const onSelectActivity = vi.fn()
+    vi.mocked(activityApi.getAll).mockResolvedValue([party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
+    render(<ActivityPickerList {...selectProps({ onSelectActivity })} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+    expect(onSelectActivity).not.toHaveBeenCalled()
+  })
+
+  it('does not expand sub-tasks when the activity\'s own name/select button is clicked', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
+    render(<ActivityPickerList {...selectProps()} />)
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Organise a leaving party' }))
+
+    expect(screen.queryByRole('button', { name: 'Send invitations' })).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-045-AC-12: drag mode sub-tasks stay always-visible (regression guard)', () => {
+  beforeEach(() => {
+    vi.mocked(activityApi.getAll).mockReset()
+    vi.mocked(subTaskApi.getAllForOwner).mockReset()
+  })
+
+  it('renders sub-task rows unconditionally in drag mode', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([party])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
+    render(<ActivityPickerList {...dragProps()} />)
+    expect(await screen.findByText('Send invitations')).toBeInTheDocument()
   })
 })
