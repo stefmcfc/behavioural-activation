@@ -134,11 +134,11 @@ class WorkDayServiceSpec extends Specification {
         and: "pattern days are true except the overridden Wednesday, and Saturday is true via override"
             week.find { it.dayOfWeek() == MONDAY }.workDay()
             week.find { it.dayOfWeek() == TUESDAY }.workDay()
-            week.find { it.dayOfWeek() == WEDNESDAY }.workDay() == false
+            !week.find { it.dayOfWeek() == WEDNESDAY }.workDay()
             week.find { it.dayOfWeek() == THURSDAY }.workDay()
             week.find { it.dayOfWeek() == FRIDAY }.workDay()
             week.find { it.dayOfWeek() == SATURDAY }.workDay()
-            week.find { it.dayOfWeek() == SUNDAY }.workDay() == false
+            !week.find { it.dayOfWeek() == SUNDAY }.workDay()
     }
 
     def "PLANNER-021-AC-05: a missing or non-Monday weekStart throws InvalidPlanRequestException with PlanService's exact message, without querying"() {
@@ -200,10 +200,10 @@ class WorkDayServiceSpec extends Specification {
 
         then: "the existing row is updated in place, and nothing new is saved"
             0 * workDayOverrideRepository.save(_)
-            existing.workDay == false
+            !existing.workDay
 
         and: "the response reflects the latest value"
-            result.workDay() == false
+            !result.workDay()
     }
 
     def "PLANNER-021-AC-10: setOverride scopes its lookup and save to the resolved authenticated owner, not a caller-supplied id"() {

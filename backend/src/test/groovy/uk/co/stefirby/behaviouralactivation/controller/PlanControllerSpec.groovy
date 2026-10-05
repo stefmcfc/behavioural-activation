@@ -1,5 +1,6 @@
 package uk.co.stefirby.behaviouralactivation.controller
 
+import org.hamcrest.Matchers
 import tools.jackson.databind.ObjectMapper
 import org.spockframework.spring.SpringBean
 import org.springframework.beans.factory.annotation.Autowired
@@ -715,7 +716,7 @@ class PlanControllerSpec extends Specification {
 
         then: "the response is 200 with notes absent/null"
             result.andExpect(status().isOk())
-            result.andExpect(jsonPath('$.notes').value(org.hamcrest.Matchers.nullValue()))
+            result.andExpect(jsonPath('$.notes').value(Matchers.nullValue()))
     }
 
     def "PLANNER-022-AC-03: PATCH /api/v1/plan/occurrences/{id}/notes returns 400 for a note over 200 characters"() {
