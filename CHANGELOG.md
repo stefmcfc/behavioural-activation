@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-10-05
+
 ### Changed
 
 - The Assign Activity modal's activity list is now grouped into Routine/Necessary/Pleasurable
