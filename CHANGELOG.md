@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-10-05
+
 ### Fixed
 
 - `PATCH /api/v1/plan/occurrences/{id}` now rejects (`409`) demoting an already-completed occurrence
