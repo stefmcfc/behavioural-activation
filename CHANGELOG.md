@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Changed
+
+- Today's "Browse activities" drag drawer now gets the same category-grouped sections and
+  collapsible, single-expansion sub-tasks as the Assign Activity modal, instead of a flat,
+  always-expanded list.
+
+### Fixed
+
+- Fixed the sub-tasks toggle wrapping across multiple lines in the narrow activity drawer.
+
 ## [0.37.0] - 2026-10-05
 
 ### Changed

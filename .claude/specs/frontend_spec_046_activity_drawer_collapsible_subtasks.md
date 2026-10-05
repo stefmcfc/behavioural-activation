@@ -1,6 +1,6 @@
 # Category Grouping + Collapsible Sub-Tasks in the Activity Drawer (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-05)
 **Priority**: P3 — V1 polish, raised by the user 2026-10-05 to extend `frontend_spec_045`'s
 Assign Activity modal treatment to Today's drag drawer
 **Depends on**: `frontend_spec_045_assign_picker_collapsible_subtasks.md` (origin of the
@@ -249,14 +249,87 @@ passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-046-AC-01: Activities grouped into fixed category sections
-- [ ] FRONTEND-046-AC-02: Empty category groups are skipped
-- [ ] FRONTEND-046-AC-03: Within-group order is unchanged (no new sort)
-- [ ] FRONTEND-046-AC-04: Sub-tasks collapsed by default when present
-- [ ] FRONTEND-046-AC-05: Toggle label indicates expandability and count
-- [ ] FRONTEND-046-AC-06: Only one activity's sub-tasks are expanded at a time
-- [ ] FRONTEND-046-AC-07: Collapsing a sub-task hides it as a drag source until expanded
-- [ ] FRONTEND-046-AC-08: The toggle is not itself draggable (regression guard)
-- [ ] FRONTEND-046-AC-09: Activating the toggle does not start a drag of the activity
-- [ ] FRONTEND-046-AC-10: `FRONTEND-045-AC-05`/`AC-12`'s drag-mode regression-guard tests are removed/rewritten
-- [ ] FRONTEND-046-AC-11: Grid legibility and bucket reachability still hold with a shorter drawer
+- [x] FRONTEND-046-AC-01: Activities grouped into fixed category sections
+- [x] FRONTEND-046-AC-02: Empty category groups are skipped
+- [x] FRONTEND-046-AC-03: Within-group order is unchanged (no new sort)
+- [x] FRONTEND-046-AC-04: Sub-tasks collapsed by default when present
+- [x] FRONTEND-046-AC-05: Toggle label indicates expandability and count
+- [x] FRONTEND-046-AC-06: Only one activity's sub-tasks are expanded at a time
+- [x] FRONTEND-046-AC-07: Collapsing a sub-task hides it as a drag source until expanded
+- [x] FRONTEND-046-AC-08: The toggle is not itself draggable (regression guard)
+- [x] FRONTEND-046-AC-09: Activating the toggle does not start a drag of the activity
+- [x] FRONTEND-046-AC-10: `FRONTEND-045-AC-05`/`AC-12`'s drag-mode regression-guard tests are removed/rewritten
+- [x] FRONTEND-046-AC-11: Grid legibility and bucket reachability still hold with a shorter drawer (MANUAL -- confirmed, see Summary)
+
+## Summary
+
+Implemented 2026-10-05. `ActivityPickerList.tsx`'s previous `isDragMode`-branched pair of render
+blocks (one flat/always-expanded block for `drag` mode, one grouped/collapsible block for `select`
+mode, kept deliberately separate by `frontend_spec_045`) was merged into a single shared block: one
+`CATEGORY_ORDER.map(...)` → skip-if-empty → per-activity `subTasks`/`isExpanded`/`toggleSubTasks`
+derivation, now used by both modes. Only the leaf row content still differs per mode via an
+`isDragMode` ternary at two points -- the activity's own name (draggable `<span>` vs. a select
+`<button>`) and each sub-task's name (same ternary) -- everything else (grouping, the toggle
+button, `draggable`/`onDragStart`/`onDragEnd` wiring on the `<li>`s) is now one code path. The
+existing `expandedActivityId` single-expansion state (previously commented as "select-mode-only")
+is now shared by both modes without any change to its shape, since `ActivityDrawer` and
+`AssignActivityPicker` are never mounted simultaneously and so never share state in practice. The
+sub-tasks toggle button is rendered `<button type="button" draggable={false} onClick={toggleSubTasks}>`
+unconditionally in both modes (harmless in `select` mode, where the ancestor `<li>` was never
+draggable to begin with) rather than conditioned on `isDragMode`, per the spec's own implementation
+note -- this satisfies `FRONTEND-046-AC-08` by construction.
+
+**De-duplication**: shared the grouping/collapsing *data derivation* and the overall JSX shell
+(the implementation notes' recommendation) rather than extracting a separate helper
+function/sub-component -- the two per-mode differences (one ternary for the activity name, one for
+the sub-task name) were small enough that threading an `isDragMode` ternary directly into the one
+shared block was clearer than introducing an extra indirection layer (a parameterized row-content
+renderer) for only two leaf differences. `frontend_spec_045`'s already-shipped `select`-mode tests
+stayed green throughout this change with no modification needed to those tests themselves.
+
+**Real finding, fixed during `FRONTEND-046-AC-11`'s real-browser pass**: the sub-tasks toggle's
+flex item was squeezed to ~66px wide by the drawer's narrow (282px) row, wrapping "Show sub-tasks
+(3)" across 4 lines (119px tall) instead of rendering on one line -- a regression the Assign
+modal's much wider row never surfaced. Fixed in `AssignActivityPicker.module.css`: `.activityRow`
+gained `flex-wrap: wrap` so the toggle drops to its own line under pressure instead of being
+compressed; `.actions` gained `flex-shrink: 0` and `white-space: nowrap` (inherited by the button)
+so it renders on one line wherever it lands. Confirmed via `getBoundingClientRect`:
+66×119px (wrapped) → 154×40px (one line) in the drawer; the Assign modal's existing one-line,
+flush-right rendering (confirmed unaffected via the same measurement technique used for that
+spec's own follow-up fix) is unchanged, since it never had spare width tight enough to trigger the
+wrap.
+
+**`FRONTEND-046-AC-11` measured, not assumed**: with the drawer open on a 1384×614 viewport, the
+bucket list heading sits at `top: 522px` against a `614px` viewport -- reachable without scrolling
+with 92px of margin (previously a 1.5px near-miss per `frontend_spec_016`'s own measurement). The
+single-day grid and drawer both render at a comfortable, legible width side by side. Toggle
+`draggable` attribute confirmed `"false"`; an expanded sub-task row confirmed `draggable="true"`,
+matching `FRONTEND-046-AC-07`/`AC-08` exactly.
+
+**`ActivityDrawer.tsx`/`ActivityDrawer.module.css`**: confirmed untouched, exactly as the spec
+expected -- `git diff --stat` for this change shows only `ActivityPickerList.tsx` and
+`ActivityPickerList.test.tsx` modified. The drag-handle affordance CSS in
+`ActivityDrawer.module.css` (`li[draggable='true'] > div::before` /
+`li[draggable='true']:not(:has(> div))::before`) continues to match unchanged, since the merged
+render block preserves the exact same DOM shape (activity `<li>` → one `<div className={activityRow}>`
+child; sub-task `<li>` → no `<div>` child, its row content as direct children) that those
+structural selectors depend on.
+
+**Test count**: `ActivityPickerList.test.tsx` grew from 23 to 29 tests. The two superseded
+`FRONTEND-045-AC-05`/`AC-12` regression-guard tests ("renders no category headings in drag mode",
+"renders sub-task rows unconditionally in drag mode") were removed and replaced by this spec's own
+`FRONTEND-046-AC-01`/`AC-02`/`AC-03` (grouping, in a new combined describe block) and
+`FRONTEND-046-AC-04`/`AC-05`/`AC-06`/`AC-07`/`AC-08`/`AC-09` (collapsing + the toggle/drag
+independence regression guards) tests. Two further pre-existing tests in the file's
+`FRONTEND-028` describe block ("a sub-task row is also draggable with no select button", "dragging
+a sub-task row calls onDragStartSubTask, not onDragStartActivity") needed the same one-line
+toggle-expand fix `frontend_spec_045`'s `AC-13` applied to `AssignActivityPicker.test.tsx`, since
+those two tests queried a sub-task row directly without first expanding its now-collapsed-by-
+default parent. Full suite: 642/642 passing (up from 636), `npm run lint` clean, `npx tsc -b --noEmit`
+clean.
+
+`FRONTEND-046-AC-11`'s real-browser `getBoundingClientRect` re-measurement is recorded above,
+including the toggle-wrapping bug it caught and the fix for it -- see the two paragraphs following
+the de-duplication note.
+
+**No deviations from the spec's design beyond the de-duplication shape noted above.**

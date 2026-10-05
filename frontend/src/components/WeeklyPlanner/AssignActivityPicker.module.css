@@ -125,16 +125,23 @@
 
 .activityRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
 /* FRONTEND-045: right-aligned, matching ActivityBank.module.css's own .actions treatment for its
-   "Show sub-tasks" toggle. */
+   "Show sub-tasks" toggle. FRONTEND-046: flex-wrap/flex-shrink:0/white-space:nowrap (the latter
+   inherited by the toggle button inside) -- in the Activity Drawer's narrow 320px column, without
+   these the toggle's flex item was squeezed down to ~66px by the row's other children, wrapping
+   "Show sub-tasks (3)" across 4 lines instead of dropping cleanly to its own line. Confirmed via
+   getBoundingClientRect before and after. */
 .actions {
   display: flex;
+  flex-shrink: 0;
   gap: 0.4rem;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .subTaskList {
