@@ -6,6 +6,30 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-10-05
+
+### Changed
+
+- Reorganized the Weekly Summary tab's section order to "This week at a glance", "This week's
+  placement", "By schedule and category" — glance first, since that's what's actually read first.
+- Renamed "Where things landed" to "This week's placement" (reads correctly for a past, current, or
+  future week, instead of implying the week is already over) and "By location and category" to "By
+  schedule and category" ("location" read as a physical place; "schedule" is the intended meaning).
+- Merged the flat completion bar and the numeric "By category" table into one combined table under
+  "This week at a glance": one row per category (Routine/Necessary/Pleasurable, always shown even at
+  zero), each row's marks ordered completed-first, then by day/slot, then by weekend-bucket
+  position — one visualization doing the job of both, reading as a de facto bar graph.
+- The "X scheduled, Y in the weekend bucket" line no longer shows for a week that's already fully
+  ended, since any bucket items still incomplete by week's end have already auto-migrated forward
+  and the count would be stale. The completion-count line is unaffected and still shows for every
+  week.
+- The compact "This week's placement" grid now has visible grid lines around its cells and renders
+  its day/slot header labels in a monospace font, so it reads more clearly as a compact table; marks
+  are centered and sized up slightly for legibility, the time-of-day column matches the day columns'
+  width, and every cell has its own background fill distinct from the page.
+- The "Weekend bucket" sub-section under "This week's placement" no longer renders when the viewed
+  week's bucket is empty.
+
 ## [0.31.1] - 2026-10-05
 
 ### Fixed

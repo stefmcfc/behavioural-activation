@@ -1,6 +1,6 @@
 # Weekly Summary Reorganization (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-05)
 **Priority**: P2 — V1 polish, refining `frontend_spec_036`/`frontend_spec_037`'s just-shipped Weekly
 Summary tab based on real-use feedback from the user (2026-10-05)
 **Depends on**: `frontend_spec_036_weekly_summary.md` (origin of `WeeklySummary.tsx`,
@@ -13,6 +13,67 @@ review, specced separately since it changes `PlanService`/`OccurrenceItem` behav
 Weekly Summary page itself)
 **Area**: Frontend only — no backend/API changes, no `API.md` update
 **Roadmap version**: V1 polish
+
+## Summary
+
+All 17 ACs implemented and verified (17 new/updated Vitest tests across
+`weeklySummaryStats.test.ts` and `WeeklySummary.test.tsx`; 566/566 total frontend tests pass, 0
+regressions). `npm run lint` (oxlint) and `npx tsc -b --noEmit` both clean.
+
+**Real-browser verification** (all three `[MANUAL]` ACs), done by the coordinator against the live
+dev stack with a realistic mixed week (completed/not-completed occurrences across all three
+categories, a scheduled item and bucket items in the same category):
+- `AC-14`/`AC-15`: confirmed in both Light and Dark themes — the lite grid reads as a bordered
+  table with monospace day/slot headers, the merged per-category table groups and orders marks
+  correctly, and both renamed headings/section order match the spec.
+- `AC-16`: navigated to a week two weeks before the real current date (system clock, not an
+  injected test date) and confirmed the scheduled/bucket line is hidden there while still showing
+  for the current week.
+
+**Post-review polish, based on the user's live feedback while reviewing the above**: four CSS-only
+refinements to the lite grid, none changing any AC's substance — (1) `.liteGridCell` had two
+separate rule blocks for the same class (one from this spec's edit, one pre-existing); merged into
+one and added `align-items: center` so a single mark centers in its cell instead of sitting
+top-left; (2) `.circle` (`CompletionMark.module.css`) sized up from `0.65rem` to `0.85rem` for
+better legibility against the now-bordered cells; (3) `.liteGrid`'s `grid-template-columns` changed
+from `auto repeat(7, 1fr)` to `repeat(8, 1fr)` so the slot-label column matches the day columns'
+width; (4) `.liteGridDayLabel`/`.liteGridSlotLabel`/`.liteGridCell` gained `background:
+var(--code-bg)` so each cell reads as its own distinct box against the page background (tried
+`var(--surface)` and a `.liteGrid`-level card background first; neither gave enough contrast in
+Light theme). Also added one more behavior based on the same live review: the "Weekend bucket"
+sub-heading and its marks no longer render under "This week's placement" when the bucket is empty
+for the viewed week (new `FRONTEND-039-AC-17`, one new test, verified live by temporarily clearing
+and restoring the dev bucket's occurrences).
+
+**Implementation notes**:
+- Added an optional `initialWeekStart` prop to `WeeklySummary` (defaulting to
+  `getMondayOfCurrentWeek()` when omitted, preserving `FRONTEND-036-AC-03`'s existing behavior) so
+  `isPastWeek`'s past/current/future branches are directly testable without depending on the real
+  system clock.
+- `weeklySummaryStats.ts`'s top-level `WeeklyStats.byCategory` field was confirmed unused once the
+  old numeric "By category" table was removed (its only consumer was `WeeklySummary.tsx`'s own old
+  table) and removed; `byCategoryFor()`'s internal call from `computeByLocation()` (used by the
+  unchanged breakdown chart) was left untouched, as was the exported `CategoryStat` type (still used
+  by `LocationStat`/`BreakdownSegment`).
+- Requirement 4 (lite grid border + monospace headers) needed **CSS-only** changes —
+  `.liteGridDayLabel`/`.liteGridSlotLabel`/`.liteGridCell` already existed as the exact class hooks
+  applied in `WeeklySummary.tsx`'s JSX, so no component changes were needed, only new rules in
+  `WeeklySummary.module.css` (border on all three; `font-family: var(--mono)` — this project's
+  existing monospace stack from `index.css` — on the two header-label classes only).
+- `"This week's placement"`'s enclosing `<section>`'s `aria-label` was changed from the old
+  `"Where this week's activities landed"` to `"This week's placement"` (matching its new heading
+  text) rather than keeping the old wording verbatim — the AC's "both updated consistently" phrasing
+  was read as "heading and aria-label should say the same tense-neutral thing," not "keep the old
+  aria-label string." Similarly, the first section's `aria-label` changed from `"Completion for the
+  week"` to `"This week at a glance"`, since that section now wraps the completion count, the
+  conditional scheduled/bucket line, and the merged table together, not just the (now-removed) flat
+  completion bar alone.
+- Several `frontend_spec_037`-era tests that exercised the now-removed flat completion bar
+  (`FRONTEND-037-AC-01`–`AC-04`) were rewritten in place to exercise the same underlying behaviors
+  (mark ordering, full `aria-label` detail, border class regardless of fill colour) against the new
+  merged table instead, rather than deleted outright — the contracts they guarded
+  (`CompletionMark`'s own rendering, completed-first ordering) still apply, just inside a different
+  container.
 
 ## Overview
 
@@ -239,6 +300,20 @@ header labels render in a monospace font — legible and not visually broken in 
 
 **References**: `frontend_conventions.md`'s Testing Strategy note
 
+#### FRONTEND-039-AC-17 [AUTO]: The lite bucket area does not render when the bucket is empty
+**Statement**: While the viewed week's weekend bucket has zero occurrences, `WeeklySummary` shall
+not render the "Weekend bucket" sub-heading or its (empty) marks container under "This week's
+placement" — the lite grid above it is unaffected and continues to render regardless.
+
+**Rationale**: Raised by the user while reviewing this spec's other changes live — an empty
+"Weekend bucket" sub-section with nothing under it reads as visual clutter once the grid itself
+already carries visible structure (borders). Scoped narrowly to the bucket sub-section only; the
+lite grid itself always renders (`FRONTEND-039-AC-12`), matching its existing all-cells-always-
+present behavior.
+
+**References**: Component: `frontend/src/components/WeeklySummary/WeeklySummary.tsx` (existing
+`bucketOrder` array, new `bucketOrder.length > 0` guard around the heading + marks container)
+
 ### Requirement 5 — Full-page visual verification
 
 #### FRONTEND-039-AC-15 [MANUAL]: The reorganized page renders correctly end-to-end
@@ -383,19 +458,20 @@ statements, in a real browser.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-039-AC-01 — sections render in the new order: glance, placement, breakdown
-- [ ] FRONTEND-039-AC-02 — "Where things landed" renamed to a tense-neutral heading
-- [ ] FRONTEND-039-AC-03 — "By location and category" renamed to "By schedule and category"
-- [ ] FRONTEND-039-AC-04 — `isPastWeek` helper added, testable with an injected reference date
-- [ ] FRONTEND-039-AC-05 — scheduled/bucket line renders for the current or a future week
-- [ ] FRONTEND-039-AC-06 — scheduled/bucket line does not render for a past week
-- [ ] FRONTEND-039-AC-07 — completion-count line unaffected, renders for every week
-- [ ] FRONTEND-039-AC-08 — flat completion bar + numeric category table replaced by one merged, no-header table
-- [ ] FRONTEND-039-AC-09 — marks ordered completed-first, then scheduled-before-bucket within each group
-- [ ] FRONTEND-039-AC-10 — each mark keeps its existing `CompletionMark` contract, unchanged
-- [ ] FRONTEND-039-AC-11 — a category with no occurrences still renders its row
-- [ ] FRONTEND-039-AC-12 — lite grid cells/headers carry visible grid-line styling classes
-- [ ] FRONTEND-039-AC-13 — lite grid day/slot header labels carry a monospace font class
-- [ ] FRONTEND-039-AC-14 — lite grid visually reads as bordered/monospace-headed (real-browser check)
-- [ ] FRONTEND-039-AC-15 — full reorganized page verified end-to-end (real-browser check)
-- [ ] FRONTEND-039-AC-16 — a definitively past week hides the line in the real app (real-browser check)
+- [x] FRONTEND-039-AC-01 — sections render in the new order: glance, placement, breakdown
+- [x] FRONTEND-039-AC-02 — "Where things landed" renamed to a tense-neutral heading
+- [x] FRONTEND-039-AC-03 — "By location and category" renamed to "By schedule and category"
+- [x] FRONTEND-039-AC-04 — `isPastWeek` helper added, testable with an injected reference date
+- [x] FRONTEND-039-AC-05 — scheduled/bucket line renders for the current or a future week
+- [x] FRONTEND-039-AC-06 — scheduled/bucket line does not render for a past week
+- [x] FRONTEND-039-AC-07 — completion-count line unaffected, renders for every week
+- [x] FRONTEND-039-AC-08 — flat completion bar + numeric category table replaced by one merged, no-header table
+- [x] FRONTEND-039-AC-09 — marks ordered completed-first, then scheduled-before-bucket within each group
+- [x] FRONTEND-039-AC-10 — each mark keeps its existing `CompletionMark` contract, unchanged
+- [x] FRONTEND-039-AC-11 — a category with no occurrences still renders its row
+- [x] FRONTEND-039-AC-12 — lite grid cells/headers carry visible grid-line styling classes
+- [x] FRONTEND-039-AC-13 — lite grid day/slot header labels carry a monospace font class
+- [x] FRONTEND-039-AC-14 — lite grid visually reads as bordered/monospace-headed (real-browser check)
+- [x] FRONTEND-039-AC-15 — full reorganized page verified end-to-end (real-browser check)
+- [x] FRONTEND-039-AC-16 — a definitively past week hides the line in the real app (real-browser check)
+- [x] FRONTEND-039-AC-17 — the "Weekend bucket" sub-section does not render when the bucket is empty

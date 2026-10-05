@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeStats } from './weeklySummaryStats'
+import { computeStats, isPastWeek } from './weeklySummaryStats'
 import type { PlannedOccurrence } from '../../types/plan'
 
 function makeOccurrence(overrides: Partial<PlannedOccurrence> = {}): PlannedOccurrence {
@@ -72,7 +72,7 @@ describe('FRONTEND-037-AC-10: byLocation breakdown', () => {
     }
   })
 
-  it('leaves the existing planned/completed/scheduled/bucket/byCategory fields unchanged', () => {
+  it('leaves the existing planned/completed/scheduled/bucket fields unchanged', () => {
     const stats = computeStats([
       makeOccurrence({ id: '1', completed: true }),
       makeOccurrence({ id: '2', completed: false, dayOfWeek: null, slot: null }),
@@ -82,6 +82,34 @@ describe('FRONTEND-037-AC-10: byLocation breakdown', () => {
     expect(stats.completed).toBe(1)
     expect(stats.scheduled).toBe(1)
     expect(stats.bucket).toBe(1)
-    expect(stats.byCategory).toHaveLength(3)
+  })
+})
+
+describe('FRONTEND-039-AC-04: isPastWeek', () => {
+  it("returns true when the week's last day is before the reference date", () => {
+    // 2026-09-21 is a Monday; its week ends 2026-09-27, before the 2026-10-05 reference date.
+    expect(isPastWeek('2026-09-21', new Date('2026-10-05T09:00:00'))).toBe(true)
+  })
+
+  it('returns false for the current week (reference date falls within it)', () => {
+    // 2026-09-29 is a Monday; its week runs through 2026-10-05, which is the reference date itself.
+    expect(isPastWeek('2026-09-29', new Date('2026-10-05T09:00:00'))).toBe(false)
+  })
+
+  it('returns false for a future week', () => {
+    expect(isPastWeek('2026-10-12', new Date('2026-10-05T09:00:00'))).toBe(false)
+  })
+
+  it("returns false when the reference date is exactly the week's last day", () => {
+    expect(isPastWeek('2026-09-29', new Date('2026-10-05T23:59:00'))).toBe(false)
+  })
+
+  it('returns true the day after the week ends', () => {
+    expect(isPastWeek('2026-09-29', new Date('2026-10-06T00:01:00'))).toBe(true)
+  })
+
+  it('defaults the reference date to the real current date when omitted', () => {
+    // A week that ended over a century ago is past regardless of when this suite runs.
+    expect(isPastWeek('1900-01-01')).toBe(true)
   })
 })

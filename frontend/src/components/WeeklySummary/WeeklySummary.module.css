@@ -8,27 +8,28 @@
   font-size: 1.05rem;
 }
 
-.categoryTable {
-  border-collapse: collapse;
-  width: 100%;
-  max-width: 28rem;
-}
-
-.categoryTable th,
-.categoryTable td {
-  text-align: left;
-  padding: 0.4rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-}
-
 .section {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 }
 
-/* FRONTEND-037 Requirement 1: segmented completion bar. */
-.completionBar {
+/* FRONTEND-039 Requirement 3: "This week at a glance"'s merged, no-header table -- one row per
+   category, replacing both the old flat completion bar and the old numeric "By category" table. */
+.categoryMarksTable {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.categoryMarksTable th,
+.categoryMarksTable td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.categoryMarksCell {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
@@ -38,7 +39,7 @@
    the lite bucket list below it -- both read-only, no Add/drag/remove controls. */
 .liteGrid {
   display: grid;
-  grid-template-columns: auto repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 0.3rem;
   align-items: center;
   max-width: 48rem;
@@ -48,8 +49,24 @@
   width: 1px;
 }
 
+/* FRONTEND-039-AC-12: visible grid lines on the lite grid's own cells, each cell additionally
+   filled with the card surface colour (distinct from the page background) so the gaps between
+   cells read as the grid's structure, not just a stray border on an otherwise transparent cell.
+   The corner spacer is deliberately excluded, since filling it in would read as a stray fourth
+   cell rather than a grid line. */
+.liteGridDayLabel,
+.liteGridSlotLabel,
+.liteGridCell {
+  border: 1px solid var(--border-strong);
+  background: var(--code-bg);
+  padding: 0.2rem;
+}
+
+/* FRONTEND-039-AC-13: day/slot header labels render in this project's monospace stack, scoped to
+   the headers only -- the occurrence marks inside each .liteGridCell are unaffected. */
 .liteGridDayLabel,
 .liteGridSlotLabel {
+  font-family: var(--mono);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-h);
@@ -63,9 +80,10 @@
 .liteGridCell {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   min-height: 1.6rem;
-  justify-content: center;
 }
 
 .liteBucket {

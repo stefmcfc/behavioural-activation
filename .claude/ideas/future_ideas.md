@@ -10,7 +10,7 @@ table → implemented, row moves to "Delivered" → `CHANGELOG.md` (shipped). An
 file into `SPEC_CANDIDATES.md` once it's confirmed worth specifying — don't leave it duplicated in
 both.
 
-**Maintenance rule**: every item here carries a `**Status**` line. Before adding a new item or
+**Maintenance rule**: every item here carries a `Status` line. Before adding a new item or
 touching this file, re-check existing items against the current codebase — code this file
 references may have moved or changed shape since the note was written.
 - **Delivered** — the idea shipped. Keep only a one-line description + the spec(s) that delivered
@@ -20,47 +20,70 @@ references may have moved or changed shape since the note was written.
 - **Not specced** — retain full detail: what's actually required, why, and any relevant
   constraints or prior discussion.
 
-Last full review: 2026-10-01 (re-checked every entry against current codebase state: fixed a stale
-`PlannedActivity.slot` reference to the real `PlannedOccurrence.slot`, updated the drag-and-drop
+**Formatting convention**: shared with `.claude/SPEC_CANDIDATES.md` — see that file's own
+"Formatting convention" note (same pipeline, same structure) for the review-log-date and
+`Status`-code-block rules both files follow.
+
+---
+
+**Last full review:** `2026-10-01` (re-checked every entry against current codebase state):
+
+- fixed a stale `PlannedActivity.slot` reference to the real `PlannedOccurrence.slot`, updated the drag-and-drop
 entry's cross-reference from a since-promoted `SPEC_CANDIDATES.md` candidate to the real specs it
-became, removed the "Activity Bank UX improvements" batch entirely now that every item in it has
-either shipped or moved to `ROADMAP.md`/`SPEC_CANDIDATES.md`, fixed wording in the summary-strip
+became
+- removed the "Activity Bank UX improvements" batch entirely now that every item in it has
+either shipped or moved to `ROADMAP.md`/`SPEC_CANDIDATES.md`
+- fixed wording in the summary-strip
 entry that implied `frontend_spec_008` hadn't shipped yet, and removed the "Sub-task category
 drift" entry — now specced as `planner_spec_014_subtask_category_cascade.md`, see
-`ROADMAP.md`'s "Specced, coming soon". Later the same day: removed the "already-open sub-task panel
-doesn't refresh" entry too — now specced as `frontend_spec_023_subtask_panel_refresh_on_edit.md`).
-Later the same day: split the "Drag-and-drop in the week planner" entry in two — the
+`ROADMAP.md`'s "Specced, coming soon".
+- removed the "already-open sub-task panel
+doesn't refresh" entry too — now specced as `frontend_spec_023_subtask_panel_refresh_on_edit.md`.
+- split the "Drag-and-drop in the week planner" entry in two — the
 already-planned-item-move half is now specced as `frontend_spec_025_grid_drag_to_move.md` (see
 `ROADMAP.md`); this file keeps only the remaining not-yet-specced half (sidebar/drawer assign-by-
 drag for unplanned activities).
-2026-10-02: added a third drag-and-drop idea, dragging between the grid and the weekend bucket
+
+`2026-10-02`
+
+- added a third drag-and-drop idea, dragging between the grid and the weekend bucket
 list — carved out as explicitly out-of-scope by `frontend_spec_025_grid_drag_to_move.md`.
-Later the same day: added "Should a completed occurrence be movable?", raised while reviewing that
+- added "Should a completed occurrence be movable?", raised while reviewing that
 same spec. Later the same day: the grid/bucket cross-drag idea moved straight to a real spec
 (`frontend_spec_026_grid_bucket_cross_drag.md`, see `ROADMAP.md`'s "Specced, coming soon") without
 passing through `SPEC_CANDIDATES.md` — removed from this file.
-2026-10-02: the "favourite activities" aside mentioned inside the sidebar/drawer entry moved straight
+- the "favourite activities" aside mentioned inside the sidebar/drawer entry moved straight
 to its own real spec pair (`planner_spec_015_favourite_activities.md`/
 `frontend_spec_027_favourite_activities.md`, see `ROADMAP.md`'s "Specced, coming soon"), decoupled
 from the sidebar/drawer idea it was raised alongside — the sidebar/drawer entry itself remains here,
 trimmed to remove the now-specced favourites mention.
-Later the same day: the sidebar/drawer entry itself ("Drag-and-drop in the week planner: assign an
+- the sidebar/drawer entry itself ("Drag-and-drop in the week planner: assign an
 unplanned activity via a sidebar/drawer") moved to a real spec
 (`frontend_spec_028_activity_drawer.md`, see `ROADMAP.md`'s "Specced, coming soon") — the design pass
 it was waiting on (panel placement, filter reuse) is done; removed from this file. This closes out
 the three-way split of the original "drag-and-drop in the week planner" idea
 (`frontend_spec_025`/`026`/`028`).
-2026-10-03: the "Weekly grid completion/category-balance summary strip" entry moved to a real spec,
+
+`2026-10-03`
+
+- the "Weekly grid completion/category-balance summary strip" entry moved to a real spec,
 reshaped from an inline strip into a full top-level tab per the user's own framing when confirming
 it — `frontend_spec_036_weekly_summary.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
 this file.
-Earlier review: 2026-08-27 (V1 high-level planning session).
+
+`2026-08-27`
+
+- V1 high-level planning session.
 
 ---
 
 ## Finer-grained/custom time slots for planned activities
 
-**Status**: Not specced. V1's `PlannedOccurrence.slot` is a fixed `MORNING`/`AFTERNOON`/`EVENING`
+```
+Status: Not specced.
+```
+
+V1's `PlannedOccurrence.slot` is a fixed `MORNING`/`AFTERNOON`/`EVENING`
 enum (nullable, for bucket-style entries). Raised during V1 planning: hourly or specific-time
 scheduling might be wanted later. Deliberately not built now — nothing in the current roadmap needs
 it, and building generic time-scheduling ahead of a real requirement would be solving a problem
@@ -70,7 +93,11 @@ nullable specifically so this would most likely be an *additive* future change (
 
 ## Should a completed occurrence be movable?
 
-**Status**: Not specced. Raised 2026-10-02 while reviewing `frontend_spec_025_grid_drag_to_move.md`
+```
+Status: Not specced.
+```
+
+Raised 2026-10-02 while reviewing `frontend_spec_025_grid_drag_to_move.md`
 — noticed that dragging a completed grid occurrence to a different day/slot is currently allowed,
 with no check against `occurrence.completed`. Confirmed this isn't a regression introduced by that
 spec: the existing click-based "Rearrange" button (`OccurrenceItem.tsx`) has never been gated on
@@ -87,7 +114,11 @@ in real use, rather than building a restriction (or a feature toggle for one) ah
 
 ## Dedicated activity-history view/endpoint
 
-**Status**: Not specced. V1 satisfies "basic activity history" (a V1 feature bullet in
+```
+Status: Not specced.
+```
+
+V1 satisfies "basic activity history" (a V1 feature bullet in
 `HIGH_LEVEL_DESIGN.md`) by letting `weekStart` on the existing `GET /api/v1/plan` navigate to past
 weeks — no separate history page or endpoint. Confirmed during V1 planning as fine for V1; a richer
 standalone history view (filtering/searching past completions independent of the week-by-week
@@ -98,7 +129,11 @@ navigation) is a plausible later addition once the week planner itself is in rea
 These are explicitly *not* part of the initial build per the design doc, listed here for
 discoverability rather than restated in full — see the design doc itself for the complete list:
 
-**Status**: Not specced. Deliberately deferred, should only be pulled forward if they emerge
+```
+Status: Not specced.
+```
+
+Deliberately deferred, should only be pulled forward if they emerge
 naturally from real usage (per the design doc's own framing): mobile/PWA, notifications, calendar
 integration, therapy-worksheet import, therapist-facing export, multiple activity templates,
 natural-language activity entry, voice input, local/on-device AI, more sophisticated trend
@@ -106,7 +141,11 @@ analysis, activity effectiveness scoring, social/connection activity tracking.
 
 ## End-of-week reflection (light journal, no scoring)
 
-**Status**: Not specced. Raised by the user 2026-09-29, explicitly flagged as probably out of V1
+```
+Status: Not specced.
+```
+
+Raised by the user 2026-09-29, explicitly flagged as probably out of V1
 scope. A brief end-of-week prompt inviting the user to note what felt satisfying, what was harder
 than expected, and what they might want to make room for next week — free-text, not a rating or
 score. Intent is to make the planner feel more human than a pure checklist of done/not-done items.
@@ -138,7 +177,11 @@ whenever this actually gets spec'd, not just a nice-to-have tone note.
 
 ## Pagination on `GET /api/v1/activities` (and similar unbounded list endpoints)
 
-**Status**: Not specced. Raised 2026-10-02 during a deliberate performance investigation (alongside
+```
+Status: Not specced.
+```
+
+Raised 2026-10-02 during a deliberate performance investigation (alongside
 `planner_spec_017_plan_response_n_plus_one.md`/`planner_spec_018_bulk_sub_task_fetch.md`, the two
 findings from that same pass that *were* confirmed worth specifying). `GET /api/v1/activities`
 returns every activity owned by the user in one unbounded list, with no `limit`/`offset`/cursor —
@@ -149,8 +192,11 @@ count ever grows enough (e.g. heavy multi-user adoption) for an unbounded respon
 
 ## Self-hosted/local LLM inference for AI features
 
-**Status**: Not specced — deliberately deferred, not rejected. See
-`.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` §7b: CPU-only inference is too slow for good UX without a
+```
+Status: Not specced — deliberately deferred, not rejected.
+```
+
+See `.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` §7b: CPU-only inference is too slow for good UX without a
 GPU, and expected call volume is low enough that a hosted free API will be cheaper/faster. Only
 reconsider if a real data-sovereignty requirement (mood/mental-health data never leaving
 user-controlled infrastructure) forces it later — that would be the actual justification, not cost
