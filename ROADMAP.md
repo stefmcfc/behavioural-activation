@@ -80,7 +80,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Mark days as work days (recurring pattern + per-date override, visual-only badge) | [planner_spec_021_work_day_marking.md](.claude/specs/planner_spec_021_work_day_marking.md) | [frontend_spec_042_work_day_marking.md](.claude/specs/frontend_spec_042_work_day_marking.md) | Draft (2026-10-06) — not yet implemented |
 
 ## Internal / maintenance specs
 
