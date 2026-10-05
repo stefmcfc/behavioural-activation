@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-10-06
+
 ### Fixed
 
 - The Today tab's grid heading no longer duplicates today's day name — it now reads "Today's
