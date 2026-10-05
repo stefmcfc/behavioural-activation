@@ -246,6 +246,71 @@ describe('FRONTEND-026: dragging a bucket occurrence onto a grid cell promotes i
   })
 })
 
+describe('FRONTEND-038-AC-03/AC-04/AC-05: completed occurrences cannot be dragged to the bucket, but grid-internal drag still works', () => {
+  it('AC-03: dropping a completed grid occurrence on the bucket panel does not call onMoveToBucket', () => {
+    const onMoveToBucket = vi.fn()
+    const completedGridOccurrence = makeOccurrence({
+      id: 'completed-grid-1',
+      name: 'Finished chore',
+      dayOfWeek: 'MONDAY',
+      slot: 'MORNING',
+      completed: true,
+    })
+    render(
+      <WeeklyPlannerHarness
+        occurrences={[completedGridOccurrence]}
+        onMoveToBucket={onMoveToBucket}
+      />,
+    )
+
+    const sourceTile = screen.getByText(completedGridOccurrence.name).closest('li')!
+    const bucketPanel = screen.getByRole('region', { name: 'Weekend bucket list' })
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(bucketPanel)
+
+    expect(onMoveToBucket).not.toHaveBeenCalled()
+  })
+
+  it('AC-04: dropping a not-completed grid occurrence on the bucket panel still calls onMoveToBucket (regression guard)', () => {
+    const onMoveToBucket = vi.fn()
+    render(
+      <WeeklyPlannerHarness occurrences={[gridOccurrence]} onMoveToBucket={onMoveToBucket} />,
+    )
+
+    const sourceTile = screen.getByText(gridOccurrence.name).closest('li')!
+    const bucketPanel = screen.getByRole('region', { name: 'Weekend bucket list' })
+    fireEvent.dragStart(sourceTile)
+    fireEvent.drop(bucketPanel)
+
+    expect(onMoveToBucket).toHaveBeenCalledWith(gridOccurrence.id)
+  })
+
+  it('AC-05: dragging a completed grid occurrence onto a different grid cell still calls onConfirmMove (regression guard)', () => {
+    const onConfirmMove = vi.fn()
+    const completedGridOccurrence = makeOccurrence({
+      id: 'completed-grid-1',
+      name: 'Finished chore',
+      dayOfWeek: 'MONDAY',
+      slot: 'MORNING',
+      completed: true,
+    })
+    render(
+      <WeeklyPlannerHarness
+        occurrences={[completedGridOccurrence]}
+        onConfirmMove={onConfirmMove}
+      />,
+    )
+
+    const sourceTile = screen.getByText(completedGridOccurrence.name).closest('li')!
+    const targetCell = screen.getByLabelText('Add to Tuesday Afternoon').closest('div')!
+    fireEvent.dragStart(sourceTile)
+    fireEvent.dragOver(targetCell)
+    fireEvent.drop(targetCell)
+
+    expect(onConfirmMove).toHaveBeenCalledWith(completedGridOccurrence.id, 'TUESDAY', 'AFTERNOON')
+  })
+})
+
 describe('FRONTEND-026-AC-07: abandoned bucket-origin drag resets shared state', () => {
   it('a dragend with no drop calls neither onMoveToBucket nor onConfirmMove, and a later drag behaves fresh', () => {
     const onMoveToBucket = vi.fn()

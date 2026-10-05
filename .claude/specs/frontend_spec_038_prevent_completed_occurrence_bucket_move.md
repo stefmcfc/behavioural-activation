@@ -1,6 +1,6 @@
 # Prevent a Completed Occurrence from Being Moved to the Bucket (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-05)
 **Priority**: P2 — correctness bug, found while reviewing the Weekly Summary tab's "X scheduled, Y
 in the bucket" stat with the user (2026-10-05)
 **Depends on**: `planner_spec_020_prevent_completed_occurrence_bucket_move.md` (the backend guard
@@ -10,6 +10,29 @@ bucket_cross_drag.md` (origin of drag-to-bucket, `onMoveToBucket` wiring), `fron
 occurrence_detail_card.md` (origin of the "Send to bucket" button this spec hides)
 **Area**: Frontend only
 **Roadmap version**: V1 polish
+
+## Summary
+
+Hides/no-ops both UI paths that could turn a completed occurrence back into a bucket item: the
+"Send to bucket" button in `OccurrenceItem`'s detail card no longer renders when
+`occurrence.completed` is `true`, and `BucketList`'s drop handlers (`handlePanelDrop` and the
+per-item `handleDrop`) now look up the dragged occurrence in the `occurrences` prop and skip calling
+`onMoveToBucket` when it's completed. 9 new/updated Vitest+RTL tests added across
+`OccurrenceItem.test.tsx`, `BucketList.test.tsx`, and `CrossSectionDrag.test.tsx` (unit-level plus a
+real cross-component drag harness), all confirmed red before the fix and green after. No surprises:
+`occurrences` was already the full (grid + bucket) list passed into `BucketList`, so the completion
+lookup needed no new prop — it reused the same data `idsInOrder.includes(draggedId)` already drew
+from. Grid-internal drag-to-move and the "Rearrange" dropdown for non-bucket targets are unaffected,
+per scope.
+
+**Real-browser verification**: confirmed against the live dev stack (logged in as the seeded user).
+Marked a real occurrence ("Go for a walk", Monday Morning) complete, opened its detail card →
+Rearrange, and confirmed "Send to bucket" no longer renders while "Confirm rearrange" still does
+(AC-01/AC-03 regression guard). Dispatched real `dragstart`/`dragover`/`drop`/`dragend` events
+(spaced ~150ms apart, per the timing finding already recorded in `frontend_spec_026`) from that same
+completed tile onto the weekend bucket panel — the bucket list's item count was unchanged and the
+tile stayed in its original grid cell, confirming `onMoveToBucket` was correctly skipped (AC-03). Test
+data cleaned up afterward (undo completion, remove occurrence).
 
 ## Overview
 
@@ -151,8 +174,8 @@ pass.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-038-AC-01 — "Send to bucket" does not render for a completed occurrence
-- [ ] FRONTEND-038-AC-02 — "Send to bucket" still renders for a not-completed grid occurrence (regression guard)
-- [ ] FRONTEND-038-AC-03 — dropping a completed occurrence on the bucket does not call `onMoveToBucket`
-- [ ] FRONTEND-038-AC-04 — dropping a not-completed occurrence on the bucket still calls `onMoveToBucket` (regression guard)
-- [ ] FRONTEND-038-AC-05 — grid-internal drag-to-move of a completed occurrence is unaffected (regression guard)
+- [x] FRONTEND-038-AC-01 — "Send to bucket" does not render for a completed occurrence
+- [x] FRONTEND-038-AC-02 — "Send to bucket" still renders for a not-completed grid occurrence (regression guard)
+- [x] FRONTEND-038-AC-03 — dropping a completed occurrence on the bucket does not call `onMoveToBucket`
+- [x] FRONTEND-038-AC-04 — dropping a not-completed occurrence on the bucket still calls `onMoveToBucket` (regression guard)
+- [x] FRONTEND-038-AC-05 — grid-internal drag-to-move of a completed occurrence is unaffected (regression guard)

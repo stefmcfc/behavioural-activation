@@ -141,6 +141,28 @@ describe('FRONTEND-008-AC-02/AC-03/AC-04: activating the tile opens a card with 
   })
 })
 
+describe('FRONTEND-038-AC-01/AC-02: Send to bucket respects completion state', () => {
+  it('AC-01: does not render Send to bucket for a completed grid occurrence', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...gridOccurrence, completed: true },
+          detailOpenId: 'o1',
+          movingId: 'o1',
+        })}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /send to bucket/i })).not.toBeInTheDocument()
+  })
+
+  it('AC-02: still renders Send to bucket for a not-completed grid occurrence (regression guard)', () => {
+    render(<OccurrenceItem {...baseProps({ detailOpenId: 'o1', movingId: 'o1' })} />)
+
+    expect(screen.getByRole('button', { name: /send to bucket/i })).toBeInTheDocument()
+  })
+})
+
 describe('FRONTEND-008-AC-05: an open bucket item card shows Carry forward', () => {
   it('renders Carry forward for a bucket item with its card open', () => {
     render(<OccurrenceItem {...baseProps({ isBucketItem: true, detailOpenId: 'o1' })} />)

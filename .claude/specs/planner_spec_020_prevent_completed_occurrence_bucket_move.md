@@ -1,6 +1,6 @@
 # Prevent a Completed Occurrence from Being Moved to the Bucket (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-05)
 **Priority**: P2 — correctness bug, found while reviewing the Weekly Summary tab's "X scheduled, Y
 in the bucket" stat with the user (2026-10-05)
 **Depends on**: `planner_spec_004_week_planning.md` (`PlanService.move`/`applyMove`, the
@@ -9,6 +9,21 @@ forward_automation.md` (origin of `CarryForwardNotAllowedException`, the exact p
 mirrors for an equivalent "wrong state for this action" rejection)
 **Area**: Backend
 **Roadmap version**: V1 polish
+
+## Summary
+
+All 4 ACs implemented and tested (4 new Spock tests across `PlanServiceSpec`/`PlanControllerSpec`,
+287 backend tests total, 0 regressions). `PlanService.applyMove`'s bucket-targeting branch now
+checks `completionRecordRepository.findByPlannedOccurrenceIdAndOwner(...)` before demoting, mirroring
+`applyCarryForward`'s existing completed-state guard exactly. New `BucketMoveNotAllowedException`
+mapped to `409` by `GlobalExceptionHandler`.
+
+**Real findings**: one pre-existing Spock test (`PLANNER-004-AC-17`, bucket-demote-for-an-incomplete-
+occurrence) had no stub for `completionRecordRepository.findByPlannedOccurrenceIdAndOwner`, since
+`applyMove` previously never called it — the mock's default `null` return caused a `NullPointerException`
+on `.isPresent()` once the new guard was added. Fixed by adding the missing `Optional.empty()` stub;
+no production behavior was wrong, only the test's mock setup was incomplete for the method's new call
+path.
 
 ## Overview
 
@@ -170,7 +185,7 @@ above pass.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-020-AC-01 — moving a completed occurrence to the bucket is rejected, occurrence unchanged
-- [ ] PLANNER-020-AC-02 — `BucketMoveNotAllowedException` maps to 409 Conflict
-- [ ] PLANNER-020-AC-03 — moving a completed occurrence within the grid still succeeds (regression guard)
-- [ ] PLANNER-020-AC-04 — moving a not-completed occurrence to the bucket still succeeds (regression guard)
+- [x] PLANNER-020-AC-01 — moving a completed occurrence to the bucket is rejected, occurrence unchanged
+- [x] PLANNER-020-AC-02 — `BucketMoveNotAllowedException` maps to 409 Conflict
+- [x] PLANNER-020-AC-03 — moving a completed occurrence within the grid still succeeds (regression guard)
+- [x] PLANNER-020-AC-04 — moving a not-completed occurrence to the bucket still succeeds (regression guard)

@@ -6,6 +6,18 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- `PATCH /api/v1/plan/occurrences/{id}` now rejects (`409`) demoting an already-completed occurrence
+  back to the weekend bucket — a completed activity is done for the week, so it can no longer be
+  silently turned back into an unscheduled bucket item. Rescheduling a completed occurrence to a
+  different day/slot is unaffected.
+- The "Send to bucket" action no longer appears for a completed occurrence's detail card, and
+  dragging a completed occurrence onto the weekend bucket list (panel or an existing bucket item) is
+  now a no-op — the proactive UX fix pairing the backend rejection above, so the `409` is a
+  defense-in-depth safety net rather than something a user can actually trigger. Grid-internal
+  drag-to-move and the Rearrange dropdown for a completed occurrence are unaffected.
+
 ## [0.31.0] - 2026-10-05
 
 ### Added

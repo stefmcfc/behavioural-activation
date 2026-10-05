@@ -50,6 +50,12 @@ public class GlobalExceptionHandler {
             .body(ApiError.of(ex.getMessage()));
     }
 
+    @ExceptionHandler(BucketMoveNotAllowedException.class)
+    public ResponseEntity<ApiError> handleBucketMoveNotAllowedException(BucketMoveNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();

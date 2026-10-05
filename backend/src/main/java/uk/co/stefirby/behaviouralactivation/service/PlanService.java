@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest;
+import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException;
@@ -327,6 +328,13 @@ public class PlanService {
 
     private PlannedOccurrence applyMove(PlannedOccurrence occurrence, PlannedOccurrenceMoveRequest request, User owner) {
         if (request.dayOfWeek() == null && request.slot() == null) {
+            // planner_spec_020_prevent_completed_occurrence_bucket_move.md (PLANNER-020-AC-01) -- a
+            // completed occurrence is done for the week; demoting it back to the bucket would silently
+            // misrepresent it as not-yet-done. Checked only for the bucket-targeting branch -- moving a
+            // completed occurrence between grid slots (the else branch below) is unaffected (AC-03).
+            if (completionRecordRepository.findByPlannedOccurrenceIdAndOwner(occurrence.getId(), owner).isPresent()) {
+                throw new BucketMoveNotAllowedException("A completed occurrence cannot be moved to the bucket");
+            }
             // Computed BEFORE mutating occurrence -- same auto-flush hazard as applyCarryForward(...).
             int position = nextBucketPosition(owner, occurrence.getWeekStart()); // PLANNER-010-AC-05
             occurrence.moveToBucket();

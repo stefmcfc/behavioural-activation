@@ -10,6 +10,7 @@ import java.time.ZoneOffset
 
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
+import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException
 import uk.co.stefirby.behaviouralactivation.model.Activity
@@ -245,6 +246,7 @@ class PlanServiceSpec extends Specification {
             def existing = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
                 DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
             plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(existing.id, owner) >> Optional.empty()
             def request = new PlannedOccurrenceMoveRequest(null, null)
 
         when: "the occurrence is moved"
@@ -286,6 +288,65 @@ class PlanServiceSpec extends Specification {
 
         then: "the result is empty"
             result.isEmpty()
+    }
+
+    def "PLANNER-020-AC-01: move throws BucketMoveNotAllowedException when a completed occurrence targets the bucket, leaving day/slot unchanged"() {
+        given: "an existing owned, scheduled occurrence with an existing CompletionRecord"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            def completion = new CompletionRecord(existing, owner, Instant.now())
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(existing.id, owner) >> Optional.of(completion)
+            def request = new PlannedOccurrenceMoveRequest(null, null)
+
+        when: "the occurrence is moved to the bucket"
+            service.move("steve", id, request)
+
+        then: "a BucketMoveNotAllowedException is thrown, and day/slot are unchanged"
+            thrown(BucketMoveNotAllowedException)
+            existing.dayOfWeek == DayOfWeek.MONDAY
+            existing.slot == PlanSlot.MORNING
+    }
+
+    def "PLANNER-020-AC-03: move succeeds for a completed occurrence targeting a different grid slot (regression guard)"() {
+        given: "an existing owned, completed occurrence"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            def completion = new CompletionRecord(existing, owner, Instant.now())
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(existing.id, owner) >> Optional.of(completion)
+            def request = new PlannedOccurrenceMoveRequest(DayOfWeek.TUESDAY, PlanSlot.EVENING)
+
+        when: "the occurrence is moved to a different day/slot"
+            def result = service.move("steve", id, request)
+
+        then: "the move succeeds"
+            result.isPresent()
+            result.get().dayOfWeek == DayOfWeek.TUESDAY
+            result.get().slot == PlanSlot.EVENING
+    }
+
+    def "PLANNER-020-AC-04: move succeeds when a not-completed occurrence targets the bucket (regression guard)"() {
+        given: "an existing owned, not-completed occurrence"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Go for a walk", ActivityCategory.ROUTINE, null, owner)
+            def existing = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(existing.id, owner) >> Optional.empty()
+            def request = new PlannedOccurrenceMoveRequest(null, null)
+
+        when: "the occurrence is moved to the bucket"
+            def result = service.move("steve", id, request)
+
+        then: "the move succeeds"
+            result.isPresent()
+            result.get().dayOfWeek == null
+            result.get().slot == null
     }
 
     def "PLANNER-004-AC-20: delete removes the owner's occurrence and returns true, without deleting the underlying activity"() {
