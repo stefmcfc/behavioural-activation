@@ -8,11 +8,14 @@ All notable changes to this project are documented in this file, in
 
 ### Added
 
-- A "Suggested activities" disclosure in the Activity Bank offers a curated list of common
-  activities (grouped Routine/Necessary/Pleasurable) that can be added with a single click, instead
-  of typing every activity in from scratch — open by default for a brand-new, empty bank and
+- A "Suggested activities" disclosure in the Activity Bank, below a new "My Activities" heading
+  for the real list, offers a curated list of common activities — grouped Routine/Necessary/
+  Pleasurable under headings coloured to match each category, respecting the existing category
+  filter — that can be added with a single "Add to my activities" click instead of typing every
+  activity in from scratch. Open by default for a brand-new, empty bank and
   collapsed-but-still-reachable once the bank has activities. A suggestion drops off the list once
-  an activity with the same name already exists (case-insensitive, regardless of archived status).
+  an activity with the same name already exists (case-insensitive, regardless of archived status),
+  and shows a repeatable icon when applicable.
 
 ## [0.32.1] - 2026-10-06
 

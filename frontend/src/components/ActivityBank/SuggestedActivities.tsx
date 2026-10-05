@@ -1,14 +1,20 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
 import { PRESET_ACTIVITIES, type PresetActivity } from '../../utils/presetActivities'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
+import { getCategoryColor, subscribeToCategoryColorChanges } from '../../utils/categoryColors'
+import { getReadableTextColor } from '../../utils/contrast'
+import type { CategoryFilter } from '../../utils/categoryFilter'
+import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import styles from './SuggestedActivities.module.css'
 
 interface SuggestedActivitiesProps {
   readonly activities: Activity[]
   readonly onAdded: (activity: Activity) => void
   readonly defaultOpen?: boolean
+  readonly categoryFilter: CategoryFilter
 }
 
 function getErrorMessage(error: unknown): string {
@@ -29,7 +35,31 @@ function getErrorMessage(error: unknown): string {
 // Fixed display order, matching CATEGORY_LABELS' own key order.
 const CATEGORY_ORDER: readonly ActivityCategory[] = ['ROUTINE', 'NECESSARY', 'PLEASURABLE']
 
-export function SuggestedActivities({ activities, onAdded, defaultOpen = false }: SuggestedActivitiesProps) {
+interface CategoryGroupHeadingProps {
+  readonly category: ActivityCategory
+}
+
+// FRONTEND-040-AC-09: same live-updating colour/contrast pattern CategoryChip already uses, so a
+// Settings colour change applies here immediately too, no reload.
+function CategoryGroupHeading({ category }: CategoryGroupHeadingProps) {
+  const backgroundColor = useSyncExternalStore(subscribeToCategoryColorChanges, () =>
+    getCategoryColor(category),
+  )
+  const color = getReadableTextColor(backgroundColor)
+
+  return (
+    <h4 className={styles.groupHeading} style={{ backgroundColor, color }}>
+      {CATEGORY_LABELS[category]}
+    </h4>
+  )
+}
+
+export function SuggestedActivities({
+  activities,
+  onAdded,
+  defaultOpen = false,
+  categoryFilter,
+}: SuggestedActivitiesProps) {
   const [pendingName, setPendingName] = useState<string | null>(null)
   const [errorByName, setErrorByName] = useState<Record<string, string>>({})
 
@@ -37,6 +67,11 @@ export function SuggestedActivities({ activities, onAdded, defaultOpen = false }
   const remainingPresets = PRESET_ACTIVITIES.filter(
     (preset) => !existingNames.has(preset.name.toLowerCase()),
   )
+
+  // FRONTEND-040-AC-11: respects ActivityBank's existing category filter -- no second, independent
+  // filter control.
+  const visibleCategories =
+    categoryFilter === 'ALL' ? CATEGORY_ORDER : CATEGORY_ORDER.filter((c) => c === categoryFilter)
 
   const handleAdd = async (preset: PresetActivity) => {
     setErrorByName((previous) => {
@@ -61,30 +96,36 @@ export function SuggestedActivities({ activities, onAdded, defaultOpen = false }
   }
 
   return (
-    <details open={defaultOpen}>
-      <summary>Suggested activities</summary>
+    <details className={styles.details} open={defaultOpen}>
+      <summary className={styles.sectionHeading}>Suggested activities</summary>
 
-      {CATEGORY_ORDER.map((category) => {
+      {/* FRONTEND-040-AC-12 */}
+      <p className={styles.preamble}>A few common activities you can add with one click:</p>
+
+      {visibleCategories.map((category) => {
         const presetsInCategory = remainingPresets.filter((preset) => preset.category === category)
         if (presetsInCategory.length === 0) {
           return null
         }
         return (
           <div key={category}>
-            <h4>{CATEGORY_LABELS[category]}</h4>
-            {/* NOSONAR(typescript:S6819): deliberate -- the <h4> above already labels this group,
+            <CategoryGroupHeading category={category} />
+            {/* NOSONAR(typescript:S6819): deliberate -- the heading above already labels this group,
                 so this <ul>'s own list semantics would be redundant noise for screen reader users
                 (matching ActivityBank.tsx's own category-filter group for the same reason). */}
-            <ul role="presentation">
+            <ul role="presentation" className={styles.list}>
               {presetsInCategory.map((preset) => (
-                <li key={preset.name}>
-                  <span>{preset.name}</span>{' '}
+                <li key={preset.name} className={styles.row}>
+                  <span>{preset.name}</span>
+                  {preset.repeatable && <RepeatableIcon />}
                   <button
                     type="button"
+                    className={styles.addButton}
                     onClick={() => handleAdd(preset)}
                     disabled={pendingName === preset.name}
+                    aria-label={`Add ${preset.name} to my activities`}
                   >
-                    {`Add ${preset.name}`}
+                    Add to my activities
                   </button>
                   {errorByName[preset.name] && <p role="alert">{errorByName[preset.name]}</p>}
                 </li>

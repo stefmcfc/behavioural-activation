@@ -1,0 +1,47 @@
+.details {
+  margin-top: 2rem;
+}
+
+/* Matches ActivityBank.module.css's .sectionHeading on "My Activities" exactly, so the two
+   section headings read as a consistent pair -- kept as a duplicate rule rather than a shared
+   import, matching this codebase's existing convention of small per-component duplication over
+   cross-component CSS coupling (e.g. getErrorMessage is copied into 8+ components already). */
+.sectionHeading {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.preamble {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin: 0.5rem 0 0.75rem;
+}
+
+.groupHeading {
+  display: inline-block;
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  margin: 0.6rem 0 0.15rem;
+  font-size: 0.85rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.3rem 0;
+}
+
+.addButton {
+  margin-left: auto;
+}

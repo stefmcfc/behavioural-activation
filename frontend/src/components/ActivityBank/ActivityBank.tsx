@@ -301,11 +301,7 @@ export function ActivityBank() {
         </button>
       </div>
 
-      <SuggestedActivities
-        activities={activities ?? []}
-        onAdded={handleSuggestionAdded}
-        defaultOpen={activities !== null && activities.length === 0}
-      />
+      <h3 className={styles.sectionHeading}>My Activities</h3>
 
       {loadError && (
         <p role="alert">
@@ -364,6 +360,13 @@ export function ActivityBank() {
           ))}
         </ul>
       )}
+
+      <SuggestedActivities
+        activities={activities ?? []}
+        onAdded={handleSuggestionAdded}
+        defaultOpen={activities !== null && activities.length === 0}
+        categoryFilter={categoryFilter}
+      />
 
       <Modal isOpen={formTarget !== null} titleId={formTargetTitleId(formTarget)} onClose={handleCloseForm}>
         {formTarget !== null && (

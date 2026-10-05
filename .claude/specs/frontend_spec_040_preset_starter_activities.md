@@ -37,11 +37,30 @@ for 10 minutes", confirmed it actually created the activity (appeared in the rea
 immediately disappeared from the suggestions (`AC-01` plus the live-reactivity side of `AC-05`);
 deleted it again and confirmed it reappeared in suggestions, matching the spec's "a deleted preset
 becomes suggestable again" design decision; confirmed category grouping (`AC-03`) and legible
-rendering in both Light and Dark themes. One minor, non-blocking cosmetic note: each suggestion's
-visible name and its "Add {name}" button text sit right next to each other, reading slightly
-redundant (e.g. "Tidy up for 10 minutes" next to "Add Tidy up for 10 minutes") — not a spec
-violation (the button text matches the AC-01 test sketches' accessible-name expectations), just
-worth a look if it reads as cluttered once the user's own preset wording is in.
+rendering in both Light and Dark themes. The redundant-visible-text note from this first pass
+(name and "Add {name}" sitting right next to each other) is resolved by `AC-10` below.
+
+**Requirement 5 (AC-09–AC-14), based on live styling feedback from the user reviewing the above**:
+implemented and verified the same way — category group headings now use `getCategoryColor`/
+`getReadableTextColor` (live-updating, confirmed the "Routine"/"Necessary"/"Pleasurable" headings
+render in their real category colours with readable text in both themes), the CTA reads "Add to my
+activities" right-aligned with the specific name preserved in `aria-label`, the existing category
+filter now also filters which suggestion groups render (confirmed live: selecting "Routine" in the
+toolbar left only the Routine suggestion group visible), a preamble sentence renders above the
+grouped list, and a new "My Activities" heading now precedes the real list with
+`SuggestedActivities` moved to render after it instead of before.
+
+**A second, smaller round of live styling feedback** (gap sizing, heading parity, icons) was
+folded in during the same review, requiring no new ACs (visual polish only, except the repeatable
+icon which is a real behavioral addition with its own test): increased the gap between "My
+Activities" and "Suggested activities"; gave both section headings (the real `<h3>` and the
+disclosure's `<summary>`) matching bold styling via a duplicated `.sectionHeading` rule in each
+component's own CSS module (matching this codebase's established per-component-duplication
+convention, e.g. `getErrorMessage`); tightened the margin between each category heading and its
+list, and the list's own indentation; added a `RepeatableIcon` next to each repeatable preset
+(matching the real activity list's own existing treatment), with a new test confirming it renders
+for a repeatable preset and not a one-off one. All reconfirmed live in the real browser (both
+themes) after these changes.
 
 ## Overview
 
@@ -246,6 +265,89 @@ discoverable on-ramp for adding a few more common activities later, not a one-ti
 
 **References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx`
 
+### Requirement 5 — Visual/structural polish, from real-use styling feedback
+
+Raised by the user 2026-10-06 while reviewing the shipped (but not yet merged) first pass. Two
+open questions from that feedback were resolved with the user before writing these ACs: the
+already-added treatment stays **hide entirely** (`FRONTEND-040-AC-05`, unchanged — no new AC
+needed), and the section's position moves to **below** "My Activities", not above.
+
+#### FRONTEND-040-AC-09 [AUTO]: Category group headers carry that category's background colour
+**Statement**: Each category group heading in `SuggestedActivities` shall set its `background-color`
+to `getCategoryColor(category)` and its text colour to `getReadableTextColor` of that background —
+the same live-updating pattern `CategoryChip` already uses (`useSyncExternalStore` +
+`subscribeToCategoryColorChanges`, so a Settings colour change applies immediately, no reload).
+
+**Rationale**: Direct implementation of the user's request; reuses the existing colour/contrast
+machinery rather than inventing a second way to apply category colour.
+
+**References**: `frontend/src/utils/categoryColors.ts` (`getCategoryColor`,
+`subscribeToCategoryColorChanges`), `frontend/src/utils/contrast.ts` (`getReadableTextColor`),
+`frontend/src/components/CategoryChip/CategoryChip.tsx` (the pattern being matched)
+
+#### FRONTEND-040-AC-10 [AUTO]: The add CTA reads "Add to my activities" and sits right-aligned
+**Statement**: Each preset's add button's visible text shall read "Add to my activities" (not
+`Add ${name}`), right-aligned within its row; the button's accessible name shall still carry the
+specific preset's name (e.g. via `aria-label`), so the visible-text change doesn't regress multiple
+same-labelled buttons being indistinguishable to assistive tech.
+
+**Rationale**: Direct implementation of the user's request. The `aria-label` carve-out is a11y
+necessity, not scope creep — `FRONTEND-040-AC-01`'s existing test sketches query by accessible
+name, which must still disambiguate between presets once the visible text is identical across all
+of them.
+
+**References**: Component: `frontend/src/components/ActivityBank/SuggestedActivities.tsx`;
+precedent: `frontend/src/components/ActivityBank/ActivityBank.tsx`'s own
+`aria-label={... Favourite ${activity.name}}` pattern on an icon-only button
+
+#### FRONTEND-040-AC-11 [AUTO]: Suggestions respect the existing category filter
+**Statement**: While `ActivityBank`'s existing "Filter by category" control is set to a specific
+category (not "All"), `SuggestedActivities` shall render only that category's group (or none, if
+every preset in it is already added) — reusing the same `categoryFilter` state, not a second,
+independent filter control.
+
+**Rationale**: Consistency — the filter already governs what the real activity list shows;
+suggestions staying unfiltered while the user has deliberately narrowed their view would read as
+inconsistent. No new UI: this is `ActivityBank`'s existing `categoryFilter` state threaded down as
+a prop.
+
+**References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx` (existing
+`categoryFilter` state, `CategoryFilter` type from `utils/categoryFilter.ts`)
+
+#### FRONTEND-040-AC-12 [AUTO]: A short preamble introduces the suggestions
+**Statement**: `SuggestedActivities` shall render one short introductory sentence (e.g. "A few
+common activities you can add with one click:") above the grouped list, inside the disclosure.
+
+**Rationale**: Direct implementation of the user's request — a bare heading plus a list of names
+and buttons, with no explanation, is less clear once this section is always-available rather than
+only appearing in an already-self-explanatory empty state.
+
+**References**: Component: `frontend/src/components/ActivityBank/SuggestedActivities.tsx`
+
+#### FRONTEND-040-AC-13 [AUTO]: A "My Activities" heading precedes the real activity list
+**Statement**: `ActivityBank` shall render an `<h3>My Activities</h3>` heading directly above its
+existing loading/error/empty-state/list block (the real, already-added activities) — a new
+heading, not previously present.
+
+**Rationale**: Direct implementation of the user's request — gives the real activity list the same
+kind of heading `SuggestedActivities`'s own `<summary>` already gives the suggestions section, so
+the page reads as two clearly-labelled sections rather than one headed and one unheaded.
+
+**References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx`
+
+#### FRONTEND-040-AC-14 [AUTO]: Suggested activities renders below My Activities, not above
+**Statement**: `ActivityBank` shall render `SuggestedActivities` *after* the real activity list
+block (loading/error/empty-state/list), not before it as originally implemented.
+
+**Rationale**: Resolved with the user: the real activity list is the primary content a returning
+user cares about; suggestions are secondary. This also reads better for the empty-state case —
+the existing "No activities yet. Add one below to get started." message now literally refers to
+something rendered below it.
+
+**References**: Component: `frontend/src/components/ActivityBank/ActivityBank.tsx`. Explicit
+regression guard: `FRONTEND-040-AC-06`/`AC-07`/`AC-08` (disclosure behavior, open-when-empty,
+reachability) are unaffected by this reordering — only position changes, not those mechanics.
+
 ## Cross-references
 
 | Reference | What it provides |
@@ -348,3 +450,9 @@ into `ActivityBank.tsx` until every sketch above passes.
 - [x] FRONTEND-040-AC-06 — suggestions render inside a closed-by-default disclosure
 - [x] FRONTEND-040-AC-07 — the disclosure defaults open when the Activity Bank is empty
 - [x] FRONTEND-040-AC-08 — suggestions remain reachable (collapsed) once the bank has activities
+- [x] FRONTEND-040-AC-09 — category group headers carry that category's background colour
+- [x] FRONTEND-040-AC-10 — CTA reads "Add to my activities", right-aligned, `aria-label` keeps the specific name
+- [x] FRONTEND-040-AC-11 — suggestions respect the existing category filter
+- [x] FRONTEND-040-AC-12 — a short preamble sentence introduces the suggestions
+- [x] FRONTEND-040-AC-13 — a "My Activities" heading precedes the real activity list
+- [x] FRONTEND-040-AC-14 — Suggested activities renders below My Activities, not above
