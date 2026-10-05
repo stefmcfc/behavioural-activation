@@ -136,10 +136,9 @@ function BreakdownChart({ byLocation }: BreakdownChartProps) {
       </ul>
 
       {byLocation.map((locationStat) => (
-        // NOSONAR(typescript:S6819): none of <details>/<fieldset>/<optgroup>/<address> fit a
-        // per-location chart row -- role="group" + aria-label already gives it a correct
-        // accessible name.
-        <div
+        <div // NOSONAR(typescript:S6819): none of <details>/<fieldset>/<optgroup>/<address> fit
+          // a per-location chart row -- role="group" + aria-label already gives it a correct
+          // accessible name.
           key={locationStat.location}
           role="group"
           aria-label={LOCATION_GROUP_LABELS[locationStat.location]}

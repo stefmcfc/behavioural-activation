@@ -39,9 +39,14 @@ export function SettingsMenu() {
           relative/absolute wrapper -- a popover is promoted to the top layer when open, which
           changes its containing block to the viewport, so a wrapper-relative approach doesn't
           actually anchor it to the trigger. */}
-      {/* NOSONAR(typescript:S6819): none of <details>/<fieldset>/<optgroup>/<address> fit a
-          popover panel -- role="group" + aria-label already gives it a correct accessible name. */}
-      <div id={panelId} popover="auto" role="group" aria-label="Settings" className={styles.panel}>
+      <div // NOSONAR(typescript:S6819): none of <details>/<fieldset>/<optgroup>/<address> fit a
+        // popover panel -- role="group" + aria-label already gives it a correct accessible name.
+        id={panelId}
+        popover="auto"
+        role="group"
+        aria-label="Settings"
+        className={styles.panel}
+      >
         <Settings />
       </div>
     </div>
