@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-10-06
+
 ### Fixed
 
 - `scripts/start-dev.sh`/`stop-dev.sh`/`restart-dev.sh` now pause for a keypress before exiting on
