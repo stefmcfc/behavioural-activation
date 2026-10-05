@@ -82,7 +82,7 @@ export function Settings() {
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     getThemePreference(),
   )
-  const [gridOrientation, setGridOrientationState] = useState<GridOrientation>(() =>
+  const [gridOrientation, setGridOrientation] = useState<GridOrientation>(() =>
     getGridOrientation(),
   )
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => getSystemPrefersDark())
@@ -139,7 +139,7 @@ export function Settings() {
 
   const handleGridOrientationChange = (orientation: GridOrientation) => {
     persistGridOrientation(orientation)
-    setGridOrientationState(orientation)
+    setGridOrientation(orientation)
   }
 
   const handleColorChange = (category: ActivityCategory, hex: string) => {

@@ -545,6 +545,8 @@ describe('FRONTEND-042-AC-06: clicking the toggle calls onToggleWorkDay with tha
     renderGrid()
 
     await userEvent.click(screen.getByRole('button', { name: /mark monday.*work day/i }))
+
+    expect(screen.getByRole('button', { name: /mark monday.*work day/i })).toBeInTheDocument()
   })
 })
 

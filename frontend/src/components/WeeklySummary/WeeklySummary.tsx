@@ -6,9 +6,17 @@ import { getCategoryColor } from '../../utils/categoryColors'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import { getReadableTextColor } from '../../utils/contrast'
 import { CompletionMark } from './CompletionMark'
-import { ALL_DAYS, ALL_SLOTS, DAY_LABELS, SLOT_LABELS, getDayDateIso } from '../WeeklyPlanner/planLabels'
+import {
+  ALL_DAYS,
+  ALL_SLOTS,
+  DAY_LABELS,
+  SLOT_LABELS,
+  formatDate,
+  getDayDateIso,
+  getMondayOfCurrentWeek,
+  parseWeekStart,
+} from '../WeeklyPlanner/planLabels'
 import { WeekNav } from '../WeeklyPlanner/WeekNav'
-import { formatDate, getMondayOfCurrentWeek, parseWeekStart } from '../WeeklyPlanner/planLabels'
 import { useWorkDays } from '../WeeklyPlanner/useWorkDays'
 import { WorkDayIcon } from '../icons/WorkDayIcon'
 import {
@@ -128,6 +136,9 @@ function BreakdownChart({ byLocation }: BreakdownChartProps) {
       </ul>
 
       {byLocation.map((locationStat) => (
+        // NOSONAR(typescript:S6819): none of <details>/<fieldset>/<optgroup>/<address> fit a
+        // per-location chart row -- role="group" + aria-label already gives it a correct
+        // accessible name.
         <div
           key={locationStat.location}
           role="group"
