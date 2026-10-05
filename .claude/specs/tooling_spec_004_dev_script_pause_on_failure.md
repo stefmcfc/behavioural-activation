@@ -1,10 +1,41 @@
 # Tooling Spec 004: Dev Scripts Pause on Failure So a Disposable Window Can Be Read
 
-**Status**: Not started
+**Status**: In progress (2026-10-06) — implemented; AC-04/AC-05/AC-06 verified, AC-01/AC-02/AC-03
+still need a real-terminal check (see Summary)
 **Priority**: Low — UX/DX gap in local tooling, no effect on the app itself
 **Depends on**: None (purely `scripts/` — no backend/frontend code touched)
 **Area**: Tooling (repo-wide dev scripts — not backend or frontend feature work)
 **Roadmap version**: N/A — internal/maintenance, not a V1–V5 feature
+
+## Summary
+
+Implemented as designed: `pause_on_failure` added to `scripts/lib/dev-common.sh`; `trap
+pause_on_failure EXIT` wired into all three scripts; `restart-dev.sh` exports
+`DEV_SCRIPT_NESTED=1` around its two nested calls and now captures both exit codes independently
+(`exit $status`) instead of falling through to `start-dev.sh`'s alone.
+
+**Verified by the implementer** (this sandboxed environment has no real console attached at
+all — confirmed by trying `winpty`, which itself requires an interactive console to allocate a
+pty and refused to run here — so only the parts checkable without one):
+- `AC-04`: a real successful `stop-dev.sh` run (both servers actually running, genuinely stopped)
+  returned in ~3s with no pause — confirmed restarting both afterward.
+- `AC-05`: `start-dev.sh badarg`/`stop-dev.sh badarg`/`restart-dev.sh badarg` all returned
+  immediately with the usage message and the correct exit code, no hang — this tool's own stdin
+  is non-interactive by default, which exercises exactly the `[ -t 0 ]` guard this AC requires.
+- `AC-06`: confirmed by code inspection (as the AC's own verification method states) —
+  `restart-dev.sh` now captures each nested call's status independently and exits with the
+  combined result. Also confirmed via `restart-dev.sh badarg` that both nested scripts' usage
+  messages print and the final exit code is `1`.
+- `bash -n` syntax-checked all four modified files.
+
+**Not verified by the implementer, needs a real terminal**: `AC-01`/`AC-02`/`AC-03` all depend on
+an actual interactive terminal to confirm the prompt visibly appears and genuinely blocks until a
+keypress (and, for `AC-03` specifically, that it appears *exactly once* through `restart-dev.sh`,
+not doubled) — something no tool available in this session can attach to. Recommended real check:
+`bash scripts/start-dev.sh badarg` from an already-open Git Bash window is enough to see the
+prompt and confirm it blocks (press any key to confirm it then exits); for the original real-world
+trigger, stop Docker Desktop and run `.\scripts\restart-dev.sh` from PowerShell to confirm the
+spawned window now stays open on the Docker-down diagnostic instead of vanishing.
 
 ## Overview
 
@@ -192,6 +223,6 @@ of both — not a bare fall-through to the last command's own exit code.
 - [ ] TOOLING-004-AC-01 — `start-dev.sh` pauses on a non-zero exit when run directly
 - [ ] TOOLING-004-AC-02 — `stop-dev.sh` pauses on a non-zero exit when run directly
 - [ ] TOOLING-004-AC-03 — `restart-dev.sh` pauses exactly once on a nested failure, not doubled
-- [ ] TOOLING-004-AC-04 — a successful (exit 0) run never pauses
-- [ ] TOOLING-004-AC-05 — no pause/hang when stdin isn't an interactive terminal
-- [ ] TOOLING-004-AC-06 — `restart-dev.sh`'s exit code reflects either nested step's failure
+- [x] TOOLING-004-AC-04 — a successful (exit 0) run never pauses
+- [x] TOOLING-004-AC-05 — no pause/hang when stdin isn't an interactive terminal
+- [x] TOOLING-004-AC-06 — `restart-dev.sh`'s exit code reflects either nested step's failure

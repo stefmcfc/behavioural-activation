@@ -32,6 +32,25 @@ ensure_logs_dir() {
   mkdir -p "$LOGS_DIR"
 }
 
+# tooling_spec_004_dev_script_pause_on_failure.md -- registered via `trap pause_on_failure EXIT`
+# in each of start-dev.sh/stop-dev.sh/restart-dev.sh. Blocks on a keypress only when the script
+# is about to exit non-zero, so a disposable spawned window (double-click, or launched from
+# PowerShell -- both via Windows' .sh file association) stays open long enough to read the
+# diagnostic, instead of closing itself the instant the process exits. Two guards:
+#   - DEV_SCRIPT_NESTED: set by restart-dev.sh before invoking stop-dev.sh/start-dev.sh as real
+#     subprocesses (TOOLING-004-AC-03) -- without this, a single failure could pause up to three
+#     times (each nested script's own trap, then restart-dev.sh's own trap).
+#   - [ -t 0 ]: skips the pause entirely when stdin isn't an interactive terminal
+#     (TOOLING-004-AC-05), so a future non-interactive/CI invocation can never hang waiting on a
+#     keypress nobody can supply.
+pause_on_failure() {
+  local status=$?
+  if [ "$status" -ne 0 ] && [ -z "${DEV_SCRIPT_NESTED:-}" ] && [ -t 0 ]; then
+    printf '\nPress any key to close this window...\n'
+    read -n 1 -s -r
+  fi
+}
+
 # Exports every KEY=VALUE line from the repo-root .env (gitignored) into this shell, if the
 # file exists. Comments (#) and blank lines are skipped. Existing environment variables of the
 # same name are NOT overridden, so `FOO=bar bash scripts/start-dev.sh` still wins over .env.

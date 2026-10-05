@@ -72,6 +72,11 @@ bash scripts/restart-dev.sh backend --debug   # restart just the backend, debug 
   is stale or missing.
 - `stop-dev.sh` only stops the backend's forked dev-server JVM, not the underlying Gradle Daemon —
   same as today's manual `gradlew.bat` usage, the Daemon stays warm across runs.
+- **On failure, all three scripts pause for a keypress before exiting** — if you launched one of
+  them in a way that spawns its own window (double-clicking the `.sh` file, or running it from
+  PowerShell rather than an already-open Git Bash session), that window would otherwise close
+  itself the instant the script exits, taking the diagnostic with it before you can read it. A
+  successful run is unaffected — no pause, no extra keypress.
 
 Once both services report ready, open **http://localhost:4321** in your browser.
 

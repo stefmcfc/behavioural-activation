@@ -13,6 +13,10 @@ source "$DIR/lib/dev-common.sh"
 # shellcheck source=lib/docker-common.sh
 source "$DIR/lib/docker-common.sh"
 
+# tooling_spec_004_dev_script_pause_on_failure.md -- pauses on a keypress before this script's
+# window closes, if (and only if) it's about to exit non-zero.
+trap pause_on_failure EXIT
+
 # Load APP_BOOTSTRAP_USERNAME/PASSWORD (and anything else) from the repo-root .env, if present,
 # before either server starts -- without this, a fresh Postgres volume seeds no user at all and
 # bootRun's UserBootstrapRunner exits, or (worse) a stale one-off value from a previous ad hoc
