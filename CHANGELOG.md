@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-10-06
+
 ### Added
 
 - Mark days as work days: a recurring weekly pattern (Settings → "Work days") plus a per-date
