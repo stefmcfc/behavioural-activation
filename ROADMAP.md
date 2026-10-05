@@ -83,7 +83,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Collapsible sub-tasks + category grouping in the Assign Activity modal | — (frontend-only) | [`frontend_spec_045_assign_picker_collapsible_subtasks.md`](.claude/specs/frontend_spec_045_assign_picker_collapsible_subtasks.md) | Not started. `ActivityPickerList`'s `select` mode (the Assign Activity modal) gains the same category grouping as the Activity Bank, plus sub-tasks collapsed by default behind a "Show sub-tasks (N)" toggle. The `drag` mode (Today's activity drawer) is explicitly unaffected. |
 
 ## Internal / maintenance specs
 
