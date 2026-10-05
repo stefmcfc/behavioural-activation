@@ -4,6 +4,7 @@ import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
+import { SuggestedActivities } from './SuggestedActivities'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
@@ -145,6 +146,10 @@ export function ActivityBank() {
   }
 
   const handleCloseForm = () => setFormTarget(null)
+
+  const handleSuggestionAdded = (activity: Activity) => {
+    setActivities((previous) => (previous ? [...previous, activity] : [activity]))
+  }
 
   const handleConfirmDelete = async (id: string) => {
     setDeleteError(null)
@@ -296,6 +301,8 @@ export function ActivityBank() {
         </button>
       </div>
 
+      <h3 className={styles.sectionHeading}>My Activities</h3>
+
       {loadError && (
         <p role="alert">
           {loadError}{' '}
@@ -353,6 +360,13 @@ export function ActivityBank() {
           ))}
         </ul>
       )}
+
+      <SuggestedActivities
+        activities={activities ?? []}
+        onAdded={handleSuggestionAdded}
+        defaultOpen={activities !== null && activities.length === 0}
+        categoryFilter={categoryFilter}
+      />
 
       <Modal isOpen={formTarget !== null} titleId={formTargetTitleId(formTarget)} onClose={handleCloseForm}>
         {formTarget !== null && (

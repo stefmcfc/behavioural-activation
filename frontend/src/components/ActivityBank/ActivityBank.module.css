@@ -1,3 +1,12 @@
+/* Matches SuggestedActivities.module.css's .sectionHeading on "Suggested activities" exactly, so
+   the two section headings read as a consistent pair. */
+.sectionHeading {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
 .toolbar {
   display: flex;
   align-items: center;

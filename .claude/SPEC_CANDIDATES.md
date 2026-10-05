@@ -28,7 +28,13 @@ file's pipeline and structure):
 
 ---
 
-**Last updated: `2026-10-05`**
+**Last updated: `2026-10-06`**
+
+the preset/starter activity bank candidate moved to a real spec —
+`frontend_spec_040_preset_starter_activities.md`, see `ROADMAP.md`'s "Specced, coming soon" —
+removed from this file.
+
+`2026-10-05`
 
 - added the dev-script window-closes-before-you-can-read-it candidate, raised by the user while
   reviewing the RUNBOOK's Quick Start section
@@ -98,39 +104,6 @@ soon"
 ---
 
 ## Candidates
-
-## Preset/starter activity bank for new users
-
-```
-Status: Confirmed, not yet specced.
-```
-
-Raised by the user 2026-10-03, while reviewing V1
-completeness after `frontend_spec_012_grid_orientation_toggle.md`/`frontend_spec_034_grid_
-orientation_live_update.md`. A brand-new user's Activity Bank starts completely empty today —
-`ActivityBank.tsx`'s only empty-state messaging is "No activities yet. Add one below to get
-started." (confirmed by reading the component), with no faster on-ramp than typing activities in
-one at a time from a blank page. A curated set of common activities the user could add with one
-click would lower that cold-start barrier.
-
-Notably, this isn't a new idea invented from scratch — `.claude/HIGH_LEVEL_DESIGN.md`'s planning-
-model section already lists an illustrative weekend example set almost verbatim (go for a walk, go
-somewhere for coffee, cook something interesting, see a friend, work on a personal project, watch a
-film, do one household task) that was written as prose for a human reader, never operationalized
-into the app. A real preset list would likely want examples across all three categories (Routine/
-Necessary/Pleasurable), not just the design doc's weekend-flavoured set, and both repeatable (e.g.
-"Go for a walk") and one-off-flavoured (e.g. "Apply for jobs" is explicitly used elsewhere in this
-project's own seed/test data as a one-off example) entries, to also showcase
-`planner_spec_006_repeatable_activities.md`'s repeatable/one-off distinction.
-
-Likely frontend-only: a "Suggested activities" section in the Activity Bank's empty state (or
-always-available, collapsed once the bank isn't empty), each item a one-click "Add" that calls the
-existing `POST /api/v1/activities` — no new backend endpoint needed, same pattern as any other
-activity creation. Open questions for whenever this gets a real design pass: is the preset list
-hardcoded client-side content or does it need to be editable/configurable later (no evidence it
-needs to be, for a personal single-user app); does adding a preset immediately remove it from the
-suggestions list (avoid duplicate adds) or allow re-adding; should suggestions be category-grouped
-to mirror the Activity Bank's own category filter.
 
 ## Touch-friendly weekend bucket list reordering
 
