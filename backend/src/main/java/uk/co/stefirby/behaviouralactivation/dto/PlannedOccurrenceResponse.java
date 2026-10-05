@@ -30,6 +30,10 @@ import uk.co.stefirby.behaviouralactivation.model.PlanSlot;
 // PlanService.migrateStaleBucketItems(...) call just relocated to the real current week; every other
 // response path (create/move/complete/uncomplete/the existing manual carryForward) always sets it
 // false (planner_spec_011_bucket_carry_forward_automation.md, PLANNER-011-AC-13/AC-14/AC-15).
+//
+// `notes` exposes PlannedOccurrence.notes as-is -- freeform, per-occurrence text, nullable, capped
+// at 200 characters, distinct from Activity.description which is shared across every occurrence of
+// the same activity (planner_spec_022_occurrence_notes.md, PLANNER-022-AC-01/AC-02).
 public record PlannedOccurrenceResponse(
     UUID id,
     UUID activityId,
@@ -45,6 +49,7 @@ public record PlannedOccurrenceResponse(
     Instant createdAt,
     boolean repeatable,
     Integer bucketPosition,
-    boolean recentlyCarriedForward
+    boolean recentlyCarriedForward,
+    String notes
 ) {
 }

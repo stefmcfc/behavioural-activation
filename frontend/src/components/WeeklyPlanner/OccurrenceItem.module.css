@@ -204,6 +204,33 @@
   margin: -0.4rem 0 0.2rem;
 }
 
+.notesIndicator {
+  font-size: 0.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.notesTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.5rem;
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+.notesCounter {
+  align-self: flex-end;
+  font-size: 0.68rem;
+  color: var(--text);
+  opacity: 0.7;
+  margin-top: -0.4rem;
+}
+
 .footer {
   display: flex;
   justify-content: flex-end;

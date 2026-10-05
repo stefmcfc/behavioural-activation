@@ -10,6 +10,7 @@ import java.time.ZoneOffset
 
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
+import uk.co.stefirby.behaviouralactivation.dto.UpdateOccurrenceNotesRequest
 import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.InvalidPlanRequestException
@@ -688,5 +689,100 @@ class PlanServiceSpec extends Specification {
             !activity.archived
             0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
             0 * activityRepository.save(_)
+    }
+
+    def "PLANNER-022-AC-01: updateNotes sets the note and bumps updatedAt"() {
+        given: "an occurrence owned by steve, with no note yet"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(occurrence)
+
+        when: "updateNotes is called with a note"
+            def result = service.updateNotes("steve", id, new UpdateOccurrenceNotesRequest("Book A"))
+
+        then: "the occurrence's notes field is set"
+            result.isPresent()
+            result.get().notes == "Book A"
+    }
+
+    def "PLANNER-022-AC-02: updateNotes with null clears an existing note"() {
+        given: "an occurrence with an existing note"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            occurrence.updateNotes("Book A")
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(occurrence)
+
+        when: "updateNotes is called with null"
+            def result = service.updateNotes("steve", id, new UpdateOccurrenceNotesRequest(null))
+
+        then: "the note is cleared"
+            result.isPresent()
+            result.get().notes == null
+    }
+
+    def "PLANNER-022-AC-04: updateNotes returns empty (404) when the id doesn't exist or isn't owned by the caller"() {
+        given: "the repository finds no owned occurrence for this id"
+            def id = UUID.randomUUID()
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "updateNotes is attempted"
+            def result = service.updateNotes("steve", id, new UpdateOccurrenceNotesRequest("Book A"))
+
+        then: "the result is empty"
+            result.isEmpty()
+    }
+
+    def "PLANNER-022-AC-05: a note survives a subsequent move"() {
+        given: "an occurrence with a note, currently a bucket item"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE, monday, null, null, owner)
+            occurrence.updateNotes("Book A")
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(occurrence)
+            def request = new PlannedOccurrenceMoveRequest(DayOfWeek.WEDNESDAY, PlanSlot.EVENING)
+
+        when: "move is called to reschedule it"
+            def moved = service.move("steve", id, request)
+
+        then: "the note is unchanged"
+            moved.isPresent()
+            moved.get().notes == "Book A"
+    }
+
+    def "PLANNER-022-AC-06: a note survives manual carry-forward"() {
+        given: "an existing owned, incomplete weekend-bucket occurrence with a note"
+            def id = UUID.randomUUID()
+            def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE, monday, null, null, owner)
+            occurrence.updateNotes("Book A")
+            plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(occurrence)
+            completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
+
+        when: "carry-forward is requested"
+            def result = service.carryForward("steve", id)
+
+        then: "the note is unchanged"
+            result.isPresent()
+            result.get().notes == "Book A"
+    }
+
+    def "PLANNER-022-AC-07: a note survives automatic carry-forward via migrateStaleBucketItems"() {
+        given: "a stale bucket item with a note"
+            def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
+            def stale = new PlannedOccurrence(activity, null, ActivityCategory.PLEASURABLE,
+                LocalDate.of(2026, 9, 21), null, null, owner)
+            stale.updateNotes("Book A")
+            plannedOccurrenceRepository.findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(owner, _) >> [stale]
+            completionRecordRepository.findByOwnerAndPlannedOccurrenceIdIn(owner, _) >> []
+
+        when: "migrateStaleBucketItems is called"
+            service.migrateStaleBucketItems("steve")
+
+        then: "the note is unchanged on the migrated occurrence"
+            stale.notes == "Book A"
     }
 }

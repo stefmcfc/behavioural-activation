@@ -27,6 +27,7 @@ export interface PlannedOccurrence {
   completedAt: string | null
   createdAt: string
   repeatable: boolean
+  notes: string | null
 }
 
 export interface PlannedOccurrenceInput {

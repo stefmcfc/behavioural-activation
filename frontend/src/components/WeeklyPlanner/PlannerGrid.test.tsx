@@ -41,6 +41,7 @@ function baseGridProps(overrides: { todayColumn?: PlanDayOfWeek | null } = {}) {
     onMoveToBucket: noop,
     onComplete: noop,
     onUndo: noop,
+    onUpdateNotes: noop,
     dragPayload: null,
     onDragStart: noop,
     onDragEnd: noop,
@@ -165,6 +166,7 @@ function makeOccurrence(overrides: Partial<PlannedOccurrence>): PlannedOccurrenc
     completedAt: null,
     createdAt: '2026-09-28T00:00:00Z',
     repeatable: true,
+    notes: null,
     ...overrides,
   }
 }

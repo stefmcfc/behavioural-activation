@@ -55,6 +55,9 @@ public class PlannedOccurrence {
     @Column(name = "bucket_position")
     private Integer bucketPosition;
 
+    @Column(length = 200)
+    private String notes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -113,6 +116,15 @@ public class PlannedOccurrence {
         this.updatedAt = Instant.now();
     }
 
+    // planner_spec_022_occurrence_notes.md -- freeform, per-occurrence text, distinct from
+    // Activity.description (shared across every occurrence of the same activity). Deliberately NOT
+    // touched by assignSlot/moveToBucket/carryForward/autoCarryForwardTo above, so it survives a
+    // move or carry-forward unchanged (PLANNER-022-AC-05/AC-06/AC-07).
+    public void updateNotes(String notes) {
+        this.notes = notes;
+        this.updatedAt = Instant.now();
+    }
+
     public boolean isBucketItem() {
         return dayOfWeek == null && slot == null;
     }
@@ -151,6 +163,10 @@ public class PlannedOccurrence {
 
     public Integer getBucketPosition() {
         return bucketPosition;
+    }
+
+    public String getNotes() {
+        return notes;
     }
 
     public Instant getCreatedAt() {

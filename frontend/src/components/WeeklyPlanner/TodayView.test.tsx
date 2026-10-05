@@ -31,6 +31,7 @@ const wednesdayOccurrence: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-09-01T00:00:00Z',
   repeatable: true,
+  notes: null,
 }
 
 const mondayOccurrence: PlannedOccurrence = {

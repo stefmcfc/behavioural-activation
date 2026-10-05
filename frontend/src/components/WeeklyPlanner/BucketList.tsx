@@ -51,6 +51,7 @@ interface BucketListProps {
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
+  readonly onUpdateNotes: (id: string, notes: string | null) => void
   readonly onReorder: (occurrenceIds: string[]) => void
   readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
@@ -83,6 +84,7 @@ export function BucketList({
   onComplete,
   onUndo,
   onCarryForward,
+  onUpdateNotes,
   onReorder,
   dragPayload,
   onDragStart,
@@ -218,6 +220,7 @@ export function BucketList({
               onComplete={onComplete}
               onUndo={onUndo}
               onCarryForward={onCarryForward}
+              onUpdateNotes={onUpdateNotes}
               isFirst={index === 0}
               isLast={index === bucketOccurrences.length - 1}
               reorderDisabled={reorderInFlight}

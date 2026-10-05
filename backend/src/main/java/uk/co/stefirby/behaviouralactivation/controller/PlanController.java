@@ -25,6 +25,7 @@ import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceListResponse;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceResponse;
+import uk.co.stefirby.behaviouralactivation.dto.UpdateOccurrenceNotesRequest;
 import uk.co.stefirby.behaviouralactivation.model.CompletionRecord;
 import uk.co.stefirby.behaviouralactivation.model.PlannedOccurrence;
 import uk.co.stefirby.behaviouralactivation.service.PlanService;
@@ -112,6 +113,22 @@ public class PlanController {
         return removed ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    // Deliberately a dedicated endpoint, not folded into move() above -- mirrors
+    // complete/undo/carry-forward each having their own dedicated endpoint rather than overloading
+    // one generic verb (planner_spec_022_occurrence_notes.md). The first occurrence endpoint with
+    // real Jakarta Bean Validation (@Size) on its request body, rather than an unvalidated DB-column
+    // cap as Activity.description has.
+    @PatchMapping("/occurrences/{id}/notes")
+    public ResponseEntity<PlannedOccurrenceResponse> updateNotes(@PathVariable UUID id,
+            @Valid @RequestBody UpdateOccurrenceNotesRequest request, Authentication authentication) {
+        return planService.updateNotes(authentication.getName(), id, request)
+            .map(occurrence -> {
+                CompletionRecord completion = planService.findCompletion(authentication.getName(), id).orElse(null);
+                return ResponseEntity.ok(toResponse(occurrence, completion, false));
+            })
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/occurrences/{id}/carry-forward")
     public ResponseEntity<PlannedOccurrenceResponse> carryForward(@PathVariable UUID id,
             Authentication authentication) {
@@ -154,6 +171,6 @@ public class PlanController {
         return new PlannedOccurrenceResponse(occurrence.getId(), activityId, subTaskId, name, parentActivityName,
             occurrence.getCategory(), occurrence.getWeekStart(), occurrence.getDayOfWeek(),
             occurrence.getSlot(), completed, completedAt, occurrence.getCreatedAt(), repeatable,
-            occurrence.getBucketPosition(), recentlyCarriedForward);
+            occurrence.getBucketPosition(), recentlyCarriedForward, occurrence.getNotes());
     }
 }

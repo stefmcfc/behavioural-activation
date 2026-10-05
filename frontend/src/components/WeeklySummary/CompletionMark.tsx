@@ -27,6 +27,10 @@ export function CompletionMark({ occurrence, shape }: CompletionMarkProps) {
       ? `${DAY_LABELS[occurrence.dayOfWeek]} ${SLOT_LABELS[occurrence.slot]}`
       : 'Weekend bucket'
   const status = occurrence.completed ? 'completed' : 'not completed'
+  // FRONTEND-043-AC-07: a has-notes hint appended to the same accessible string already built up
+  // from name/location/status -- no separate tooltip-vs-aria-label branching, matching the existing
+  // single-string construction below.
+  const notesHint = occurrence.notes ? ', has a note' : ''
   // The completed checkmark renders via currentColor -- computed per the mark's own (user-
   // customizable, arbitrary) fill colour, same approach as CategoryChip's text, so the icon stays
   // legible against every possible category colour rather than assuming a fixed accent token.
@@ -37,11 +41,12 @@ export function CompletionMark({ occurrence, shape }: CompletionMarkProps) {
       type="button"
       className={shape === 'block' ? styles.block : styles.circle}
       style={{ backgroundColor: color, color: iconColor, opacity: occurrence.completed ? 1 : 0.55 }}
-      aria-label={`${occurrence.name}, ${location}, ${status}`}
+      aria-label={`${occurrence.name}, ${location}, ${status}${notesHint}`}
     >
       {occurrence.completed && <CompletionIcon />}
       <span className={styles.tooltip} aria-hidden="true">
         {occurrence.name} — {location}, {status}
+        {notesHint}
       </span>
     </button>
   )

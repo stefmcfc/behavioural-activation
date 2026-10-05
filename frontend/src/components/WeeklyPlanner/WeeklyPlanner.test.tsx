@@ -34,6 +34,7 @@ const walk: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: true,
+  notes: null,
 }
 
 const bucketItem: PlannedOccurrence = {
@@ -52,6 +53,7 @@ const bucketItem: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: true,
+  notes: null,
 }
 
 const bucketItemTwo: PlannedOccurrence = {
@@ -108,6 +110,7 @@ describe('WeeklyPlanner', () => {
     vi.mocked(planApi.complete).mockReset()
     vi.mocked(planApi.undoCompletion).mockReset()
     vi.mocked(planApi.carryForward).mockReset()
+    vi.mocked(planApi.updateNotes).mockReset()
     vi.mocked(planApi.reorderBucket).mockReset()
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
@@ -518,6 +521,21 @@ describe('WeeklyPlanner', () => {
 
       expect(planApi.carryForward).toHaveBeenCalledWith('2')
       await waitFor(() => expect(screen.queryByText('Paint')).not.toBeInTheDocument())
+    })
+  })
+
+  describe('FRONTEND-043-AC-02: notes autosave is wired through to planApi.updateNotes', () => {
+    it('calls planApi.updateNotes when the notes textarea is edited and blurred', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([walk])
+      vi.mocked(planApi.updateNotes).mockResolvedValue({ ...walk, notes: 'Bring water' })
+      render(<WeeklyPlanner />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Go for a walk' }))
+      const textarea = await screen.findByLabelText('Notes')
+      await userEvent.type(textarea, 'Bring water')
+      await userEvent.tab()
+
+      expect(planApi.updateNotes).toHaveBeenCalledWith('1', 'Bring water')
     })
   })
 

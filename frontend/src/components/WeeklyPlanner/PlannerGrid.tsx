@@ -77,6 +77,7 @@ interface PlannerGridProps {
   readonly onMoveToBucket: (id: string) => void
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
+  readonly onUpdateNotes: (id: string, notes: string | null) => void
   readonly dragPayload: DragPayload | null
   readonly onDragStart: (id: string) => void
   readonly onDragEnd: () => void
@@ -129,6 +130,7 @@ export function PlannerGrid({
   onMoveToBucket,
   onComplete,
   onUndo,
+  onUpdateNotes,
   dragPayload,
   onDragStart,
   onDragEnd,
@@ -229,6 +231,7 @@ export function PlannerGrid({
               onComplete={onComplete}
               onUndo={onUndo}
               onCarryForward={() => {}}
+              onUpdateNotes={onUpdateNotes}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
             />

@@ -81,7 +81,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Per-occurrence notes | [`planner_spec_022_occurrence_notes.md`](.claude/specs/planner_spec_022_occurrence_notes.md) | [`frontend_spec_043_occurrence_notes.md`](.claude/specs/frontend_spec_043_occurrence_notes.md) | Not started. Nullable `notes` field on `PlannedOccurrence`, a new dedicated `PATCH /api/v1/plan/occurrences/{id}/notes` endpoint, autosave-on-blur textarea in the occurrence detail card, has-notes indicators on the tile and in the Weekly Summary tooltip. |
 
 ## Internal / maintenance specs
 
