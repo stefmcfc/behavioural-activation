@@ -84,7 +84,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Category grouping + collapsible sub-tasks in the Activity Drawer | — (frontend-only) | [`frontend_spec_046_activity_drawer_collapsible_subtasks.md`](.claude/specs/frontend_spec_046_activity_drawer_collapsible_subtasks.md) | Not started. Extends `frontend_spec_045`'s Assign Activity modal treatment to Today's drag drawer (`ActivityPickerList`'s `drag` mode) — deliberately supersedes that spec's "drag mode unaffected" guarantee. |
 
 ## Internal / maintenance specs
 
