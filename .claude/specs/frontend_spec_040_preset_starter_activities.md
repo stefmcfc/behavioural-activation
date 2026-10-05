@@ -51,8 +51,7 @@ grouped list, and a new "My Activities" heading now precedes the real list with
 `SuggestedActivities` moved to render after it instead of before.
 
 **A second, smaller round of live styling feedback** (gap sizing, heading parity, icons) was
-folded in during the same review, requiring no new ACs (visual polish only, except the repeatable
-icon which is a real behavioral addition with its own test): increased the gap between "My
+folded in during the same review: increased the gap between "My
 Activities" and "Suggested activities"; gave both section headings (the real `<h3>` and the
 disclosure's `<summary>`) matching bold styling via a duplicated `.sectionHeading` rule in each
 component's own CSS module (matching this codebase's established per-component-duplication
@@ -61,6 +60,18 @@ list, and the list's own indentation; added a `RepeatableIcon` next to each repe
 (matching the real activity list's own existing treatment), with a new test confirming it renders
 for a repeatable preset and not a one-off one. All reconfirmed live in the real browser (both
 themes) after these changes.
+
+**A third round (`AC-15`)**: with both section headings now styled identically bold, the native
+browser disclosure marker was the only remaining signal that "Suggested activities" is actually
+interactive — flagged by the user as not clear enough. Added a new, reusable
+`components/icons/ChevronIcon`, suppressed the native marker (`list-style: none` +
+`::-webkit-details-marker`), and rotate the icon 180° via `.details[open] > .sectionHeading svg`.
+Verified live: a real `getComputedStyle` check on the icon confirmed `transform:
+matrix(-1, 0, 0, -1, 0, 0)` (i.e. `rotate(180deg)`) once the disclosure was opened, matching the
+collapsed-state screenshot showing a plain down-pointing chevron beforehand.
+
+**Final total**: 16 ACs across three implementation rounds, all implemented and tested (584/584
+frontend tests passing, 0 regressions; `npm run lint`/`npx tsc -b --noEmit` both clean throughout).
 
 ## Overview
 
@@ -348,6 +359,33 @@ something rendered below it.
 regression guard: `FRONTEND-040-AC-06`/`AC-07`/`AC-08` (disclosure behavior, open-when-empty,
 reachability) are unaffected by this reordering — only position changes, not those mechanics.
 
+#### FRONTEND-040-AC-15 [AUTO]: A chevron icon signals the disclosure is expandable
+**Statement**: `SuggestedActivities`'s `<summary>` shall render a chevron icon alongside its text,
+visually rotating 180° when the disclosure is open; the native browser disclosure marker shall be
+suppressed so exactly one expand/collapse indicator is shown, not two.
+
+**Rationale**: Raised by the user after the heading restyle (`AC-10`'s matching bold style, applied
+to both "My Activities" and "Suggested activities") made the two headings visually identical except
+for the native marker — which itself wasn't a clear enough affordance that the second one is
+actually interactive/collapsible. A dedicated, rotating chevron (new `components/icons/ChevronIcon`,
+reusable beyond this one disclosure) makes that difference unambiguous.
+
+**References**: `frontend/src/components/icons/ChevronIcon.tsx` (new); Component:
+`frontend/src/components/ActivityBank/SuggestedActivities.tsx`/`.module.css` (native marker
+suppression via `list-style: none` + `::-webkit-details-marker`, rotation via `.details[open] >
+.sectionHeading svg`)
+
+#### FRONTEND-040-AC-16 [AUTO]: A repeatable preset shows a repeatable icon
+**Statement**: While a preset's `repeatable` is `true`, its row in `SuggestedActivities` shall
+render `RepeatableIcon`; while `false`, it shall not.
+
+**Rationale**: Matches the real activity list's own existing treatment (`activity.repeatable &&
+<RepeatableIcon />` in `ActivityBank.tsx`) — a suggestion showing the same repeatable/one-off
+signal as a real activity row keeps the two lists visually consistent.
+
+**References**: Component: `frontend/src/components/ActivityBank/SuggestedActivities.tsx`;
+`frontend/src/components/RepeatableIcon/RepeatableIcon.tsx` (reused unchanged)
+
 ## Cross-references
 
 | Reference | What it provides |
@@ -456,3 +494,5 @@ into `ActivityBank.tsx` until every sketch above passes.
 - [x] FRONTEND-040-AC-12 — a short preamble sentence introduces the suggestions
 - [x] FRONTEND-040-AC-13 — a "My Activities" heading precedes the real activity list
 - [x] FRONTEND-040-AC-14 — Suggested activities renders below My Activities, not above
+- [x] FRONTEND-040-AC-15 — a rotating chevron icon signals the disclosure is expandable
+- [x] FRONTEND-040-AC-16 — a repeatable preset shows a repeatable icon, a one-off one doesn't

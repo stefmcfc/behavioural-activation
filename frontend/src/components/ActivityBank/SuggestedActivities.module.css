@@ -7,11 +7,24 @@
    import, matching this codebase's existing convention of small per-component duplication over
    cross-component CSS coupling (e.g. getErrorMessage is copied into 8+ components already). */
 .sectionHeading {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-h);
   cursor: pointer;
+  /* Suppress the native disclosure marker -- a custom ChevronIcon (rotated below) replaces it,
+     so there's exactly one expand/collapse indicator, not two. */
+  list-style: none;
+}
+
+.sectionHeading::-webkit-details-marker {
+  display: none;
+}
+
+.details[open] > .sectionHeading svg {
+  transform: rotate(180deg);
 }
 
 .preamble {

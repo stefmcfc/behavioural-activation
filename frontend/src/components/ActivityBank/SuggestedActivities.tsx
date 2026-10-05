@@ -8,6 +8,7 @@ import { getCategoryColor, subscribeToCategoryColorChanges } from '../../utils/c
 import { getReadableTextColor } from '../../utils/contrast'
 import type { CategoryFilter } from '../../utils/categoryFilter'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
+import { ChevronIcon } from '../icons/ChevronIcon'
 import styles from './SuggestedActivities.module.css'
 
 interface SuggestedActivitiesProps {
@@ -97,7 +98,10 @@ export function SuggestedActivities({
 
   return (
     <details className={styles.details} open={defaultOpen}>
-      <summary className={styles.sectionHeading}>Suggested activities</summary>
+      <summary className={styles.sectionHeading}>
+        Suggested activities
+        <ChevronIcon />
+      </summary>
 
       {/* FRONTEND-040-AC-12 */}
       <p className={styles.preamble}>A few common activities you can add with one click:</p>

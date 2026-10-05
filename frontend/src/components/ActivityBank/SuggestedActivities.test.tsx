@@ -115,6 +115,12 @@ describe('SuggestedActivities', () => {
       expect(details).not.toBeNull()
       expect(details).not.toHaveAttribute('open')
     })
+
+    it('renders a chevron icon next to the summary text as an expand/collapse affordance', () => {
+      render(<SuggestedActivities activities={[]} onAdded={onAdded} categoryFilter="ALL" />)
+      const summary = screen.getByText(/suggested activities/i).closest('summary')!
+      expect(summary.querySelector('svg')).not.toBeNull()
+    })
   })
 
   describe('FRONTEND-040-AC-10: CTA text and accessible name', () => {
@@ -154,7 +160,7 @@ describe('SuggestedActivities', () => {
     })
   })
 
-  describe('repeatable icon', () => {
+  describe('FRONTEND-040-AC-16: repeatable icon', () => {
     it('shows a Repeatable icon next to a repeatable preset, not next to a one-off one', () => {
       const repeatablePreset = PRESET_ACTIVITIES.find((p) => p.repeatable)
       const oneOffPreset = PRESET_ACTIVITIES.find((p) => !p.repeatable)

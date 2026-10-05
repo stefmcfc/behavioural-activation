@@ -1,0 +1,9 @@
+.icon {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .icon {
+    transition: transform 0.15s ease;
+  }
+}
