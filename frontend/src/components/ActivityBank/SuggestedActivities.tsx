@@ -115,10 +115,13 @@ export function SuggestedActivities({
         return (
           <div key={category}>
             <CategoryGroupHeading category={category} />
-            {/* NOSONAR(typescript:S6819): deliberate -- the heading above already labels this group,
-                so this <ul>'s own list semantics would be redundant noise for screen reader users
-                (matching ActivityBank.tsx's own category-filter group for the same reason). */}
-            <ul role="presentation" className={styles.list}>
+            <ul // NOSONAR(typescript:S6819): deliberate -- the heading above already labels this
+              // group, so this <ul>'s own list semantics would be redundant noise for screen
+              // reader users (matching ActivityBank.tsx's own category-filter group for the same
+              // reason).
+              role="presentation"
+              className={styles.list}
+            >
               {presetsInCategory.map((preset) => (
                 <li key={preset.name} className={styles.row}>
                   <span>{preset.name}</span>
