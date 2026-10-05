@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-10-06
+
 ### Changed
 
 - Today's "Browse activities" drag drawer now gets the same category-grouped sections and
