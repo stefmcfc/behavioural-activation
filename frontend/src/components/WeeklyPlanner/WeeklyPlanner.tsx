@@ -187,6 +187,7 @@ export function WeeklyPlanner() {
             onMoveToBucket={(id) => plan.handleMove(id, { dayOfWeek: null, slot: null })}
             onComplete={plan.handleComplete}
             onUndo={plan.handleUndo}
+            onUpdateNotes={plan.handleUpdateNotes}
             dragPayload={plan.dragPayload}
             onDragStart={(id) => plan.setDragPayload({ kind: 'occurrence', id })}
             onDragEnd={plan.handleDragEnd}
@@ -213,6 +214,7 @@ export function WeeklyPlanner() {
             onComplete={plan.handleComplete}
             onUndo={plan.handleUndo}
             onCarryForward={plan.handleCarryForward}
+            onUpdateNotes={plan.handleUpdateNotes}
             onReorder={plan.handleReorderBucket}
             dragPayload={plan.dragPayload}
             onDragStart={(id) => plan.setDragPayload({ kind: 'occurrence', id })}

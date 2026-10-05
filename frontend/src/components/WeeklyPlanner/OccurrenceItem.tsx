@@ -28,6 +28,7 @@ interface OccurrenceItemProps {
   readonly onComplete: (id: string) => void
   readonly onUndo: (id: string) => void
   readonly onCarryForward: (id: string) => void
+  readonly onUpdateNotes: (id: string, notes: string | null) => void
   readonly dimmed?: boolean
   readonly isFirst?: boolean
   readonly isLast?: boolean
@@ -72,6 +73,7 @@ export function OccurrenceItem({
   onComplete,
   onUndo,
   onCarryForward,
+  onUpdateNotes,
   dimmed,
   isFirst,
   isLast,
@@ -85,10 +87,25 @@ export function OccurrenceItem({
 }: OccurrenceItemProps) {
   const [moveDay, setMoveDay] = useState<PlanDayOfWeek>(occurrence.dayOfWeek ?? 'MONDAY')
   const [moveSlot, setMoveSlot] = useState<PlanSlot>(occurrence.slot ?? 'MORNING')
+  // FRONTEND-043-AC-01/AC-05: seeded from the occurrence's own notes, reset whenever a different
+  // occurrence's card opens (by id) or an externally-updated occurrence (e.g. this autosave's own
+  // response replacing it in usePlanActions state) comes back in -- otherwise the local draft would
+  // fight the just-saved value or leak into the next occurrence rendered in this same list slot.
+  // Adjusted during render (React's documented "adjusting state when a prop changes" pattern)
+  // rather than in a useEffect, to avoid oxlint's react(set-state-in-effect) cascading-render
+  // warning -- usePlanActions.resetForRefetch's own comment documents this same codebase
+  // convention elsewhere.
+  const [notesDraft, setNotesDraft] = useState(occurrence.notes ?? '')
+  const [seenNotes, setSeenNotes] = useState({ id: occurrence.id, notes: occurrence.notes })
+  if (occurrence.id !== seenNotes.id || occurrence.notes !== seenNotes.notes) {
+    setSeenNotes({ id: occurrence.id, notes: occurrence.notes })
+    setNotesDraft(occurrence.notes ?? '')
+  }
   const isBusy = busyId === occurrence.id
   const isDetailOpen = detailOpenId === occurrence.id
   const moveDaySelectId = `move-day-${occurrence.id}`
   const moveSlotSelectId = `move-slot-${occurrence.id}`
+  const notesTextareaId = `notes-${occurrence.id}`
 
   const rowClassName = [
     styles.row,
@@ -163,6 +180,11 @@ export function OccurrenceItem({
       </button>
       <CategoryChip category={occurrence.category} />
       {isBucketItem && occurrence.subTaskId === null && occurrence.repeatable && <RepeatableIcon />}
+      {occurrence.notes && (
+        <span className={styles.notesIndicator} title="Has a note" aria-hidden="true">
+          📝
+        </span>
+      )}
       {occurrence.recentlyCarriedForward && (
         <span className={styles.carriedForwardLabel}>Moved from last week</span>
       )}
@@ -205,6 +227,22 @@ export function OccurrenceItem({
                   ? `${DAY_LABELS[occurrence.dayOfWeek]} · ${SLOT_LABELS[occurrence.slot]}`
                   : 'Weekend bucket list'}
               </p>
+
+              <label htmlFor={notesTextareaId}>Notes</label>
+              <textarea
+                id={notesTextareaId}
+                className={styles.notesTextarea}
+                maxLength={200}
+                value={notesDraft}
+                onChange={(event) => setNotesDraft(event.target.value)}
+                onBlur={() => {
+                  const trimmed = notesDraft.trim()
+                  if (trimmed !== (occurrence.notes ?? '')) {
+                    onUpdateNotes(occurrence.id, trimmed || null)
+                  }
+                }}
+              />
+              <span className={styles.notesCounter}>{notesDraft.length}/200</span>
 
               {confirmingRemoveId === occurrence.id && (
                 <span className={styles.actions}>

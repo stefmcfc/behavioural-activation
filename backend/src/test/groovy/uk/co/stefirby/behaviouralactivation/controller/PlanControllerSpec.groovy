@@ -13,6 +13,7 @@ import uk.co.stefirby.behaviouralactivation.config.CorsConfig
 import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest
+import uk.co.stefirby.behaviouralactivation.dto.UpdateOccurrenceNotesRequest
 import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException
@@ -674,5 +675,78 @@ class PlanControllerSpec extends Specification {
         then: "the response is 401, not reaching the controller/service"
             result.andExpect(status().isUnauthorized())
             0 * planService.getWeek(_, _)
+    }
+
+    def "PLANNER-022-AC-01: PATCH /api/v1/plan/occurrences/{id}/notes sets a note and returns 200"() {
+        given: "the service sets the note successfully"
+            def id = UUID.randomUUID()
+            def body = objectMapper.writeValueAsString([notes: "Book A"])
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            occurrence.updateNotes("Book A")
+            planService.updateNotes("steve", id, _ as UpdateOccurrenceNotesRequest) >> Optional.of(occurrence)
+            planService.findCompletion("steve", id) >> Optional.empty()
+
+        when: "PATCH /api/v1/plan/occurrences/{id}/notes is requested"
+            def result = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}/notes")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 200 with the note"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.notes').value("Book A"))
+    }
+
+    def "PLANNER-022-AC-02: PATCH /api/v1/plan/occurrences/{id}/notes with notes: null clears the note and returns 200"() {
+        given: "the service clears the note successfully"
+            def id = UUID.randomUUID()
+            def body = objectMapper.writeValueAsString([notes: null])
+            def occurrence = new PlannedOccurrence(activity, null, ActivityCategory.ROUTINE, monday,
+                DayOfWeek.MONDAY, PlanSlot.MORNING, owner)
+            planService.updateNotes("steve", id, _ as UpdateOccurrenceNotesRequest) >> Optional.of(occurrence)
+            planService.findCompletion("steve", id) >> Optional.empty()
+
+        when: "PATCH /api/v1/plan/occurrences/{id}/notes is requested"
+            def result = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}/notes")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 200 with notes absent/null"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.notes').value(org.hamcrest.Matchers.nullValue()))
+    }
+
+    def "PLANNER-022-AC-03: PATCH /api/v1/plan/occurrences/{id}/notes returns 400 for a note over 200 characters"() {
+        given: "a notes value longer than 200 characters"
+            def id = UUID.randomUUID()
+            def body = objectMapper.writeValueAsString([notes: "x" * 201])
+
+        when: "PATCH /api/v1/plan/occurrences/{id}/notes is requested"
+            def result = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}/notes")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 400 and the service is never called"
+            result.andExpect(status().isBadRequest())
+            0 * planService.updateNotes(_, _, _)
+    }
+
+    def "PLANNER-022-AC-04: PATCH /api/v1/plan/occurrences/{id}/notes returns 404 for an unknown or not-owned occurrence"() {
+        given: "the service finds no matching owned occurrence"
+            def id = UUID.randomUUID()
+            def body = objectMapper.writeValueAsString([notes: "Book A"])
+            planService.updateNotes("steve", id, _ as UpdateOccurrenceNotesRequest) >> Optional.empty()
+
+        when: "PATCH /api/v1/plan/occurrences/{id}/notes is requested"
+            def result = mockMvc.perform(patch("/api/v1/plan/occurrences/${id}/notes")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
     }
 }

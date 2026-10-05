@@ -28,6 +28,7 @@ function bucketOccurrence(overrides: Partial<PlannedOccurrence> = {}): PlannedOc
     completedAt: null,
     createdAt: '2026-10-01T00:00:00Z',
     repeatable: false,
+    notes: null,
     ...overrides,
   }
 }
@@ -55,6 +56,7 @@ function baseBucketProps(
     onComplete: noop,
     onUndo: noop,
     onCarryForward: noop,
+    onUpdateNotes: noop,
     onReorder: noop,
     dragPayload: null,
     onDragStart: noop,

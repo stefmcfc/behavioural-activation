@@ -190,6 +190,16 @@ belongs to a different user returns `404` in every case identically, never `403`
   occurrence that is currently a bucket item (`dayOfWeek`/`slot` both null) and not complete —
   either violation returns `409` without changing `weekStart`. Returns `200` with the updated
   occurrence, `404` if `id` isn't owned by the authenticated user.
+- **`PATCH /api/v1/plan/occurrences/{id}/notes`** — body `{ "notes": "..." | null }`, `notes` capped
+  at 200 characters. A deliberately separate endpoint from the move endpoint above (mirrors
+  completion/carry-forward each having their own dedicated endpoint). Sets or clears freeform,
+  per-occurrence text — distinct from `Activity.description`, which is shared across every
+  occurrence of the same activity; e.g. tag one occurrence of a repeatable "Read a book" activity
+  with "Book A" and a different occurrence with "Book B". `notes` longer than 200 characters returns
+  `400` (real Jakarta Bean Validation, not just a DB-column cap) without modifying the occurrence.
+  Returns `200` with the updated occurrence, `404` if `id` isn't owned by the authenticated user. A
+  note survives a subsequent move or carry-forward (manual or automatic) unchanged — see
+  `.claude/specs/planner_spec_022_occurrence_notes.md`.
 
 `name` in every response is resolved live from the linked `Activity`/`SubTask` at response time
 (not stored on `PlannedOccurrence`) — renaming the underlying activity/sub-task later changes the
@@ -197,11 +207,11 @@ displayed name of every occurrence referencing it. Every response also includes
 `parentActivityName`: `null` when the occurrence targets an `Activity` directly, or that activity's
 name (also resolved live, same as `name`) when it targets a `SubTask` — lets a sub-task's tile show
 which activity it belongs to. Every response also includes `completed` (boolean) and `completedAt`
-(`null` unless complete), reflecting the occurrence's `CompletionRecord` if any. Deleting an
-`Activity` or `SubTask` cascade-deletes its `PlannedOccurrence`s automatically (database-level
-`ON DELETE CASCADE`), and deleting a `PlannedOccurrence` (directly, or transitively via its parent
-`Activity`/`SubTask`) cascade-deletes its `CompletionRecord` the same way — not via any explicit
-endpoint call.
+(`null` unless complete), reflecting the occurrence's `CompletionRecord` if any, and `notes`
+(`null` unless set via the dedicated notes endpoint above). Deleting an `Activity` or `SubTask`
+cascade-deletes its `PlannedOccurrence`s automatically (database-level `ON DELETE CASCADE`), and
+deleting a `PlannedOccurrence` (directly, or transitively via its parent `Activity`/`SubTask`)
+cascade-deletes its `CompletionRecord` the same way — not via any explicit endpoint call.
 
 ## Occurrences & Completion
 

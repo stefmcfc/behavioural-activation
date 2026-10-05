@@ -152,6 +152,28 @@ describe('planApi', () => {
     })
   })
 
+  describe('FRONTEND-043-AC-02: updateNotes() calls PATCH .../occurrences/{id}/notes', () => {
+    it('patches the notes body and returns the updated occurrence', async () => {
+      const noted = { ...occurrence, notes: 'Book A' }
+      patch.mockResolvedValue({ data: noted })
+
+      const result = await planApi.updateNotes('1', 'Book A')
+
+      expect(result).toEqual(noted)
+      expect(patch).toHaveBeenCalledWith('/plan/occurrences/1/notes', { notes: 'Book A' })
+    })
+
+    it('patches with notes: null when clearing the note', async () => {
+      const cleared = { ...occurrence, notes: null }
+      patch.mockResolvedValue({ data: cleared })
+
+      const result = await planApi.updateNotes('1', null)
+
+      expect(result).toEqual(cleared)
+      expect(patch).toHaveBeenCalledWith('/plan/occurrences/1/notes', { notes: null })
+    })
+  })
+
   describe('FRONTEND-004-AC-08: rejected calls throw a typed ApiError', () => {
     it('rejects with a typed ApiError on failure', async () => {
       get.mockRejectedValue({

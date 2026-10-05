@@ -22,6 +22,7 @@ const gridOccurrence: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: true,
+  notes: null,
 }
 
 const subTaskOccurrence: PlannedOccurrence = {
@@ -40,6 +41,7 @@ const subTaskOccurrence: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: true,
+  notes: null,
 }
 
 const bucketOccurrence: PlannedOccurrence = {
@@ -58,6 +60,7 @@ const bucketOccurrence: PlannedOccurrence = {
   completedAt: null,
   createdAt: '2026-10-01T00:00:00Z',
   repeatable: false,
+  notes: null,
 }
 
 const noop = () => {}
@@ -82,6 +85,7 @@ function baseProps(overrides: Partial<Parameters<typeof OccurrenceItem>[0]> = {}
     onComplete: noop,
     onUndo: noop,
     onCarryForward: noop,
+    onUpdateNotes: noop,
     ...overrides,
   }
 }
@@ -566,5 +570,125 @@ describe('FRONTEND-031-AC-16: regression guard -- detail-card actions stay unsty
       expect(button).not.toHaveClass(buttonStyles.primary)
       expect(button).not.toHaveClass(buttonStyles.destructive)
     }
+  })
+})
+
+describe('FRONTEND-043-AC-01: textarea seeded from notes', () => {
+  it("renders the occurrence's existing note when the detail card opens", () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, notes: 'Book A' }, detailOpenId: 'o1' })}
+      />,
+    )
+    expect(screen.getByLabelText('Notes')).toHaveValue('Book A')
+  })
+
+  it('renders an empty textarea when notes is null', () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, notes: null }, detailOpenId: 'o1' })}
+      />,
+    )
+    expect(screen.getByLabelText('Notes')).toHaveValue('')
+  })
+})
+
+describe('FRONTEND-043-AC-02/AC-03: autosave on blur', () => {
+  it('calls onUpdateNotes with the trimmed value when it changed', async () => {
+    const onUpdateNotes = vi.fn()
+    render(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...gridOccurrence, notes: null },
+          onUpdateNotes,
+          detailOpenId: 'o1',
+        })}
+      />,
+    )
+    const textarea = screen.getByLabelText('Notes')
+    await userEvent.type(textarea, '  Book A  ')
+    await userEvent.tab()
+    expect(onUpdateNotes).toHaveBeenCalledWith('o1', 'Book A')
+  })
+
+  it('does not call onUpdateNotes when the value is unchanged', async () => {
+    const onUpdateNotes = vi.fn()
+    render(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...gridOccurrence, notes: 'Book A' },
+          onUpdateNotes,
+          detailOpenId: 'o1',
+        })}
+      />,
+    )
+    await userEvent.click(screen.getByLabelText('Notes'))
+    await userEvent.tab()
+    expect(onUpdateNotes).not.toHaveBeenCalled()
+  })
+
+  it('calls onUpdateNotes with null when the note is cleared down to whitespace', async () => {
+    const onUpdateNotes = vi.fn()
+    render(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...gridOccurrence, notes: 'Book A' },
+          onUpdateNotes,
+          detailOpenId: 'o1',
+        })}
+      />,
+    )
+    const textarea = screen.getByLabelText('Notes')
+    await userEvent.clear(textarea)
+    await userEvent.type(textarea, '   ')
+    await userEvent.tab()
+    expect(onUpdateNotes).toHaveBeenCalledWith('o1', null)
+  })
+})
+
+describe('FRONTEND-043-AC-04: character limit and counter', () => {
+  it('caps input at 200 characters and shows a live count', async () => {
+    render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, notes: null }, detailOpenId: 'o1' })}
+      />,
+    )
+    const textarea = screen.getByLabelText('Notes')
+    expect(textarea).toHaveAttribute('maxLength', '200')
+    await userEvent.type(textarea, 'Book A')
+    expect(screen.getByText('6/200')).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-043-AC-05: textarea resets when a different occurrence card opens', () => {
+  it("shows the newly-opened occurrence's own notes, not the previous one's draft", () => {
+    const { rerender } = render(
+      <OccurrenceItem
+        {...baseProps({ occurrence: { ...gridOccurrence, notes: 'Book A' }, detailOpenId: 'o1' })}
+      />,
+    )
+    expect(screen.getByLabelText('Notes')).toHaveValue('Book A')
+
+    rerender(
+      <OccurrenceItem
+        {...baseProps({
+          occurrence: { ...subTaskOccurrence, notes: null },
+          detailOpenId: 'o2',
+        })}
+      />,
+    )
+    expect(screen.getByLabelText('Notes')).toHaveValue('')
+  })
+})
+
+describe('FRONTEND-043-AC-06: has-notes tile indicator', () => {
+  it('shows the indicator when notes is present', () => {
+    render(<OccurrenceItem {...baseProps({ occurrence: { ...gridOccurrence, notes: 'Book A' } })} />)
+    expect(screen.getByTitle(/note/i)).toBeInTheDocument()
+  })
+
+  it('does not show the indicator when notes is null', () => {
+    render(<OccurrenceItem {...baseProps({ occurrence: { ...gridOccurrence, notes: null } })} />)
+    expect(screen.queryByTitle(/note/i)).not.toBeInTheDocument()
   })
 })

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.co.stefirby.behaviouralactivation.dto.BucketReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceMoveRequest;
 import uk.co.stefirby.behaviouralactivation.dto.PlannedOccurrenceRequest;
+import uk.co.stefirby.behaviouralactivation.dto.UpdateOccurrenceNotesRequest;
 import uk.co.stefirby.behaviouralactivation.exception.BucketMoveNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.BucketReorderNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.exception.CarryForwardNotAllowedException;
@@ -145,6 +146,20 @@ public class PlanService {
         User owner = resolveOwner(ownerUsername);
         return plannedOccurrenceRepository.findByIdAndOwner(id, owner)
             .map(occurrence -> applyMove(occurrence, request, owner));
+    }
+
+    // planner_spec_022_occurrence_notes.md -- mirrors move(...)'s shape above. notes validation
+    // (@Size(max = 200)) is enforced at the controller via @Valid on UpdateOccurrenceNotesRequest,
+    // not re-checked here.
+    @Transactional
+    public Optional<PlannedOccurrence> updateNotes(String ownerUsername, UUID id, UpdateOccurrenceNotesRequest request) {
+        User owner = resolveOwner(ownerUsername);
+        return plannedOccurrenceRepository.findByIdAndOwner(id, owner)
+            .map(occurrence -> {
+                occurrence.updateNotes(request.notes());
+                initializeTarget(occurrence);
+                return occurrence;
+            });
     }
 
     @Transactional

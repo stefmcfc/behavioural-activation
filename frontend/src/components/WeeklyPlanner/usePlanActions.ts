@@ -41,6 +41,21 @@ export function usePlanActions(weekStart: string) {
   // FRONTEND-026-AC-01 / FRONTEND-028: a single shared drag state, so a drag starting in
   // PlannerGrid, BucketList, or (FRONTEND-016's) ActivityDrawer is visible to every drop handler.
   const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
+  const handleUpdateNotes = async (id: string, notes: string | null) => {
+    setActionError(null)
+    setBusyId(id)
+    try {
+      const updated = await planApi.updateNotes(id, notes)
+      setOccurrences(
+        (previous) => previous?.map((occurrence) => (occurrence.id === id ? updated : occurrence)) ?? previous,
+      )
+    } catch (error) {
+      setActionError(getErrorMessage(error))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   // FRONTEND-016-AC-14: a drawer-origin drag has no existing occurrence id yet to key busyId by,
   // so it gets its own in-flight guard, mirroring frontend_spec_028's now-removed WeeklyPlanner
   // implementation.
@@ -258,6 +273,7 @@ export function usePlanActions(weekStart: string) {
     handleCloseDetail,
     handleReorderBucket,
     handleCarryForward,
+    handleUpdateNotes,
     handleDragEnd,
     handleAssignFromDrawer,
     setAssignTarget,

@@ -33,6 +33,7 @@ function makeOccurrence(overrides: Partial<PlannedOccurrence>): PlannedOccurrenc
     completedAt: null,
     createdAt: '2026-09-28T00:00:00Z',
     repeatable: true,
+    notes: null,
     ...overrides,
   }
 }
@@ -95,6 +96,7 @@ function WeeklyPlannerHarness({
         onMoveToBucket={onMoveToBucket}
         onComplete={noop}
         onUndo={noop}
+        onUpdateNotes={noop}
         dragPayload={dragPayload}
         onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
         onDragEnd={() => setDragPayload(null)}
@@ -120,6 +122,7 @@ function WeeklyPlannerHarness({
         onComplete={noop}
         onUndo={noop}
         onCarryForward={noop}
+        onUpdateNotes={noop}
         onReorder={onReorder}
         dragPayload={dragPayload}
         onDragStart={(id) => setDragPayload({ kind: 'occurrence', id })}
