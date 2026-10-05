@@ -101,6 +101,9 @@ describe('AssignActivityPicker', () => {
       const activityButton = await screen.findByRole('button', { name: 'Organise a leaving party' })
       expect(within(activityButton.parentElement!).getByText('Necessary')).toBeInTheDocument()
 
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(screen.getByRole('button', { name: 'Show sub-tasks (1)' }))
       const subTaskButton = screen.getByRole('button', { name: 'Send invitations' })
       expect(within(subTaskButton.parentElement!).getByText('Pleasurable')).toBeInTheDocument()
     })
@@ -138,7 +141,10 @@ describe('AssignActivityPicker', () => {
       vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
-      const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+      const subTaskButton = screen.getByRole('button', { name: 'Send invitations' })
       expect(
         within(subTaskButton.parentElement!).queryByRole('img', { name: /repeatable/i }),
       ).not.toBeInTheDocument()
@@ -151,7 +157,10 @@ describe('AssignActivityPicker', () => {
       vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([stepOne])
       renderPicker()
 
-      const subTaskButton = await screen.findByRole('button', { name: 'Step one' })
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+      const subTaskButton = screen.getByRole('button', { name: 'Step one' })
       expect(
         within(subTaskButton.parentElement!).queryByRole('img', { name: /repeatable/i }),
       ).not.toBeInTheDocument()
@@ -184,6 +193,9 @@ describe('AssignActivityPicker', () => {
       await userEvent.click(screen.getByRole('radio', { name: 'Pleasurable' }))
 
       expect(screen.getByRole('button', { name: 'Organise a leaving party' })).toBeInTheDocument()
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(screen.getByRole('button', { name: 'Show sub-tasks (1)' }))
       expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
     })
 
@@ -275,7 +287,10 @@ describe('AssignActivityPicker', () => {
       vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations])
       renderPicker()
 
-      const subTaskButton = await screen.findByRole('button', { name: 'Send invitations' })
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(await screen.findByRole('button', { name: 'Show sub-tasks (1)' }))
+      const subTaskButton = screen.getByRole('button', { name: 'Send invitations' })
       expect(
         within(subTaskButton.parentElement!).queryByRole('img', { name: 'Favourite' }),
       ).not.toBeInTheDocument()
@@ -338,6 +353,9 @@ describe('AssignActivityPicker', () => {
       await userEvent.click(screen.getByText('Filters'))
       await userEvent.click(screen.getByRole('radio', { name: 'Favourites only' }))
 
+      // FRONTEND-045-AC-06: sub-tasks are collapsed by default in select mode -- expand this
+      // activity's toggle before asserting on its sub-task row.
+      await userEvent.click(screen.getByRole('button', { name: 'Show sub-tasks (1)' }))
       expect(screen.getByRole('button', { name: 'Send invitations' })).toBeInTheDocument()
     })
   })

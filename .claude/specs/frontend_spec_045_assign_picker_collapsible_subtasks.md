@@ -1,6 +1,6 @@
 # Collapsible Sub-Tasks + Category Grouping in the Assign Activity Modal (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-05)
 **Priority**: P3 — V1 polish, raised by the user 2026-10-05 after reviewing the Activity Bank's
 new category grouping
 **Depends on**: `frontend_spec_044_activity_bank_grouping.md` (origin of `CATEGORY_ORDER`/
@@ -284,16 +284,51 @@ sketch and every pre-existing test passes.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-045-AC-01: Activities grouped into fixed category sections
-- [ ] FRONTEND-045-AC-02: Empty category groups are skipped
-- [ ] FRONTEND-045-AC-03: Grouping key is the activity's own category, independent of filter match reason
-- [ ] FRONTEND-045-AC-04: Within-group order is unchanged (no new sort)
-- [ ] FRONTEND-045-AC-05: `drag` mode is unaffected (regression guard)
-- [ ] FRONTEND-045-AC-06: Sub-tasks collapsed by default when present
-- [ ] FRONTEND-045-AC-07: Toggle label indicates expandability and count
-- [ ] FRONTEND-045-AC-08: No toggle for an activity with zero (filtered) sub-tasks
-- [ ] FRONTEND-045-AC-09: Activating the toggle shows that activity's sub-tasks
-- [ ] FRONTEND-045-AC-10: Only one activity's sub-tasks are expanded at a time
-- [ ] FRONTEND-045-AC-11: Activating the toggle does not select the activity
-- [ ] FRONTEND-045-AC-12: `drag` mode is unaffected (regression guard)
-- [ ] FRONTEND-045-AC-13: `AssignActivityPicker.test.tsx`'s sub-task-button assertions are rescoped
+- [x] FRONTEND-045-AC-01: Activities grouped into fixed category sections
+- [x] FRONTEND-045-AC-02: Empty category groups are skipped
+- [x] FRONTEND-045-AC-03: Grouping key is the activity's own category, independent of filter match reason
+- [x] FRONTEND-045-AC-04: Within-group order is unchanged (no new sort)
+- [x] FRONTEND-045-AC-05: `drag` mode is unaffected (regression guard)
+- [x] FRONTEND-045-AC-06: Sub-tasks collapsed by default when present
+- [x] FRONTEND-045-AC-07: Toggle label indicates expandability and count
+- [x] FRONTEND-045-AC-08: No toggle for an activity with zero (filtered) sub-tasks
+- [x] FRONTEND-045-AC-09: Activating the toggle shows that activity's sub-tasks
+- [x] FRONTEND-045-AC-10: Only one activity's sub-tasks are expanded at a time
+- [x] FRONTEND-045-AC-11: Activating the toggle does not select the activity
+- [x] FRONTEND-045-AC-12: `drag` mode is unaffected (regression guard)
+- [x] FRONTEND-045-AC-13: `AssignActivityPicker.test.tsx`'s sub-task-button assertions are rescoped
+
+## Summary
+
+Implemented 2026-10-05. `ActivityPickerList.tsx`'s `visibleActivities.length > 0` render block was
+split into two branches gated on `isDragMode`: the pre-existing flat-list JSX (now rendering a
+plain `<span>` for the activity/sub-task name unconditionally, since `mode` is provably always
+`'drag'` inside that branch — see Deviations) and a new grouped+collapsible JSX for `select` mode,
+reusing `CATEGORY_ORDER`/`CategoryGroupHeading` and a new `getSubTasksToggleLabel(count, isExpanded)`
+helper plus `expandedActivityId` state (mirroring `ActivityBank.tsx`'s own pattern).
+
+**Test count**: `ActivityPickerList.test.tsx` grew from 11 to 23 tests (12 new, covering
+AC-01/02/03/04/05/06/07/08/09/10/11/12 — several ACs share one test per the spec's sketches, plus
+one extra AC-09/AC-10 case and one extra AC-11 case beyond the sketches for symmetry). One
+pre-existing test in that file (`FRONTEND-033-AC-04`) and six pre-existing tests in
+`AssignActivityPicker.test.tsx` (`FRONTEND-009-AC-24`, `FRONTEND-022-AC-03`, `FRONTEND-022-AC-04`,
+`FRONTEND-009-AC-25/AC-26`'s "keeps a non-matching activity visible..." case, `FRONTEND-027-AC-07`,
+`FRONTEND-027-AC-15`) were rescoped per AC-13 — each now clicks that sub-task's parent activity's
+"Show sub-tasks (N)" toggle before asserting against the sub-task's own button, with no change to
+what's actually asserted. One further pre-existing test outside the files the spec named,
+`WeeklyPlanner.test.tsx`'s "lists a sub-task and creates a bucket occurrence from it" (which drives
+the real `AssignActivityPicker` end-to-end through `WeeklyPlanner`), needed the same one-line
+toggle-expand fix for the same reason. Full suite: 636/636 passing (up from 624), `npm run lint`
+clean, `npx tsc -b --noEmit` clean.
+
+**Deviation from the spec's implementation notes**: the notes suggested literally branching on
+`isDragMode` "to pick between the old flat-list JSX and the new grouped+collapsible JSX" while
+leaving the old JSX byte-for-byte as-is. Doing that literally left the old block's
+`mode === 'select' ? <button>... : <span>...` ternaries in place — but TypeScript's control-flow
+narrowing (correctly) infers `mode` is always `'drag'` inside an `isDragMode &&` guard (since
+`isDragMode` is `const isDragMode = mode === 'drag'`), making `mode === 'select'` a compile error
+(`TS2367`, no overlap between `"drag"` and `"select"`) rather than a no-op. Resolved by simplifying
+that branch's two ternaries to their always-taken `else` case (a plain `<span>`) instead — the
+rendered output for `drag` mode is unchanged (confirmed by `FRONTEND-028`/`FRONTEND-045-AC-05`/
+`AC-12`'s existing regression-guard tests, all still green), only the now-dead branch of the
+ternary was removed.
