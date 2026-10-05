@@ -78,6 +78,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Preset/starter activity bank for new users | — (frontend-only) | [`frontend_spec_040_preset_starter_activities.md`](.claude/specs/frontend_spec_040_preset_starter_activities.md) | Not started. |
 
 ## Internal / maintenance specs
 
