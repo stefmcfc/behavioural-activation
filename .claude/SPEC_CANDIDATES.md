@@ -14,46 +14,84 @@ change — don't leave it duplicated in both places. Before adding a new candida
 file, re-check existing entries against the current codebase — referenced classes/components may
 have moved.
 
-Last updated: 2026-10-05 (added the dev-script window-closes-before-you-can-read-it candidate,
-raised by the user while reviewing the RUNBOOK's Quick Start section; see entry below.)
-Earlier note: 2026-10-03 (the "Filter the Weekly Planner by completed status and by category"
+**Formatting convention** (applies here and in `.claude/ideas/future_ideas.md`, which shares this
+file's pipeline and structure):
+- **Review-log dates** (the "Last updated" log below, and `future_ideas.md`'s "Last full review"
+  log): every date is inline-code-formatted, e.g. `` `2026-10-05` `` — including the most recent
+  entry's own label line (`**Last updated:** \`2026-10-05\``). Each date stands on its own line,
+  followed by a blank line, then its content as a new paragraph (or a bullet list, if the date has
+  more than one distinct point to record) — never run the date into the same sentence as its
+  content.
+- **Each candidate's `Status`**: a fenced code block directly under its `## heading`, exactly
+  ` ```\nStatus: <text>\n``` `, not inline bold text — this makes the status pop visually ahead of
+  the rationale/detail prose that follows it.
+
+---
+
+**Last updated: `2026-10-05`**
+
+added the dev-script window-closes-before-you-can-read-it candidate,
+raised by the user while reviewing the RUNBOOK's Quick Start section; see entry below.
+
+`2026-10-03`
+
+the "Filter the Weekly Planner by completed status and by category"
 candidate moved to a real spec — `frontend_spec_035_weekly_planner_filter.md`, see `ROADMAP.md`'s
-"Specced, coming soon" — removed from this file.)
-Earlier note: 2026-10-03, added the preset/starter activity bank candidate, raised by the user while
-reviewing V1 completeness after `frontend_spec_012`/`034` — see entry below.)
-Earlier note: 2026-10-02 (the bucket-reorder query-scaling candidate, surfaced while implementing
+"Specced, coming soon" — removed from this file.
+
+added the preset/starter activity bank candidate, raised by the user while
+reviewing V1 completeness after `frontend_spec_012`/`034` — see entry below.
+
+`2026-10-02`
+
+the bucket-reorder query-scaling candidate, surfaced while implementing
 `planner_spec_017_plan_response_n_plus_one.md`, moved to a real spec —
 `planner_spec_019_bucket_reorder_query_scaling.md`, see `ROADMAP.md`'s "Internal / maintenance specs"
-— removed from this file.)
-Earlier note: 2026-10-02, the bulk sub-task fetch candidate moved to a real spec pair —
+— removed from this file.
+
+the bulk sub-task fetch candidate moved to a real spec pair —
 `planner_spec_018_bulk_sub_task_fetch.md`/`frontend_spec_033_bulk_sub_task_fetch.md`, see
 `ROADMAP.md`'s "Specced, coming soon" — removed from this file. A second, related finding from the
 same performance investigation, the `GET /api/v1/plan` N+1, was *not* in this file — it moved
 straight to a real spec, `planner_spec_017_plan_response_n_plus_one.md`, same as several other
-findings this session that skipped this file entirely.)
-Earlier note: 2026-10-02, the button-hierarchy candidate moved to a real spec —
+findings this session that skipped this file entirely.
+
+the button-hierarchy candidate moved to a real spec —
 `frontend_spec_031_button_hierarchy.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed from
-this file.)
-Earlier note: 2026-10-02, the header restructure candidate moved to a real spec —
+this file.
+
+the header restructure candidate moved to a real spec —
 `frontend_spec_030_header_restructure.md`.
-Earlier note: 2026-10-01, added two candidates from the modern-web-guidance frontend review
+
+`2026-10-01`
+
+added two candidates from the modern-web-guidance frontend review
 — `.claude/modern-web-guidance/reviews/review-2026-10-01.md` — touch-friendly bucket reordering
-and a bulk sub-task fetch endpoint; see entries below.)
-Earlier note: 2026-10-01, Activity Bank UX improvements batch fully resolved: category filter and
+and a bulk sub-task fetch endpoint; see entries below.
+
+Activity Bank UX improvements batch fully resolved: category filter and
 plain sub-task count specced directly to `ROADMAP.md` — `frontend_spec_017`,
 `planner_spec_012`/`frontend_spec_018` — and the "2/3 done" progress variant added here as a new
 candidate, blocked on a product decision about what "done" means for a sub-task; see that entry.
-Earlier note: 2026-09-30, Weekday/Weekend grid tabs + "Today" view candidate now fully specced and
+
+`2026-09-30`
+
+Weekday/Weekend grid tabs + "Today" view candidate now fully specced and
 moved to `ROADMAP.md`'s "Specced, coming soon" — split into two specs per the design pass:
 `frontend_spec_015_weekday_weekend_grid_tabs.md` (the bug fix, must land first) and
-`frontend_spec_016_today_view.md` (the new top-level "Today" tab, depends on 015).
-Earlier note: 2026-09-29, Weekly Planner UX batch now fully specced: occurrence detail card
-(`frontend_spec_008`), "Add" picker modal (`frontend_spec_009`), bucket drag-and-drop reordering
-(`planner_spec_010`/`frontend_spec_010`), and automatic carry-forward
+`frontend_spec_016_today_view.md` (the new top-level "Today" tab, depends on 015)
+
+`2026-09-29`
+
+Weekly Planner UX batch now fully specced:
+- occurrence detail card (`frontend_spec_008`)
+- "Add" picker modal (`frontend_spec_009`)
+- bucket drag-and-drop reordering (`planner_spec_010`/`frontend_spec_010`) and automatic carry-forward
 (`planner_spec_011`/`frontend_spec_011`) — the last two split from one candidate into two
 independent specs during planning, both now written and moved to `ROADMAP.md`'s "Specced, coming
-soon". The weekly grid orientation toggle candidate is now also written up
-(`frontend_spec_012_grid_orientation_toggle.md`) and moved to `ROADMAP.md`.)
+soon"
+- the weekly grid orientation toggle candidate is now also written up
+(`frontend_spec_012_grid_orientation_toggle.md`) and moved to `ROADMAP.md`.
 
 ---
 
@@ -61,7 +99,11 @@ soon". The weekly grid orientation toggle candidate is now also written up
 
 ## Dev scripts: failure window closes before the diagnostic can be read
 
-**Status**: Confirmed, not yet specced. Raised by the user 2026-10-05, while reviewing
+```
+Status: Confirmed, not yet specced.
+```
+
+Raised by the user 2026-10-05, while reviewing
 `RUNBOOK.md`'s Quick Start section. When `start-dev.sh`/`restart-dev.sh` is launched in a way that
 spawns a fresh Git Bash window scoped to just that one invocation (e.g. typing
 `.\scripts\restart-dev.sh --debug` from PowerShell, or double-clicking the `.sh` file in Explorer —
@@ -86,7 +128,11 @@ Bash session already rely on today. Would apply to `start-dev.sh`, `restart-dev.
 
 ## Preset/starter activity bank for new users
 
-**Status**: Confirmed, not yet specced. Raised by the user 2026-10-03, while reviewing V1
+```
+Status: Confirmed, not yet specced.
+```
+
+Raised by the user 2026-10-03, while reviewing V1
 completeness after `frontend_spec_012_grid_orientation_toggle.md`/`frontend_spec_034_grid_
 orientation_live_update.md`. A brand-new user's Activity Bank starts completely empty today —
 `ActivityBank.tsx`'s only empty-state messaging is "No activities yet. Add one below to get
@@ -115,7 +161,11 @@ to mirror the Activity Bank's own category filter.
 
 ## Touch-friendly weekend bucket list reordering
 
-**Status**: Confirmed, not yet specced. Deferred 2026-10-01, raised by the modern-web-guidance
+```
+Status: Confirmed, not yet specced.
+```
+
+Deferred 2026-10-01, raised by the modern-web-guidance
 frontend review (`.claude/modern-web-guidance/reviews/review-2026-10-01.md`, finding "Worth
 considering #5"). `BucketList.tsx`/`OccurrenceItem.tsx` (`planner_spec_010`/`frontend_spec_010`)
 implement reordering via the native HTML5 Drag and Drop API (`draggable`, `onDragStart`/`onDragOver`/
@@ -129,7 +179,11 @@ usage pattern actually shows up, rather than building ahead of it.
 
 ## Sub-task completion progress indicator (e.g. "2/3 done")
 
-**Status**: Confirmed worth a candidate, not yet specced — blocked on a product decision. Split off
+```
+Status: Confirmed worth a candidate, not yet specced — blocked on a product decision.
+```
+
+Split off
 2026-10-01 from the "Activity Bank UX improvements" batch's sub-task count idea
 (`.claude/ideas/future_ideas.md`), which shipped as a plain count instead
 (`planner_spec_012_subtask_count.md`/`frontend_spec_018_subtask_count_badge.md`). This was
