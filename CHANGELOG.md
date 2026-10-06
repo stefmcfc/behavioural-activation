@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-06
+
 ### Added
 
 - "Export my data" button in the Account menu, downloading all of your own data (activities,
