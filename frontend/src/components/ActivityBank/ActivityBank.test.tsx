@@ -405,6 +405,7 @@ describe('ActivityBank', () => {
           name: 'Update CV',
           category: 'NECESSARY',
           createdAt: '2026-09-29T00:00:00Z',
+          position: 0,
         },
       ])
       render(<ActivityBank />)

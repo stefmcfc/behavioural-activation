@@ -1,5 +1,6 @@
 package uk.co.stefirby.behaviouralactivation.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,7 +12,10 @@ import uk.co.stefirby.behaviouralactivation.model.User;
 
 public interface SubTaskRepository extends JpaRepository<SubTask, UUID> {
 
-    List<SubTask> findByActivityIdAndOwnerOrderByCreatedAtAsc(UUID activityId, User owner);
+    // planner_spec_023_subtask_reordering.md (PLANNER-023-AC-03) -- renamed from
+    // findByActivityIdAndOwnerOrderByCreatedAtAsc now that sub-tasks carry a persisted manual
+    // position; ordering by createdAt is no longer true of the shipped system.
+    List<SubTask> findByActivityIdAndOwnerOrderByPositionAsc(UUID activityId, User owner);
 
     Optional<SubTask> findByIdAndActivityIdAndOwner(UUID id, UUID activityId, User owner);
 
@@ -21,8 +25,16 @@ public interface SubTaskRepository extends JpaRepository<SubTask, UUID> {
     Optional<SubTask> findByIdAndOwner(UUID id, User owner);
 
     // Added for planner_spec_012_subtask_count.md -- ActivityResponse.subTaskCount, owner-scoped
-    // like every other query here (PLANNER-012-AC-02).
+    // like every other query here (PLANNER-012-AC-02). Reused by planner_spec_023_subtask_reordering.md
+    // (PLANNER-023-AC-04) as the new sub-task's append-at-end position.
     long countByActivityIdAndOwner(UUID activityId, User owner);
+
+    // planner_spec_023_subtask_reordering.md (PLANNER-023-AC-09) -- the bulk fetch backing
+    // SubTaskService.reorder(). Scoped by activityId (not just owner) so an id belonging to a
+    // different activity, or a different owner, simply isn't found -- collapsing into the same 404
+    // as any other not-found/not-yours case, with no separate "wrong activity" 409 needed (see the
+    // spec's Overview).
+    List<SubTask> findByIdInAndActivityIdAndOwner(Collection<UUID> ids, UUID activityId, User owner);
 
     // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02) -- backs the new
     // GET /api/v1/sub-tasks bulk endpoint: every sub-task owned by the authenticated user, across

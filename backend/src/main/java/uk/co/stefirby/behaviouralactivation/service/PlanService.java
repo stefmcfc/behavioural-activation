@@ -294,7 +294,7 @@ public class PlanService {
             return; // AC-16/AC-17
         }
 
-        List<SubTask> subTasks = subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(
+        List<SubTask> subTasks = subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(
             activity.getId(), owner);
         boolean done;
         if (subTasks.isEmpty()) {

@@ -6,6 +6,7 @@ export interface SubTask {
   name: string
   category: ActivityCategory
   createdAt: string
+  position: number
 }
 
 export interface SubTaskInput {

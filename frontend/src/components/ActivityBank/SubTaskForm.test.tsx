@@ -14,6 +14,7 @@ const guestList: SubTask = {
   name: 'Create a guest list',
   category: 'PLEASURABLE',
   createdAt: '2026-09-29T00:00:00Z',
+  position: 0,
 }
 
 describe('SubTaskForm', () => {

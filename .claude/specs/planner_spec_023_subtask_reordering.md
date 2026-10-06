@@ -1,6 +1,10 @@
 # Sub-task Manual Reordering (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — see `model/SubTask.java`, `dto/SubTaskResponse.java`,
+`dto/SubTaskReorderRequest.java`, `repository/SubTaskRepository.java`, `service/SubTaskService.java`,
+`controller/SubTaskController.java`, `exception/InvalidSubTaskRequestException.java`,
+`exception/SubTaskReorderNotAllowedException.java`,
+`db/migration/V011__add_position_to_sub_tasks.sql`.
 **Priority**: P2 — UX improvement raised directly by the user (2026-10-06), not blocking any
 existing V1 flow. Mirrors `planner_spec_010_bucket_reordering.md`'s already-shipped pattern for a
 different list.
@@ -469,16 +473,43 @@ and `SubTaskReorderNotAllowedException` as specified above until every sketch ab
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-023-AC-01 — `SubTask.position` field + backfilling migration + index
-- [ ] PLANNER-023-AC-02 — `SubTaskResponse.position` field
-- [ ] PLANNER-023-AC-03 — listing is ordered by `position`, amending `PLANNER-003-AC-07`
-- [ ] PLANNER-023-AC-04 — `create()` appends a new sub-task at the end
-- [ ] PLANNER-023-AC-05 — `delete()` renumbers the remaining checklist contiguously
-- [ ] PLANNER-023-AC-06 — `PUT .../sub-tasks/order` endpoint exists
-- [ ] PLANNER-023-AC-07 — empty `subTaskIds` returns 400
-- [ ] PLANNER-023-AC-08 — duplicate id in `subTaskIds` returns 400
-- [ ] PLANNER-023-AC-09 — any id not found/not owned/wrong-activity returns 404, no partial application
-- [ ] PLANNER-023-AC-10 — submitted set not exactly the current checklist returns 409, no partial application
-- [ ] PLANNER-023-AC-11 — a valid request assigns 0..N-1 in submitted order, in one transaction
-- [ ] PLANNER-023-AC-12 — success returns 200 with the reordered checklist
-- [ ] PLANNER-023-AC-13 — existing `SubTaskResponse` fields unchanged (regression guard)
+- [x] PLANNER-023-AC-01 — `SubTask.position` field + backfilling migration + index
+- [x] PLANNER-023-AC-02 — `SubTaskResponse.position` field
+- [x] PLANNER-023-AC-03 — listing is ordered by `position`, amending `PLANNER-003-AC-07`
+- [x] PLANNER-023-AC-04 — `create()` appends a new sub-task at the end
+- [x] PLANNER-023-AC-05 — `delete()` renumbers the remaining checklist contiguously
+- [x] PLANNER-023-AC-06 — `PUT .../sub-tasks/order` endpoint exists
+- [x] PLANNER-023-AC-07 — empty `subTaskIds` returns 400
+- [x] PLANNER-023-AC-08 — duplicate id in `subTaskIds` returns 400
+- [x] PLANNER-023-AC-09 — any id not found/not owned/wrong-activity returns 404, no partial application
+- [x] PLANNER-023-AC-10 — submitted set not exactly the current checklist returns 409, no partial application
+- [x] PLANNER-023-AC-11 — a valid request assigns 0..N-1 in submitted order, in one transaction
+- [x] PLANNER-023-AC-12 — success returns 200 with the reordered checklist
+- [x] PLANNER-023-AC-13 — existing `SubTaskResponse` fields unchanged (regression guard)
+
+## Summary
+
+Implemented as specified: `V011__add_position_to_sub_tasks.sql` adds `position`, backfills it via a
+per-activity `ROW_NUMBER()` window function ordered by `created_at`, sets `NOT NULL`, and adds the
+`(activity_id, position)` index; `SubTask` gained `position`/`assignPosition(int)`/`getPosition()`;
+`SubTaskRepository#findByActivityIdAndOwnerOrderByCreatedAtAsc` was renamed to
+`...OrderByPositionAsc` across all three call sites
+(`SubTaskService.listForActivity`/`ActivityService.cascadeCategoryToSubTasks`/
+`PlanService.maybeAutoArchive`) plus their mocked-repository test stubs; `SubTaskService.create()`
+now appends via `countByActivityIdAndOwner`, `delete()` renumbers remaining siblings, and the new
+`reorder()` mirrors `PlanService.reorderBucket()`'s pattern using the new
+`findByIdInAndActivityIdAndOwner` bulk query; `SubTaskController` exposes
+`PUT /api/v1/activities/{activityId}/sub-tasks/order`; `InvalidSubTaskRequestException` (400) and
+`SubTaskReorderNotAllowedException` (409) are registered in `GlobalExceptionHandler`.
+
+One deliberate deviation from the `PLANNER-023-AC-01` test sketch: its "given" framing (three
+sub-tasks "as they existed before this migration") isn't provable via a real `@SpringBootTest` --
+Flyway's backfill runs once at context startup, before any test method executes, so there's no way
+to insert genuinely pre-migration rows at test time. `SubTaskServiceReorderIntegrationSpec.groovy`'s
+`AC-01` test instead asserts what is provable (the `position` column round-trips as a real, non-null
+`int`), matching `PLANNER-010-AC-01`'s own "exercised implicitly" precedent for the same kind of
+migration-backed, structural AC. No other deviations — every other AC matched its sketch as written.
+
+Full suite: 327 tests passing (0 failed), up from 318 before this spec — 9 new tests (8 in the new
+`SubTaskServiceReorderIntegrationSpec.groovy`, 1 `PLANNER-023-AC-07` addition to
+`SubTaskControllerSpec.groovy`).

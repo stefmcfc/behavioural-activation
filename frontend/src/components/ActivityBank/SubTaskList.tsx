@@ -42,6 +42,8 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [reorderInFlight, setReorderInFlight] = useState(false)
+  const [reorderError, setReorderError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -99,6 +101,42 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
     }
   }
 
+  // FRONTEND-047: sub-tasks are rendered in their persisted manual order rather than the raw
+  // array order local state happens to hold -- defensive, since create/rename/delete mutate
+  // state in place rather than refetching (mirrors BucketList.tsx's identical sort).
+  const sortedSubTasks = (subTasks ?? []).slice().sort((a, b) => a.position - b.position)
+
+  const handleReorder = async (subTaskIds: string[]) => {
+    setReorderError(null)
+    setReorderInFlight(true)
+    try {
+      const updated = await subTaskApi.reorder(activityId, subTaskIds)
+      setSubTasks(updated)
+    } catch (error) {
+      setReorderError(getErrorMessage(error))
+    } finally {
+      setReorderInFlight(false)
+    }
+  }
+
+  const handleMoveUp = (id: string) => {
+    const ids = sortedSubTasks.map((subTask) => subTask.id)
+    const index = ids.indexOf(id)
+    if (index <= 0) return
+    const next = [...ids]
+    ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+    handleReorder(next)
+  }
+
+  const handleMoveDown = (id: string) => {
+    const ids = sortedSubTasks.map((subTask) => subTask.id)
+    const index = ids.indexOf(id)
+    if (index === -1 || index >= ids.length - 1) return
+    const next = [...ids]
+    ;[next[index + 1], next[index]] = [next[index], next[index + 1]]
+    handleReorder(next)
+  }
+
   return (
     <div>
       <div className={styles.header}>
@@ -123,12 +161,13 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
         </p>
       )}
       {deleteError && <p role="alert">{deleteError}</p>}
+      {reorderError && <p role="alert">{reorderError}</p>}
 
       {subTasks === null && !loadError && <output>Loading sub-tasks…</output>}
 
       {subTasks !== null && subTasks.length > 0 && (
         <ul className={styles.list}>
-          {subTasks.map((subTask) => (
+          {sortedSubTasks.map((subTask, index) => (
             <li key={subTask.id} className={`${styles.row} ${styles.nested}`}>
               <span>{subTask.name}</span> <CategoryChip category={subTask.category} />
 
@@ -153,6 +192,24 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
                   </span>
                 ) : (
                   <span className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.moveButton}
+                      onClick={() => handleMoveUp(subTask.id)}
+                      disabled={index === 0 || reorderInFlight}
+                      aria-label={`Move ${subTask.name} up`}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.moveButton}
+                      onClick={() => handleMoveDown(subTask.id)}
+                      disabled={index === sortedSubTasks.length - 1 || reorderInFlight}
+                      aria-label={`Move ${subTask.name} down`}
+                    >
+                      ↓
+                    </button>
                     <button type="button" onClick={() => setFormTarget(subTask)}>
                       Rename
                     </button>

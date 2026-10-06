@@ -113,19 +113,29 @@ never client-supplied or editable afterward — it does not track later changes 
 activity's own category.
 
 - **`GET /api/v1/activities/{activityId}/sub-tasks`** — returns `200` with `{ "data": [...], "count":
-  N }`, the parent activity's sub-tasks ordered by `createdAt` ascending. An activity with no
+  N }`, the parent activity's sub-tasks ordered by `position` ascending. An activity with no
   sub-tasks yet returns `{ "data": [], "count": 0 }`, not an error. `404` if `activityId` isn't owned
   by the authenticated user.
 - **`POST /api/v1/activities/{activityId}/sub-tasks`** — body `{ "name": "..." }` (no `category`
   field — it is always copied from the parent activity's current category). Returns `201` with the
-  created sub-task. `400` if `name` is blank/missing, `404` if `activityId` isn't owned by the
-  authenticated user.
+  created sub-task, appended at the end of the checklist (`position` = current count). `400` if
+  `name` is blank/missing, `404` if `activityId` isn't owned by the authenticated user.
 - **`PATCH /api/v1/activities/{activityId}/sub-tasks/{id}`** — body `{ "name": "..." }`; renames the
   sub-task (category can never be changed via this endpoint). Returns `200` with the updated
   sub-task, `400` if `name` is blank/missing, `404` if `activityId` or `id` isn't owned by the
   authenticated user.
-- **`DELETE /api/v1/activities/{activityId}/sub-tasks/{id}`** — permanently deletes the sub-task.
-  Returns `204`, or `404` if `activityId` or `id` isn't owned by the authenticated user.
+- **`DELETE /api/v1/activities/{activityId}/sub-tasks/{id}`** — permanently deletes the sub-task,
+  then renumbers the activity's remaining sub-tasks' `position` values to stay contiguous (`0..N-1`,
+  preserving relative order). Returns `204`, or `404` if `activityId` or `id` isn't owned by the
+  authenticated user.
+- **`PUT /api/v1/activities/{activityId}/sub-tasks/order`** — body `{ "subTaskIds": ["...", ...] }`,
+  the complete desired order for the activity's checklist as a full-replacement list of ids. Returns
+  `200` with `{ "data": [...], "count": N }`, the reordered checklist, with `position` reassigned
+  `0..N-1` in the submitted order. `400` if `subTaskIds` is empty or contains a duplicate id, applying
+  no change. `404` if any submitted id isn't found, isn't owned by the authenticated user, or belongs
+  to a different activity than `activityId`. `409` if `subTaskIds` doesn't exactly match the
+  activity's current full set of sub-task ids (a stale/partial submission), applying no change to any
+  sub-task either way.
 - **`GET /api/v1/sub-tasks`** — returns `200` with `{ "data": [...], "count": N }`, every sub-task
   owned by the authenticated user across *all* of their activities, in one call (not nested under an
   `activityId` — each item's `activityId` field identifies its parent). No filtering, pagination, or

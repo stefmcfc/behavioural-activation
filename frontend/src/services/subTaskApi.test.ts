@@ -3,11 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const post = vi.fn()
 const get = vi.fn()
 const patch = vi.fn()
+const put = vi.fn()
 const del = vi.fn()
 const create = vi.fn(() => ({
   post,
   get,
   patch,
+  put,
   delete: del,
   interceptors: { response: { use: vi.fn() } },
 }))
@@ -31,6 +33,7 @@ describe('subTaskApi', () => {
     post.mockReset()
     get.mockReset()
     patch.mockReset()
+    put.mockReset()
     del.mockReset()
   })
 
@@ -41,6 +44,7 @@ describe('subTaskApi', () => {
       name: 'Create a guest list',
       category: 'PLEASURABLE',
       createdAt: '2026-09-29T00:00:00Z',
+      position: 0,
     }
     get.mockResolvedValue({ data: { data: [subTask], count: 1 } })
 
@@ -57,6 +61,7 @@ describe('subTaskApi', () => {
       name: 'Create a guest list',
       category: 'PLEASURABLE',
       createdAt: '2026-09-29T00:00:00Z',
+      position: 0,
     }
     post.mockResolvedValue({ data: created })
 
@@ -73,6 +78,7 @@ describe('subTaskApi', () => {
       name: 'Create and send a guest list',
       category: 'PLEASURABLE',
       createdAt: '2026-09-29T00:00:00Z',
+      position: 0,
     }
     patch.mockResolvedValue({ data: updated })
 
@@ -99,6 +105,7 @@ describe('subTaskApi', () => {
       name: 'Create a guest list',
       category: 'PLEASURABLE',
       createdAt: '2026-09-29T00:00:00Z',
+      position: 0,
     }
     const subTaskB = {
       id: 's2',
@@ -106,6 +113,7 @@ describe('subTaskApi', () => {
       name: 'Send invitations',
       category: 'PLEASURABLE',
       createdAt: '2026-09-29T00:00:00Z',
+      position: 0,
     }
     get.mockResolvedValue({ data: { data: [subTaskA, subTaskB], count: 2 } })
 
@@ -113,6 +121,27 @@ describe('subTaskApi', () => {
 
     expect(result).toEqual([subTaskA, subTaskB])
     expect(get).toHaveBeenCalledWith('/sub-tasks')
+  })
+
+  describe('FRONTEND-047-AC-11: reorder() calls PUT /activities/:id/sub-tasks/order', () => {
+    it('PUTs subTaskIds and resolves with the updated list', async () => {
+      const reordered = [
+        {
+          id: 'a',
+          activityId: 'a1',
+          name: 'A',
+          category: 'PLEASURABLE',
+          createdAt: '2026-09-29T00:00:00Z',
+          position: 0,
+        },
+      ]
+      put.mockResolvedValue({ data: { data: reordered, count: 1 } })
+
+      const result = await subTaskApi.reorder('a1', ['a'])
+
+      expect(put).toHaveBeenCalledWith('/activities/a1/sub-tasks/order', { subTaskIds: ['a'] })
+      expect(result).toEqual(reordered)
+    })
   })
 
   it('rejects with a typed ApiError on failure', async () => {

@@ -46,7 +46,7 @@ class SubTaskRepositorySpec extends Specification {
             activityRepository.delete(activity)
 
         then: "the sub-task row is gone too, without SubTaskService/ActivityService deleting it explicitly"
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.id, owner).isEmpty()
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activity.id, owner).isEmpty()
     }
 
     def "PLANNER-003-AC-18: a persisted SubTask carries its own owner directly, independent of activity.owner"() {

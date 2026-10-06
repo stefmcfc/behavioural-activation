@@ -195,7 +195,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
 
         and: "the category is changing, so the PLANNER-014-AC-01 cascade looks up this owner's sub-tasks (none here)"
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(existing.id, owner) >> []
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(existing.id, owner) >> []
 
         when: "the activity is updated"
             def result = service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.PLEASURABLE, "with music", null))
@@ -215,7 +215,7 @@ class ActivityServiceSpec extends Specification {
             activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
             def guestList = new SubTask(existing, "Create a guest list", ActivityCategory.PLEASURABLE, owner)
             def venue = new SubTask(existing, "Book a venue", ActivityCategory.PLEASURABLE, owner)
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(existing.id, owner) >> [guestList, venue]
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(existing.id, owner) >> [guestList, venue]
 
         when: "the activity's category is changed to NECESSARY"
             service.update("steve", id, new ActivityRequest(existing.name, ActivityCategory.NECESSARY, existing.description, null))
@@ -236,7 +236,7 @@ class ActivityServiceSpec extends Specification {
             service.update("steve", id, new ActivityRequest("Jog", ActivityCategory.ROUTINE, null, null))
 
         then: "the PLANNER-014-AC-01 cascade lookup never runs -- no unnecessary sub-task query/write"
-            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(_, _)
     }
 
     def "PLANNER-002-AC-15/AC-18: update returns empty when the id doesn't exist or belongs to a different owner"() {

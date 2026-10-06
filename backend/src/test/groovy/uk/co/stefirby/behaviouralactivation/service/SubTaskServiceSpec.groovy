@@ -69,7 +69,7 @@ class SubTaskServiceSpec extends Specification {
 
         and: "the repository returns sub-tasks for that activity and owner"
             def subTasks = [new SubTask(activity, "Create a guest list", ActivityCategory.PLEASURABLE, owner)]
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activityId, owner) >> subTasks
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner) >> subTasks
 
         when: "sub-tasks are listed for that activity"
             def result = service.listForActivity("steve", activityId)
@@ -85,7 +85,7 @@ class SubTaskServiceSpec extends Specification {
             userRepository.findByUsername("steve") >> Optional.of(owner)
             def activity = new Activity("Read a book", ActivityCategory.PLEASURABLE, null, owner)
             activityRepository.findByIdAndOwner(activityId, owner) >> Optional.of(activity)
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activityId, owner) >> []
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner) >> []
 
         when: "sub-tasks are listed"
             def result = service.listForActivity("steve", activityId)
@@ -166,6 +166,9 @@ class SubTaskServiceSpec extends Specification {
             activityRepository.findByIdAndOwner(activityId, owner) >> Optional.of(activity)
             def existing = new SubTask(activity, "Create a guest list", ActivityCategory.PLEASURABLE, owner)
             subTaskRepository.findByIdAndActivityIdAndOwner(id, activityId, owner) >> Optional.of(existing)
+
+        and: "the PLANNER-023-AC-05 renumbering lookup after delete finds no remaining siblings"
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner) >> []
 
         when: "delete is requested"
             def deleted = service.delete("steve", activityId, id)

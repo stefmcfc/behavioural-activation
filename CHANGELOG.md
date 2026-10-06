@@ -6,6 +6,15 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- Sub-tasks within an activity's checklist can now be manually reordered from the Activities page,
+  via keyboard-accessible Move up/Move down buttons on each row (no drag-and-drop, deliberately —
+  avoids the weekend bucket list's known touch-support gap). New `PUT
+  /api/v1/activities/{activityId}/sub-tasks/order` endpoint and a persisted `position` field on
+  `SubTask`; newly-created sub-tasks append at the end, and deleting one renumbers the rest to stay
+  contiguous.
+
 ## [0.38.0] - 2026-10-06
 
 ### Changed

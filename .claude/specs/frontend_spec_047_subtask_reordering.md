@@ -1,6 +1,8 @@
 # Sub-task Manual Reordering (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `frontend/src/types/subTask.ts`,
+`frontend/src/services/subTaskApi.ts`, `frontend/src/components/ActivityBank/SubTaskList.tsx`,
+`frontend/src/components/ActivityBank/SubTaskList.module.css`
 **Priority**: P2 — UX improvement raised directly by the user (2026-10-06), not blocking any
 existing V1 flow. Mirrors `frontend_spec_010_bucket_reordering.md`'s already-shipped pattern for a
 different list.
@@ -494,15 +496,50 @@ equivalent note for its own prop-shape change.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-047-AC-01 — sub-tasks render ordered by `position`, not array order
-- [ ] FRONTEND-047-AC-02 — Move up/Move down buttons with accessible names render per row (gated by `readOnly`)
-- [ ] FRONTEND-047-AC-03 — Move up disabled/no-op on the first item
-- [ ] FRONTEND-047-AC-04 — Move down disabled/no-op on the last item
-- [ ] FRONTEND-047-AC-05 — Move up/down computes the full swapped order and calls `subTaskApi.reorder`
-- [ ] FRONTEND-047-AC-06 — all reorder controls disabled while a reorder request is in flight
-- [ ] FRONTEND-047-AC-07 — a successful reorder replaces the displayed checklist with the response
-- [ ] FRONTEND-047-AC-08 — a rejected reorder surfaces an alert and keeps the previous order
-- [ ] FRONTEND-047-AC-09 — `readOnly` hides Move up/down controls
-- [ ] FRONTEND-047-AC-10 — `SubTask.position` type field added
-- [ ] FRONTEND-047-AC-11 — `subTaskApi.reorder(...)` calls `PUT .../sub-tasks/order`
-- [ ] FRONTEND-047-AC-12 — no drag-and-drop affordance renders (regression guard for the buttons-only decision)
+- [x] FRONTEND-047-AC-01 — sub-tasks render ordered by `position`, not array order
+- [x] FRONTEND-047-AC-02 — Move up/Move down buttons with accessible names render per row (gated by `readOnly`)
+- [x] FRONTEND-047-AC-03 — Move up disabled/no-op on the first item
+- [x] FRONTEND-047-AC-04 — Move down disabled/no-op on the last item
+- [x] FRONTEND-047-AC-05 — Move up/down computes the full swapped order and calls `subTaskApi.reorder`
+- [x] FRONTEND-047-AC-06 — all reorder controls disabled while a reorder request is in flight
+- [x] FRONTEND-047-AC-07 — a successful reorder replaces the displayed checklist with the response
+- [x] FRONTEND-047-AC-08 — a rejected reorder surfaces an alert and keeps the previous order
+- [x] FRONTEND-047-AC-09 — `readOnly` hides Move up/down controls
+- [x] FRONTEND-047-AC-10 — `SubTask.position` type field added
+- [x] FRONTEND-047-AC-11 — `subTaskApi.reorder(...)` calls `PUT .../sub-tasks/order`
+- [x] FRONTEND-047-AC-12 — no drag-and-drop affordance renders (regression guard for the buttons-only decision)
+
+## Summary
+
+Implemented exactly as specced, no deviations. `SubTask.position: number` added to the type;
+`subTaskApi.reorder(activityId, subTaskIds)` added (`PUT /activities/:id/sub-tasks/order`);
+`SubTaskList.tsx` sorts by `position`, adds Move up/Move down buttons inline in the existing
+`{!readOnly && (...)}` actions block (no new sub-component, no drag/`draggable` markup), with a
+shared `reorderInFlight` flag and a `reorderError` alert mirroring the existing `deleteError`
+pattern.
+
+- **Tests**: 9 new test blocks added to `SubTaskList.test.tsx` (one per AC-01/02/03-04/05/06/07/
+  08/09/12) plus 1 new test in `subTaskApi.test.ts` (AC-11). `SubTaskList.test.tsx` went from 25 to
+  32 tests and `subTaskApi.test.ts` from 6 to 7 (net +8 — the AC-09 and AC-12 sketches were already
+  trivially true before the Move buttons existed, since "no buttons render" and "no draggable
+  renders" both held either way, so those two didn't move from red to green the way the other seven
+  did; all nine are still present as explicit regression coverage). Full frontend suite: 652 passed
+  (44 test files), up from 644 before this change, zero regressions. `npm run lint` (oxlint) clean,
+  `npx tsc -b --noEmit` clean after also adding `position` to five pre-existing `SubTask` fixtures
+  in other test files (`ActivityBank.test.tsx`, `SubTaskForm.test.tsx`, `ActivityPickerList.test.tsx`,
+  `AssignActivityPicker.test.tsx`, `WeeklyPlanner.test.tsx`) that construct `SubTask` objects inline
+  — a mechanical consequence of the type change, not a new requirement.
+- **Real-browser verification** (completed in a follow-up pass, Chrome automation): logged into the
+  live app at `:4321` against the real `:8420` backend, added three sub-tasks to "Go for a walk"
+  (Put on shoes / Walk around the block / Take off shoes), and confirmed visually that the first
+  row's Move-up and the last row's Move-down render greyed-out/disabled (zoomed screenshot), while
+  the middle row has both enabled. Clicked Move up on the last item — "Put on shoes" and "Walk
+  around the block" swapped immediately. **Reloaded the page from scratch** and re-expanded the
+  checklist: the new order ("Walk around the block" first) was still there, confirming the real
+  `PUT .../sub-tasks/order` round-trip persists server-side, not just client state. Confirmed the
+  `readOnly` gate works in the live app by expanding an archived activity ("Renew passport") and
+  observing its checklist panel renders no "Add sub-task" button either — the same `{!readOnly &&
+  ...}` gate the new Move buttons sit inside — corroborating `FRONTEND-047-AC-09`'s automated
+  coverage with a real-app check of the underlying mechanism. All three test sub-tasks were deleted
+  afterward, leaving the activity bank as found. No deviations from the spec's embedded code
+  sketches were needed.

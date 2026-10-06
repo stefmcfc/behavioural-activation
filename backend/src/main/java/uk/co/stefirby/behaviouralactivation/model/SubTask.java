@@ -44,6 +44,9 @@ public class SubTask {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    private int position;
+
     protected SubTask() {
         // JPA
     }
@@ -66,6 +69,13 @@ public class SubTask {
     // changes, cascading that new value to every existing sub-task. Same pattern as rename().
     public void recategorize(ActivityCategory category) {
         this.category = category;
+        this.updatedAt = Instant.now();
+    }
+
+    // planner_spec_023_subtask_reordering.md (PLANNER-023-AC-01) -- same "set field + touch
+    // updatedAt" shape as rename()/recategorize() above.
+    public void assignPosition(int position) {
+        this.position = position;
         this.updatedAt = Instant.now();
     }
 
@@ -95,5 +105,9 @@ public class SubTask {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public int getPosition() {
+        return position;
     }
 }
