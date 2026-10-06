@@ -79,6 +79,10 @@ this file.
 
 **Last updated:** `2026-10-06`
 
+- added two new ideas, items 5 and 6 of `.claude/audits/audit-2026-10-06.md`'s non-functional
+  audit: enabling JUnit parallel test execution, and a missing index plus uncached list sorts both
+  flagged as real but below the threshold worth fixing at this app's current scale — see entries
+  below.
 - added three new candidates, raised by the user while reviewing the just-shipped Suggested
   activities feature: marking days as "work days", per-occurrence notes, and Activity Bank
   sorting/organization.
@@ -101,6 +105,46 @@ this file.
   removed from this file.
 
 ---
+
+## Enable JUnit Platform parallel test execution for the backend suite
+
+```
+Status: Not specced.
+```
+
+Raised `2026-10-06`, item 5 of `.claude/audits/audit-2026-10-06.md`'s non-functional audit. The
+backend Spock suite (327 tests, 34 classes) currently runs single-threaded, single-JVM — `gradlew.bat
+test`'s `useJUnitPlatform()` call sets no `maxParallelForks` and no JUnit Jupiter parallel-execution
+properties. A real, measured 27.6s full run today is not slow enough to justify turning this on.
+
+Turning it on isn't free when it does become worth doing: 7 of the suite's specs are real-Postgres
+`@SpringBootTest` integration tests sharing one database with no per-class isolation. Each one's
+cleanup strategy (most use `cleanup:` blocks today) would need checking before running them
+concurrently, to avoid cross-test interference. Revisit once the suite is actually slow enough to
+annoy someone in daily use, not before — this is a lever to have ready, not a problem to solve now.
+
+## Composite index for `PlanService.migrateStaleBucketItems`'s query, and `useMemo` on reorderable list sorts
+
+```
+Status: Not specced.
+```
+
+Raised `2026-10-06`, item 6 of `.claude/audits/audit-2026-10-06.md`'s non-functional audit. Two
+small, unrelated performance observations, both real but below the threshold worth fixing at this
+app's current single-user V1 scale:
+
+- `migrateStaleBucketItems` runs on every `GET /api/v1/plan` request (the hottest query path in the
+  app) via `findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore`, with no composite index
+  covering it — its two sibling queries both have full index coverage, this one doesn't. At
+  realistic bucket-list sizes (low tens of rows) this is sub-millisecond regardless of the missing
+  index; it's a consistency gap against the other two queries more than a performance one today.
+- `SubTaskList.tsx` and `BucketList.tsx` both re-sort their list on every render with no `useMemo`
+  around the `.sort()` call. The largest real checklist observed during testing was 12 items — a
+  `.sort()` over a dozen items is sub-millisecond, and adding `useMemo` here would mean a dependency
+  array to keep correct for no measurable gain at today's list sizes.
+
+Revisit either only if real usage ever grows list/dataset sizes enough for these to become
+measurable — don't add the index or the memoization ahead of that actually happening.
 
 ## Finer-grained/custom time slots for planned activities
 

@@ -30,9 +30,13 @@ file's pipeline and structure):
 
 **Last updated: `2026-10-06`**
 
-the preset/starter activity bank candidate moved to a real spec —
-`frontend_spec_040_preset_starter_activities.md`, see `ROADMAP.md`'s "Specced, coming soon" —
-removed from this file.
+- the preset/starter activity bank candidate moved to a real spec —
+  `frontend_spec_040_preset_starter_activities.md`, see `ROADMAP.md`'s "Specced, coming soon" —
+  removed from this file.
+- added the icon+text CTA treatment candidate, raised by the user in a post-merge discussion
+  prompted by `planner_spec_023`/`frontend_spec_047`'s Move-button icon polish — see entry below.
+- added the CI + automated end-to-end testing candidate, item 4 of
+  `.claude/audits/audit-2026-10-06.md`'s non-functional audit — see entry below.
 
 `2026-10-05`
 
@@ -104,6 +108,74 @@ soon"
 ---
 
 ## Candidates
+
+## CI + automated end-to-end testing
+
+```
+Status: Confirmed worth a candidate, not yet specced — needs a scoping conversation first.
+```
+
+Raised `2026-10-06`, item 4 of `.claude/audits/audit-2026-10-06.md`'s non-functional audit. Two
+related, currently-absent pieces of infrastructure:
+
+- **No CI at all.** Nothing runs `gradlew.bat test`/`npm test`/`npm run lint` automatically on a
+  push or PR — everything in this project's test suite only runs when someone remembers to run it
+  locally.
+- **No automated black-box/end-to-end testing.** The only thing exercising the app through a real
+  browser is a one-time manual pass per feature, done at implementation time, never repeated, never
+  run in CI. It's already caught real bugs the Spock/Vitest suites missed (a horizontal-scrollbar
+  overflow, a Hibernate flush-ordering bug) — good evidence it's worth making repeatable, not
+  evidence it's fine to leave manual-only.
+
+These are related (an e2e suite is the kind of thing CI exists to run) but are two separate pieces
+of work and don't have to land together. Not yet spec-able because the scope needs real decisions
+first, not just effort:
+
+- Which CI provider/config (this project already uses GitHub, so GitHub Actions is the likely
+  default, but worth confirming rather than assuming).
+- What runs on every push vs. only on PR vs. nightly — the full backend suite alone takes ~28s
+  today, cheap enough to run on every push, but that calculus changes once/if an e2e suite is added.
+- Which e2e tool (`frontend_spec_010`'s `FRONTEND-010-AC-08` already named Playwright as the likely
+  candidate when this gap was first hit).
+- Whether e2e tests get written retroactively for already-shipped features or only for new ones
+  going forward (retroactive coverage is a much bigger lift).
+
+Revisit once there's an answer to those questions — this is the biggest structural gap this audit
+found, but also the one most likely to be mis-scoped if spec'd before those are settled.
+
+## Icon+text treatment for Add/Edit/Delete CTAs
+
+```
+Status: Confirmed worth a candidate, not yet specced.
+```
+
+Raised `2026-10-06` by the user, prompted by `planner_spec_023_subtask_reordering.md`/
+`frontend_spec_047_subtask_reordering.md`'s Move up/down chevron-icon polish. The user asked for an
+opinion on icon-only CTAs — add (`+`), edit (pencil), delete (bin) — across the app: how universally
+recognized they are, and the accessibility impact. The `modern-web-guidance:accessibility` guide was
+consulted; discussion summary (not yet a design decision):
+
+- All three icons are widely but not universally recognized — learned software conventions, not
+  inherently intuitive symbols. Trash/delete is the most universal of the three; pencil/edit is the
+  most prone to confusion (e.g. with "annotate a note").
+- The real accessibility risk isn't recognizability, it's losing the free self-documentation visible
+  text gives you for free. Icon-only buttons need a disambiguated per-instance `aria-label` (e.g.
+  `Delete {activity name}`, not a shared `Delete`) wherever more than one instance appears in a list
+  — this app already does exactly this for the Move up/down buttons (`Move {name} up`), so the
+  discipline has a direct precedent to extend rather than invent from scratch.
+- Icons-as-UI-components need 3:1 contrast (same bar as borders/focus rings), and icon-only buttons
+  are more prone to shrinking under the ~24×24px touch-target minimum than a padded text button.
+- A sketched-but-unconfirmed direction from the conversation: icon+text for primary/destructive
+  actions (Add, Delete — Delete especially, given it's irreversible even with the existing two-step
+  confirm), icon-only with disciplined per-row `aria-label`s for secondary/low-stakes actions
+  (Edit/Rename, Move). This is a visual-density tradeoff the user still needs to weigh, not a
+  decision.
+
+Every CTA across the app (Activity Bank, sub-task rows, Weekly Planner) currently uses full visible
+text labels ("Edit", "Delete", "Rename", "Add activity", "Add sub-task") — this candidate is about
+whether/where to move toward icon or icon+text treatments, not a known regression or bug. No
+component scope is decided yet; a real spec would need a UX pass across every CTA site to decide
+which get icon-only vs. icon+text treatment first.
 
 ## Touch-friendly weekend bucket list reordering
 
