@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.3] - 2026-10-06
+
 ### Fixed
 
 - The "By schedule and category" breakdown chart could render a segment's inline label clipped and
