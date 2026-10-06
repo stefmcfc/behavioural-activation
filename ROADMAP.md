@@ -85,7 +85,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Sub-task manual reordering (Activities page) | [`planner_spec_023_subtask_reordering.md`](.claude/specs/planner_spec_023_subtask_reordering.md) | [`frontend_spec_047_subtask_reordering.md`](.claude/specs/frontend_spec_047_subtask_reordering.md) | 📝 Specced (2026-10-06), not yet implemented. Mirrors the already-shipped weekend bucket reordering pattern; Move up/Move down buttons only, no drag-and-drop (deliberate — avoids the bucket list's known touch-support gap). |
 
 ## Internal / maintenance specs
 
