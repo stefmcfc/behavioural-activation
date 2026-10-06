@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.2] - 2026-10-06
+
 ### Fixed
 
 - An occurrence's notes/actions dialog was rendered as a DOM child of its (native-HTML5-draggable)
