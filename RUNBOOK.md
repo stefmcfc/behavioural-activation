@@ -239,6 +239,7 @@ Needs Postgres running (`docker compose up -d`) — the test profile points at t
 cd frontend
 npm test              # Vitest, single run
 npm run test:watch    # watch mode
+npm run test:coverage  # Vitest with coverage report (text + coverage/lcov-report/, no gate)
 npm run lint           # oxlint
 ```
 

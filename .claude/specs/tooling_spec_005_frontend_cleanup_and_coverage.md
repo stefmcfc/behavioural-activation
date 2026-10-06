@@ -1,6 +1,7 @@
 # Deduplicate getErrorMessage, Resolve ChevronIcon Collision, Add Frontend Coverage Script (Tooling)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `frontend/src/utils/getErrorMessage.ts`,
+`frontend/src/components/icons/ChevronIcon.tsx`, `frontend/vitest.config.ts`/`package.json`
 **Priority**: P3 — quality/tooling cleanup, no user-facing behavior change
 **Depends on**: `frontend_spec_047_subtask_reordering.md` (the `ChevronIcon` `direction` prop and
 the `WeekNav.tsx` naming collision it sharpened, both addressed here), `tooling_spec_003_modern_web_guidance_fixes.md`
@@ -190,8 +191,51 @@ output ignore pattern. No Vitest `*.test.ts(x)` file changes needed for this AC.
 
 ## Acceptance Criteria Summary
 
-- [ ] TOOLING-005-AC-01 — shared `getErrorMessage` utility exists, identical behavior to the 11 copies
-- [ ] TOOLING-005-AC-02 — no duplicate local declarations remain, all 11 import the shared utility
-- [ ] TOOLING-005-AC-03 — shared `ChevronIcon` supports `up`/`down`/`left`/`right`
-- [ ] TOOLING-005-AC-04 — `WeekNav.tsx` uses the shared `ChevronIcon`, no second definition remains
-- [ ] TOOLING-005-AC-05 — `npm run test:coverage` is wired up and produces a real report
+- [x] TOOLING-005-AC-01 — shared `getErrorMessage` utility exists, identical behavior to the 11 copies
+- [x] TOOLING-005-AC-02 — no duplicate local declarations remain, all 11 import the shared utility
+- [x] TOOLING-005-AC-03 — shared `ChevronIcon` supports `up`/`down`/`left`/`right`
+- [x] TOOLING-005-AC-04 — `WeekNav.tsx` uses the shared `ChevronIcon`, no second definition remains
+- [x] TOOLING-005-AC-05 — `npm run test:coverage` is wired up and produces a real report
+
+## Summary
+
+### What changed
+- Added `frontend/src/utils/getErrorMessage.ts` (+ `getErrorMessage.test.ts`, 3 cases) and removed
+  the 11 duplicated local copies, replacing each with an import. In each case the now-unused local
+  `ApiError` import was also removed (it had no other use in any of the 11 files).
+- Extended `frontend/src/components/icons/ChevronIcon.tsx` with `left`/`right` directions (exact
+  point values taken from `WeekNav.tsx`'s prior local copy), added the AC-03 `it.each` test file
+  (`ChevronIcon.test.tsx`, new — none existed before), and updated `WeekNav.tsx` to import the
+  shared component instead of declaring its own. Removed the now-unused `.chevronIcon` class from
+  `WeekNav.module.css` (confirmed via grep it had no other reference).
+- Added `test:coverage` script (`vitest run --coverage`) to `frontend/package.json` and a
+  `test.coverage` block to `frontend/vitest.config.ts` (`provider: 'v8'`, `reporter: ['text',
+  'lcov', 'json-summary']`, excluding test files, `main.tsx`, and `types/`/`.d.ts`). Added
+  `coverage` to `frontend/.gitignore` (previously not covered by any existing pattern).
+
+### Test counts
+- Before: 45 test files / 652 tests passing (verified by stashing tracked changes and re-running;
+  the 2 new untracked test files still present at that point contributed the only failures, both
+  in the `ChevronIcon` `left`/`right` cases, as expected pre-AC-03).
+- After: 46 test files / 660 tests passing (+1 file, `getErrorMessage.test.ts`'s 3 cases live inside
+  an existing new file count and `ChevronIcon.test.tsx`'s 5 cases — net +8 tests, +1 file since
+  `ChevronIcon.test.tsx` didn't exist before).
+- `npm run lint` (oxlint) and `npx tsc -b --noEmit`: both clean, zero findings.
+
+### Coverage
+- `npm run test:coverage` exits 0 and writes `frontend/coverage/` (`lcov.info`,
+  `coverage-summary.json`, `lcov-report/`).
+- Overall: **93.67% statements, 88.72% branches, 91.48% functions, 94.56% lines** (660/660 tests
+  passing under coverage instrumentation too). No threshold is enforced — this number is recorded
+  for visibility only, per the Overview's "out of scope."
+
+### Findings
+- All 11 `getErrorMessage` local copies were confirmed byte-identical (same 13-line body) before
+  extraction — no behavior differences found.
+- Fixing the coverage config surfaced one real gotcha: using `reporters` (plural) instead of
+  Vitest's actual `reporter` (singular) `CoverageOptions` key doesn't just fail cleanly — it breaks
+  `mergeConfig`'s type inference entirely, producing a second, unrelated-looking `tsc` error
+  (`UserConfig & Promise<UserConfig>... not assignable to type 'never'`) at `vitest.config.ts`'s
+  `mergeConfig(...)` call site. Fixed by using the correct `reporter` key.
+- No other surprises; `WeekNav.test.tsx` passed unchanged after the `ChevronIcon` swap, as
+  expected for a pure rendering-implementation change.

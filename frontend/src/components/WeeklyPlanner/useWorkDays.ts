@@ -1,22 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { workDayApi } from '../../services/workDayApi'
-import { ApiError } from '../../types/api'
 import type { WorkDay } from '../../types/workDay'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
-}
+import { getErrorMessage } from '../../utils/getErrorMessage'
 
 // FRONTEND-042: a usePlanActions-style hook, independently fetching one week's effective work-day
 // status (planner_spec_021's GET /api/v1/work-days) so WeeklyPlanner and TodayView can each mount

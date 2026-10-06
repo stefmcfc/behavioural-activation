@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { activityApi } from '../../services/activityApi'
-import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import { PRESET_ACTIVITIES, type PresetActivity } from '../../utils/presetActivities'
 import { CATEGORY_ORDER } from '../../utils/categoryLabels'
@@ -8,6 +7,7 @@ import type { CategoryFilter } from '../../utils/categoryFilter'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { CategoryGroupHeading } from '../CategoryGroupHeading/CategoryGroupHeading'
 import { ChevronIcon } from '../icons/ChevronIcon'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './SuggestedActivities.module.css'
 
 interface SuggestedActivitiesProps {
@@ -15,21 +15,6 @@ interface SuggestedActivitiesProps {
   readonly onAdded: (activity: Activity) => void
   readonly defaultOpen?: boolean
   readonly categoryFilter: CategoryFilter
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export function SuggestedActivities({

@@ -1,7 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { subTaskApi } from '../../services/subTaskApi'
-import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './SubTaskForm.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -11,21 +11,6 @@ interface SubTaskFormProps {
   readonly subTask?: SubTask
   readonly onSuccess: (subTask: SubTask) => void
   readonly onCancel?: () => void
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export function SubTaskForm({ mode, activityId, subTask, onSuccess, onCancel }: SubTaskFormProps) {

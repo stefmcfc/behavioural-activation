@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { subTaskApi } from '../../services/subTaskApi'
-import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
 import { ChevronIcon } from '../icons/ChevronIcon'
 import { Modal } from '../Modal/Modal'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './SubTaskList.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -13,21 +13,6 @@ type FormTarget = 'create' | SubTask | null
 
 function formTargetTitleId(formTarget: FormTarget): string {
   return `sub-task-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 interface SubTaskListProps {
