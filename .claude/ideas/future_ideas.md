@@ -79,6 +79,11 @@ this file.
 
 **Last updated:** `2026-10-06`
 
+- re-reviewed the "Pagination on `GET /api/v1/activities`" entry at the user's request, with real
+  dev-data research backing it up — still not specced, now for a sharper reason (pagination
+  actively conflicts with the current client-side-filtering UI, not just "no urgency yet"). The
+  same research found one real, separate, actionable bug — moved straight to a real spec,
+  `frontend_spec_048_today_view_picker_mutual_exclusion.md` — see that entry's own note.
 - added two new ideas, items 5 and 6 of `.claude/audits/audit-2026-10-06.md`'s non-functional
   audit: enabling JUnit parallel test execution, and a missing index plus uncached list sorts both
   flagged as real but below the threshold worth fixing at this app's current scale — see entries
@@ -258,6 +263,21 @@ matches this app's stated personal/small-scale use (`.claude/HIGH_LEVEL_DESIGN_F
 genuinely fine today and for the foreseeable future. Logged here, not actioned, in case the activity
 count ever grows enough (e.g. heavy multi-user adoption) for an unbounded response to start mattering
 — revisit only if that actually happens, don't build pagination ahead of a concrete need for it.
+
+**Re-reviewed `2026-10-06`**, prompted by the user asking to scope this into a real spec. Research
+first, before writing one: real current data (queried the live dev backend) is **20 activities, 23
+sub-tasks total** — the "genuinely fine" assessment still holds, four days on. `GET /api/v1/sub-tasks`
+(the bulk endpoint) is the only other genuinely unbounded list endpoint — everything else is bounded
+by week or by parent activity. More importantly, standard pagination would actively conflict with
+today's UI: `ActivityBank.tsx`'s category grouping and "Favourites only" filter both operate
+client-side over the *entire* fetched list — paginating the response would mean a category group
+could span two pages, or "Favourites only" could miss a favourite sitting on an unfetched page.
+**Still not specced, and now for a sharper reason than just "no urgency": pagination as commonly
+understood is the wrong shape for how this app's UI actually works today.** If list length ever does
+become a real pain point, a search/filter param is the more likely right fix, not paging — revisit
+with that framing, not this one. (The same research pass did turn up one real, separate, actionable
+finding — a redundant-fetch bug in `TodayView.tsx` — which went straight to a real spec,
+`frontend_spec_048_today_view_picker_mutual_exclusion.md`, rather than staying in this file.)
 
 ## Self-hosted/local LLM inference for AI features
 

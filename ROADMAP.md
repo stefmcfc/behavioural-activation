@@ -86,7 +86,7 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
+| Today view: drawer and Assign modal are mutually exclusive (bug fix) | — (frontend-only) | [`frontend_spec_048_today_view_picker_mutual_exclusion.md`](.claude/specs/frontend_spec_048_today_view_picker_mutual_exclusion.md) | 📝 Specced (2026-10-06), not yet implemented. |
 
 ## Internal / maintenance specs
 
