@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-10-06
+
+### Added
+
+- "Export my data" button in the Account menu, downloading all of your own data (activities,
+  sub-tasks, planned occurrences, completion records, work-day patterns/overrides) as one
+  replayable SQL file via a new `GET /api/v1/export` endpoint — for restoring your data after a
+  self-hosted database reset. See `.claude/specs/planner_spec_025_data_export.md` and
+  `.claude/specs/frontend_spec_051_data_export.md`.
+
 ## [0.40.0] - 2026-10-06
 
 ### Added

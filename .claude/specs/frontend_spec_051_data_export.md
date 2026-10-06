@@ -1,6 +1,7 @@
 # Export Your Data as Replayable SQL (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `frontend/src/services/exportApi.ts`,
+`frontend/src/components/Navigation/AccountMenu.tsx`
 **Priority**: P2 — matches `planner_spec_025_data_export.md`'s priority
 **Depends on**: `planner_spec_025_data_export.md` (paired backend spec — `GET /api/v1/export`),
 `frontend_spec_030_header_restructure.md` (`AccountMenu`'s existing popover panel)
@@ -138,8 +139,54 @@ AC here.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-051-AC-01 — Export button triggers an authenticated blob-download request
-- [ ] FRONTEND-051-AC-02 — a successful download saves the file via the browser (manual/real-browser verified)
-- [ ] FRONTEND-051-AC-03 — button shows a busy state while in flight
-- [ ] FRONTEND-051-AC-04 — a failed export shows an error
-- [ ] FRONTEND-051-AC-05 — `exportApi.downloadExport()` calls `GET /export` with `responseType: 'blob'`
+- [x] FRONTEND-051-AC-01 — Export button triggers an authenticated blob-download request
+- [x] FRONTEND-051-AC-02 — a successful download saves the file via the browser (real-browser verified)
+- [x] FRONTEND-051-AC-03 — button shows a busy state while in flight
+- [x] FRONTEND-051-AC-04 — a failed export shows an error
+- [x] FRONTEND-051-AC-05 — `exportApi.downloadExport()` calls `GET /export` with `responseType: 'blob'`
+
+## Summary
+
+### What shipped
+- `services/exportApi.ts` (new) — `downloadExport(): Promise<Blob>`, calling `client.get('/export',
+  { responseType: 'blob' })` directly, bypassing the shared `request<T>()` JSON helper (matches the
+  spec's AC-05 snippet exactly).
+- `components/Navigation/AccountMenu.tsx` — new "Export my data" button in the popover panel,
+  alongside "Log out" and "Change password" (which now opens a `Modal` dialog per
+  `frontend_spec_050`). On click: calls `exportApi.downloadExport()`, disables itself and shows
+  "Exporting…" while in flight, and on success creates an object URL from the returned `Blob`,
+  triggers a momentary programmatic `<a download>` click, then revokes the object URL. On failure,
+  renders the error via the existing `getErrorMessage` + `role="alert"` pattern used by the Change
+  password form in the same file.
+- `components/Navigation/AccountMenu.module.css` — `.exportButton` styling, matching
+  `.changePasswordTrigger`'s existing look (plus a disabled state).
+- `services/exportApi.test.ts` (new) — 2 tests covering the request shape and rejection
+  propagation.
+- `components/Navigation/AccountMenu.test.tsx` — 3 new tests (AC-01, AC-03, AC-04) added to the
+  existing suite, following the spec's test sketches; `URL.createObjectURL`/`revokeObjectURL` are
+  stubbed per-test via `vi.stubGlobal` since jsdom doesn't implement them.
+
+### Decisions made where the spec left something open
+- **Download filename source**: the spec's own AC-05 contract has `exportApi.downloadExport()`
+  return only the `Blob` (not the full axios response), so the real server-provided
+  `Content-Disposition` filename isn't available at the call site without changing that contract.
+  Hardcoded a generic client-side filename (`behavioural-activation-export.sql`) instead of
+  threading the response headers through — matches the spec's explicit sketch and keeps the service
+  contract simple; revisit only if a real filename (e.g. with an embedded date, matching what the
+  backend sends) turns out to matter in practice.
+
+### Test results (frontend, this change)
+- `npm test`: 46 files / 678 tests before this change → 47 files / 683 tests after (+1 file,
+  +5 tests: 2 new in `exportApi.test.ts`, 3 new in the existing `AccountMenu.test.tsx`). All green,
+  zero regressions.
+- `npm run lint` (oxlint): clean, no new findings.
+- `npx tsc -b --noEmit`: clean, no errors.
+
+### Real-browser verification (FRONTEND-051-AC-02)
+Completed in a follow-up pass (Chrome automation, against the live `:4321`/`:8420` dev stack): logged
+in, opened the Account menu, clicked "Export my data", and confirmed via the browser's own network
+log that a real `GET /api/v1/export` request fired and returned `200`. Checked the OS Downloads
+folder directly afterward: a real `behavioural-activation-export.sql` file was present (35,454 bytes
+on this run), and its content opened correctly as the expected header comment + `BEGIN;`/real
+`INSERT` statements — the genuine browser download path (`URL.createObjectURL` + programmatic `<a
+download>` click), not jsdom's simulation of it. Test files removed afterward.

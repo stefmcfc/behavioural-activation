@@ -3,10 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountMenu } from './AccountMenu'
 import { authApi } from '../../services/authApi'
+import { exportApi } from '../../services/exportApi'
 import { ApiError } from '../../types/api'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/authApi')
+vi.mock('../../services/exportApi')
 
 // FRONTEND-050 (modal follow-up): the form now lives in a real <dialog> (Modal), opened via a
 // "Change password" trigger inside the Account popover -- both steps are needed to reach the
@@ -209,6 +211,73 @@ describe('FRONTEND-050: Change password', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/invalid credentials/i)
       expect(onPasswordChanged).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('FRONTEND-051: Export my data', () => {
+  async function openAccountPanel() {
+    if (!screen.queryByRole('button', { name: /export my data/i })) {
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+    }
+  }
+
+  describe('FRONTEND-051-AC-01: Export my data triggers an authenticated download request', () => {
+    it('calls exportApi.downloadExport on click', async () => {
+      const downloadSpy = vi
+        .mocked(exportApi.downloadExport)
+        .mockResolvedValue(new Blob(['-- export'], { type: 'text/plain' }))
+      vi.stubGlobal('URL', {
+        ...URL,
+        createObjectURL: vi.fn(() => 'blob:mock-url'),
+        revokeObjectURL: vi.fn(),
+      })
+
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openAccountPanel()
+
+      await userEvent.click(screen.getByRole('button', { name: /export my data/i }))
+
+      expect(downloadSpy).toHaveBeenCalledTimes(1)
+      vi.unstubAllGlobals()
+    })
+  })
+
+  describe('FRONTEND-051-AC-03: Export button shows a busy state while in flight', () => {
+    it('disables the button until the download resolves', async () => {
+      let resolveDownload: (value: Blob) => void = () => {}
+      vi.mocked(exportApi.downloadExport).mockReturnValue(
+        new Promise((resolve) => {
+          resolveDownload = resolve
+        }),
+      )
+      vi.stubGlobal('URL', {
+        ...URL,
+        createObjectURL: vi.fn(() => 'blob:mock-url'),
+        revokeObjectURL: vi.fn(),
+      })
+
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openAccountPanel()
+
+      await userEvent.click(screen.getByRole('button', { name: /export my data/i }))
+
+      expect(screen.getByRole('button', { name: /exporting/i })).toBeDisabled()
+      resolveDownload(new Blob(['-- export']))
+      vi.unstubAllGlobals()
+    })
+  })
+
+  describe('FRONTEND-051-AC-04: a failed export shows an error', () => {
+    it('shows an alert on failure', async () => {
+      vi.mocked(exportApi.downloadExport).mockRejectedValue(new Error('Server error'))
+
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openAccountPanel()
+
+      await userEvent.click(screen.getByRole('button', { name: /export my data/i }))
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
     })
   })
 })

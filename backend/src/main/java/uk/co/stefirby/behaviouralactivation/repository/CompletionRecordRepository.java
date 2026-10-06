@@ -21,4 +21,9 @@ public interface CompletionRecordRepository extends JpaRepository<CompletionReco
     // *set* of subTaskIds that have at least one completed occurrence and compares it against the
     // activity's full sub-task id set.
     List<CompletionRecord> findByOwnerAndPlannedOccurrence_SubTask_IdIn(User owner, List<UUID> subTaskIds);
+
+    // planner_spec_025_data_export.md (PLANNER-025-AC-06) -- a plain owner-wide fetch across every
+    // week, for ExportService. Distinct from findByOwnerAndPlannedOccurrenceIdIn above, which is
+    // scoped to one week's occurrence ids.
+    List<CompletionRecord> findByOwner(User owner);
 }
