@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.39.1] - 2026-10-06
+
 ### Changed
 
 - Deduplicated the frontend's 11 copy-pasted `getErrorMessage()` implementations into one shared
