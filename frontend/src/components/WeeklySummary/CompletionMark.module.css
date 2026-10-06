@@ -16,20 +16,28 @@
 
 .block {
   border-radius: 3px;
-  width: 1rem;
-  height: 1.5rem;
+  width: 1.2rem;
+  height: 1.7rem;
 }
 
 .circle {
   border-radius: 50%;
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
+/* Overrides CompletionIcon.module.css's fixed `color: var(--accent)` (correct for its other
+   consumer, OccurrenceItem, which sits on a neutral card background) -- here the tick must track
+   this mark's own computed, per-background readable colour (CompletionMark.tsx's `iconColor`, set
+   via the button's inline `color` style) instead, or it renders in a fixed accent colour that can
+   land low-contrast against an arbitrary (user-customizable) category fill. `.block svg`/`.circle
+   svg` (specificity 0,1,1) beats `.completionIcon`'s bare class selector (0,1,0) regardless of
+   source order. */
 .block svg,
 .circle svg {
-  width: 11px;
-  height: 11px;
+  color: inherit;
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
 }
 
