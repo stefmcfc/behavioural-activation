@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.1] - 2026-10-06
+
 ### Fixed
 
 - Completion tick marks on the Summary page's category bars and weekly placement grid were
