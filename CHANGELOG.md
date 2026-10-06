@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-10-06
+
 ### Added
 
 - Sub-tasks within an activity's checklist can now be manually reordered from the Activities page,
