@@ -85,11 +85,24 @@
   border-color: var(--border-strong);
 }
 
+.changePasswordTrigger {
+  margin-top: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.changePasswordTrigger:hover,
+.changePasswordTrigger:focus-visible {
+  border-color: var(--border-strong);
+}
+
 .formTitle {
-  margin: 1rem 0 0.5rem;
-  font-size: 0.95rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
 }
 
 .field {
@@ -111,4 +124,5 @@
 
 .changePasswordButton {
   margin-top: 0.25rem;
+  margin-right: 0.5rem;
 }

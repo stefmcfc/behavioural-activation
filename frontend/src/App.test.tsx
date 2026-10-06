@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom'
@@ -490,10 +490,15 @@ describe('App', () => {
 
       await screen.findByText(/steve/i)
       await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      // The form now lives in a real dialog, opened via its own trigger inside the Account
+      // popover -- see AccountMenu.test.tsx's "modal follow-up" describe block for why.
+      await userEvent.click(screen.getByRole('button', { name: 'Change password' }))
       await userEvent.type(screen.getByLabelText(/current password/i), 'old-password')
       await userEvent.type(screen.getByLabelText(/^new password/i), 'new-password-123')
       await userEvent.type(screen.getByLabelText(/confirm new password/i), 'new-password-123')
-      await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', { name: /change password/i }),
+      )
 
       expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument()
       expect(screen.getByText(/password changed/i)).toBeInTheDocument()

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountMenu } from './AccountMenu'
@@ -7,6 +7,28 @@ import { ApiError } from '../../types/api'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
 vi.mock('../../services/authApi')
+
+// FRONTEND-050 (modal follow-up): the form now lives in a real <dialog> (Modal), opened via a
+// "Change password" trigger inside the Account popover -- both steps are needed to reach the
+// fields, mirroring how every other Modal-wrapped form in this app is reached from its own
+// trigger (e.g. ActivityBank's "Add activity").
+async function openChangePasswordDialog() {
+  // Cancelling/closing the dialog only closes the dialog, not the Account popover behind it (that's
+  // fine UX -- it's reasonable for the popover to still be open after dismissing the dialog it
+  // triggered). The Account trigger is a native popover toggle button though -- clicking it while
+  // the popover's already open would close it instead, so only click it if the panel isn't already
+  // showing (detected via the trigger it contains).
+  if (!screen.queryByRole('button', { name: 'Change password' })) {
+    await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+  }
+  await userEvent.click(screen.getByRole('button', { name: 'Change password' }))
+}
+
+// Disambiguates the dialog's own submit button from the popover's "Change password" trigger
+// (same accessible name, both potentially present in jsdom's accessibility tree at once).
+function submitButton() {
+  return within(screen.getByRole('dialog')).getByRole('button', { name: 'Change password' })
+}
 
 describe('FRONTEND-030: AccountMenu popover', () => {
   describe('FRONTEND-030-AC-07: opens to show the username and a Log out button', () => {
@@ -59,10 +81,40 @@ describe('FRONTEND-030: AccountMenu popover', () => {
   })
 })
 
-describe('FRONTEND-050: Change password form in the Account popover', () => {
-  describe('FRONTEND-050-AC-01: Change password form renders with validation timing matching LoginPage', () => {
-    it('shows the three fields and no error until a field is blurred empty or submit is attempted', () => {
+describe('FRONTEND-050: Change password', () => {
+  describe('modal follow-up: Change password opens a real dialog, not an inline popover form', () => {
+    it('renders a "Change password" trigger in the Account popover, with no dialog open yet', async () => {
       render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+
+      expect(screen.getByRole('button', { name: 'Change password' })).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens a dialog labelled "Change password" when the trigger is activated', async () => {
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openChangePasswordDialog()
+
+      expect(screen.getByRole('dialog', { name: 'Change password' })).toBeInTheDocument()
+    })
+
+    it('Cancel closes the dialog and resets the form', async () => {
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openChangePasswordDialog()
+      await userEvent.type(screen.getByLabelText(/current password/i), 'partially typed')
+
+      await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await openChangePasswordDialog()
+      expect(screen.getByLabelText(/current password/i)).toHaveValue('')
+    })
+  })
+
+  describe('FRONTEND-050-AC-01: Change password form renders with validation timing matching LoginPage', () => {
+    it('shows the three fields and no error until a field is blurred empty or submit is attempted', async () => {
+      render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
+      await openChangePasswordDialog()
 
       expect(screen.getByLabelText(/current password/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument()
@@ -72,7 +124,7 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
 
     it('shows the error and sets aria-invalid after blurring an empty current password field', async () => {
       render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
       const currentPassword = screen.getByLabelText(/current password/i)
       fireEvent.focus(currentPassword)
@@ -84,7 +136,7 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
 
     it('clears the required error once a value is entered', async () => {
       render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
       const currentPassword = screen.getByLabelText(/current password/i)
       fireEvent.blur(currentPassword)
@@ -96,9 +148,9 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
 
     it('shows all empty required field errors on a bare submit attempt', async () => {
       render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
-      await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+      await userEvent.click(submitButton())
 
       expect(screen.getByText(/current password.*required/i)).toBeInTheDocument()
       expect(screen.getByText(/^new password.*required/i)).toBeInTheDocument()
@@ -110,12 +162,12 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
   describe('FRONTEND-050-AC-02: mismatched new password and confirmation blocks submit', () => {
     it('shows an error and does not call the API when the two new-password fields differ', async () => {
       render(<AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={vi.fn()} />)
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
       await userEvent.type(screen.getByLabelText(/current password/i), 'old-password')
       await userEvent.type(screen.getByLabelText(/^new password/i), 'new-password-1')
       await userEvent.type(screen.getByLabelText(/confirm new password/i), 'new-password-2')
-      await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+      await userEvent.click(submitButton())
 
       expect(await screen.findByText(/passwords don't match/i)).toBeInTheDocument()
       expect(authApi.changePassword).not.toHaveBeenCalled()
@@ -129,12 +181,12 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
       render(
         <AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={onPasswordChanged} />,
       )
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
       await userEvent.type(screen.getByLabelText(/current password/i), 'old-password')
       await userEvent.type(screen.getByLabelText(/^new password/i), 'new-password-123')
       await userEvent.type(screen.getByLabelText(/confirm new password/i), 'new-password-123')
-      await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+      await userEvent.click(submitButton())
 
       await vi.waitFor(() => expect(onPasswordChanged).toHaveBeenCalled())
       expect(authApi.changePassword).toHaveBeenCalledWith('old-password', 'new-password-123')
@@ -148,12 +200,12 @@ describe('FRONTEND-050: Change password form in the Account popover', () => {
       render(
         <AccountMenu username="steve" onLogout={vi.fn()} onPasswordChanged={onPasswordChanged} />,
       )
-      await userEvent.click(screen.getByRole('button', { name: 'Account' }))
+      await openChangePasswordDialog()
 
       await userEvent.type(screen.getByLabelText(/current password/i), 'wrong-password')
       await userEvent.type(screen.getByLabelText(/^new password/i), 'new-password-123')
       await userEvent.type(screen.getByLabelText(/confirm new password/i), 'new-password-123')
-      await userEvent.click(screen.getByRole('button', { name: /change password/i }))
+      await userEvent.click(submitButton())
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/invalid credentials/i)
       expect(onPasswordChanged).not.toHaveBeenCalled()

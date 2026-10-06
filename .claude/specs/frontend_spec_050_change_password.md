@@ -244,3 +244,43 @@ logs in successfully — the full backend round-trip (session invalidation, hash
 end-to-end, not just via Vitest. The password was then changed back to the original seeded value via
 the same form, confirmed working, so the local dev environment's documented `.env` credentials are
 unaffected.
+
+### Post-ship correction: form moved from the popover into a real `<dialog>`
+
+The user asked whether the inline-popover placement was the best UX and to check
+`modern-web-guidance`. Its `html` guide has an explicit Native UI Overlay & Disclosure Matrix:
+`<dialog>` for "Critical Actions, Settings" (modal, focus-trapped), `[popover]` for "Menus,
+Tooltips, Toasts" (non-modal, light-dismiss) — heuristic: *"Use `<dialog>` for interruptions
+requiring user action, `popover` for transient info."* A password change is squarely the former, not
+the latter, and a `popover="auto"` panel light-dismisses on any outside click, silently discarding
+whatever had been typed into the three password fields — unlike every other focused-input form in
+this app (`ActivityForm`, `SubTaskForm`, the Add/Assign picker), which already use the existing
+`Modal` component. `autocomplete="current-password"`/`"new-password"` were already correct per the
+guide's `autofill-sign-up-form` guide and needed no change.
+
+**Fix**: `AccountMenu`'s popover now holds only a "Change password" trigger button (alongside Log
+out); the form itself moved into `<Modal>`, with its own Cancel button mirroring `SubTaskForm`'s
+pattern, and `resetChangePasswordForm()` clearing all fields/errors on close (Cancel or
+light-dismiss) so reopening never shows stale state.
+
+**Real bug found and fixed in `Modal.tsx` itself** (shared component, not scoped to this feature):
+`showModal()` already autofocuses the first focusable descendant per spec, but the `useEffect` right
+after it unconditionally called `dialog.focus()` too — stealing focus straight back off that
+autofocused input and firing a blur on it while still empty. Every other Modal-wrapped form in this
+app validates on submit-attempt for its first field, or isn't first-in-tab-order, so this never
+surfaced before; this form's "Current password" field is both first and blur-validated, so the
+"Current password is required." error appeared the instant the dialog opened, before any real user
+interaction. Fixed by only falling back to `dialog.focus()` when `showModal()`'s own autofocus found
+nothing inside the dialog to focus (`!dialog.contains(document.activeElement)`) — verified against
+the full 678-test frontend suite (zero regressions) since this touches shared infrastructure, not
+just this feature's own tests.
+
+Also fixed during this pass: `AccountMenu.test.tsx`'s `openChangePasswordDialog()` test helper
+unconditionally clicked the Account trigger, which — since cancelling the dialog doesn't close the
+popover behind it — would toggle an already-open popover *closed* on a second call within the same
+test. Made idempotent (only clicks the trigger if the panel isn't already showing).
+
+Re-verified end-to-end in a real browser after the fix: dialog opens centered with a dimmed
+backdrop, "Current password" is focused with no premature error, the full change→logout→relogin
+round-trip still works, and the original seeded password was restored afterward. Full suite: 678
+tests passing, 0 regressions; lint/typecheck clean.

@@ -1,6 +1,7 @@
 import { useId, useState, type SubmitEvent } from 'react'
 import { authApi } from '../../services/authApi'
 import { getErrorMessage } from '../../utils/getErrorMessage'
+import { Modal } from '../Modal/Modal'
 import styles from './AccountMenu.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -34,6 +35,14 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
   const newPasswordId = useId()
   const confirmNewPasswordId = useId()
 
+  // Rendered in a real <dialog> (via Modal), not inline in this popover -- a password change is a
+  // "critical action requiring user action" (modern-web-guidance's html guide, Native UI Overlay &
+  // Disclosure Matrix), not the "transient info" a popover is for: a dialog gets a focus trap and
+  // won't light-dismiss mid-fill the way clicking elsewhere on the page would silently discard a
+  // popover's contents. This also matches every other form in this app that needs focused input
+  // (ActivityForm, SubTaskForm, the Add/Assign picker) -- all already use Modal, not a popover.
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
@@ -42,6 +51,21 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
   const [confirmNewPasswordTouchedEmpty, setConfirmNewPasswordTouchedEmpty] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const resetChangePasswordForm = () => {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setCurrentPasswordTouchedEmpty(false)
+    setNewPasswordTouchedEmpty(false)
+    setConfirmNewPasswordTouchedEmpty(false)
+    setFormError(null)
+  }
+
+  const handleCloseChangePassword = () => {
+    setChangePasswordOpen(false)
+    resetChangePasswordForm()
+  }
 
   const currentPasswordInvalid = currentPasswordTouchedEmpty && !currentPassword.trim()
   const newPasswordInvalid = newPasswordTouchedEmpty && !newPassword.trim()
@@ -98,11 +122,20 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
         <button type="button" className={styles.logoutButton} onClick={onLogout}>
           Log out
         </button>
+        <button
+          type="button"
+          className={styles.changePasswordTrigger}
+          onClick={() => setChangePasswordOpen(true)}
+        >
+          Change password
+        </button>
+      </div>
 
+      <Modal isOpen={changePasswordOpen} titleId={formTitleId} onClose={handleCloseChangePassword}>
         <h3 id={formTitleId} className={styles.formTitle}>
           Change password
         </h3>
-        <form onSubmit={handleChangePassword} noValidate aria-labelledby={formTitleId}>
+        <form onSubmit={handleChangePassword} noValidate>
           <div className={styles.field}>
             <label htmlFor={currentPasswordId}>Current password</label>
             <input
@@ -191,8 +224,11 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
           >
             Change password
           </button>
+          <button type="button" onClick={handleCloseChangePassword} disabled={isSubmitting}>
+            Cancel
+          </button>
         </form>
-      </div>
+      </Modal>
     </div>
   )
 }
