@@ -110,7 +110,7 @@ class ActivityServiceCategoryCascadeIntegrationSpec extends Specification {
         // Covered structurally: ActivityService.update() only proceeds if findByIdAndOwner(id, owner)
         // finds a match, so the cascade can never run against another owner's activity or sub-tasks in
         // the first place. No separate cross-owner scenario needed beyond AC-01's existing use of
-        // findByActivityIdAndOwnerOrderByCreatedAtAsc, which is owner-scoped by construction.
+        // findByActivityIdAndOwnerOrderByPositionAsc, which is owner-scoped by construction.
         expect: true
     }
 

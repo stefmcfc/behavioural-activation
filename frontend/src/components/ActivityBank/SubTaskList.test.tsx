@@ -16,6 +16,7 @@ const guestList: SubTask = {
   name: 'Create a guest list',
   category: 'PLEASURABLE',
   createdAt: '2026-09-29T00:00:00Z',
+  position: 0,
 }
 
 describe('SubTaskList', () => {
@@ -24,6 +25,7 @@ describe('SubTaskList', () => {
     vi.mocked(subTaskApi.create).mockReset()
     vi.mocked(subTaskApi.update).mockReset()
     vi.mocked(subTaskApi.remove).mockReset()
+    vi.mocked(subTaskApi.reorder).mockReset()
   })
 
   describe('FRONTEND-003-AC-03: fetches the checklist on mount', () => {
@@ -330,6 +332,149 @@ describe('SubTaskList', () => {
       expect(screen.queryByRole('textbox', { name: /name/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-047-AC-01: sub-tasks render ordered by position, not array order', () => {
+    it('renders items in position order', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+      ])
+      render(<SubTaskList activityId="a1" />)
+
+      const items = await screen.findAllByRole('listitem')
+      const texts = items.map((li) => li.textContent)
+      expect(texts.findIndex((t) => t?.includes('First'))).toBeLessThan(
+        texts.findIndex((t) => t?.includes('Second')),
+      )
+    })
+  })
+
+  describe('FRONTEND-047-AC-02: Move up/down buttons render with accessible names', () => {
+    it('renders Move up/down buttons for each sub-task', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'Read', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+      ])
+      render(<SubTaskList activityId="a1" />)
+
+      expect(await screen.findByRole('button', { name: 'Move Read up' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Move Read down' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-047-AC-03/AC-04: Move up/down disabled at the boundaries', () => {
+    it('disables Move up on the first item and Move down on the last', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+      ])
+      render(<SubTaskList activityId="a1" />)
+
+      expect(await screen.findByRole('button', { name: 'Move First up' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Move Second down' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Move First down' })).not.toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Move Second up' })).not.toBeDisabled()
+    })
+  })
+
+  describe('FRONTEND-047-AC-05: Move up/down calls subTaskApi.reorder with the full swapped order', () => {
+    it('swaps the activated item with its neighbour above', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+        { id: 'c', activityId: 'a1', name: 'Third', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 2 },
+      ])
+      vi.mocked(subTaskApi.reorder).mockResolvedValue([])
+      render(<SubTaskList activityId="a1" />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Move Second up' }))
+
+      expect(subTaskApi.reorder).toHaveBeenCalledWith('a1', ['b', 'a', 'c'])
+    })
+  })
+
+  describe('FRONTEND-047-AC-06: reorder controls disabled while a reorder request is in flight', () => {
+    it('disables every Move up/down button once a reorder is triggered, until it resolves', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+      ])
+      let resolveReorder: (value: SubTask[]) => void = () => {}
+      vi.mocked(subTaskApi.reorder).mockReturnValue(
+        new Promise((resolve) => {
+          resolveReorder = resolve
+        }),
+      )
+      render(<SubTaskList activityId="a1" />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Move Second up' }))
+
+      expect(screen.getByRole('button', { name: 'Move First down' })).toBeDisabled()
+      resolveReorder([])
+    })
+  })
+
+  describe('FRONTEND-047-AC-07: a successful reorder updates the displayed checklist', () => {
+    it('replaces the list with the reordered response', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+      ])
+      vi.mocked(subTaskApi.reorder).mockResolvedValue([
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+      ])
+      render(<SubTaskList activityId="a1" />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Move Second up' }))
+
+      const items = await screen.findAllByRole('listitem')
+      expect(items[0].textContent).toContain('Second')
+      expect(items[1].textContent).toContain('First')
+    })
+  })
+
+  describe('FRONTEND-047-AC-08: a rejected reorder surfaces an error and keeps the previous order', () => {
+    it('shows an alert and leaves the list unchanged on failure', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+        { id: 'b', activityId: 'a1', name: 'Second', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 1 },
+      ])
+      vi.mocked(subTaskApi.reorder).mockRejectedValue(new Error('Conflict'))
+      render(<SubTaskList activityId="a1" />)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Move Second up' }))
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      const items = screen.getAllByRole('listitem')
+      expect(items[0].textContent).toContain('First')
+      expect(items[1].textContent).toContain('Second')
+    })
+  })
+
+  describe('FRONTEND-047-AC-09: readOnly hides Move up/down controls', () => {
+    it('renders no Move up/down buttons when readOnly', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+      ])
+      render(<SubTaskList activityId="a1" readOnly />)
+
+      await screen.findByText('First')
+      expect(screen.queryByRole('button', { name: /move .* up/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /move .* down/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-047-AC-12: no drag-and-drop affordance renders for sub-task reordering', () => {
+    it('renders no draggable element', async () => {
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([
+        { id: 'a', activityId: 'a1', name: 'First', category: 'PLEASURABLE', createdAt: '2026-09-29T00:00:00Z', position: 0 },
+      ])
+      const { container } = render(<SubTaskList activityId="a1" />)
+
+      await screen.findByText('First')
+      expect(container.querySelector('[draggable="true"]')).not.toBeInTheDocument()
     })
   })
 })

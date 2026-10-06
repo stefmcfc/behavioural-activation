@@ -93,7 +93,11 @@ checklist.
 
 - **PLANNER-003-AC-07** [AUTO]: When `GET /api/v1/activities/{activityId}/sub-tasks` is requested
   by the parent activity's owner, the `SubTaskController` shall return `200` with only the
-  sub-tasks belonging to that activity, ordered by `createdAt` ascending.
+  sub-tasks belonging to that activity, ordered by `createdAt` ascending. **Amended
+  (2026-10-06) by `planner_spec_023_subtask_reordering.md`'s `PLANNER-023-AC-03`**: ordering
+  is now by `position` ascending, not `createdAt` — see that spec's Amendment section. ID
+  unchanged per the immutable-reference-ID convention; only the ordering criterion changes, not
+  the envelope shape or 404 scoping.
 - **PLANNER-003-AC-08** [AUTO]: The `GET /api/v1/activities/{activityId}/sub-tasks` response body
   shall be the envelope shape `{ "data": [...], "count": N }`, matching
   `ActivityListResponse`'s established convention — not a bare array.
@@ -452,7 +456,9 @@ def "PLANNER-003-AC-21: an unauthenticated request to sub-tasks returns 401 (inh
 - [x] PLANNER-003-AC-04 — blank/missing name → 400
 - [x] PLANNER-003-AC-05 — parent activity not found/not owned → 404, no sub-task created
 - [x] PLANNER-003-AC-06 — `SubTaskRequest` has no category field; client-supplied category ignored
-- [x] PLANNER-003-AC-07 — list scoped to the parent activity, ordered by createdAt ascending
+- [x] PLANNER-003-AC-07 — list scoped to the parent activity. Ordering **amended 2026-10-06** by
+  `planner_spec_023_subtask_reordering.md`'s `PLANNER-023-AC-03`: now `position` ascending, not
+  `createdAt`
 - [x] PLANNER-003-AC-08 — list response is `{data, count}` envelope
 - [x] PLANNER-003-AC-09 — zero sub-tasks returns `{data: [], count: 0}`, not 404
 - [x] PLANNER-003-AC-10 — list on not-found/not-owned parent activity → 404

@@ -93,7 +93,7 @@ public class ActivityService {
     // current category. Deliberately does not touch PlannedOccurrence rows (PLANNER-014-AC-04) --
     // those keep whatever category was true when they were actually planned.
     private void cascadeCategoryToSubTasks(Activity activity, ActivityCategory newCategory, User owner) {
-        subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.getId(), owner)
+        subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activity.getId(), owner)
             .forEach(subTask -> subTask.recategorize(newCategory));
     }
 

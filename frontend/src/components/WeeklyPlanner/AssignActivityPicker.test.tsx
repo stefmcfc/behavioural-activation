@@ -54,6 +54,7 @@ const sendInvitations: SubTask = {
   name: 'Send invitations',
   category: 'PLEASURABLE',
   createdAt: '2026-09-01T00:00:00Z',
+  position: 0,
 }
 
 const stepOne: SubTask = {
@@ -62,6 +63,7 @@ const stepOne: SubTask = {
   name: 'Step one',
   category: 'NECESSARY',
   createdAt: '2026-09-01T00:00:00Z',
+  position: 0,
 }
 
 function renderPicker() {

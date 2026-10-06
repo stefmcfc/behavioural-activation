@@ -40,6 +40,7 @@ const sendInvitations: SubTask = {
   name: 'Send invitations',
   category: 'PLEASURABLE',
   createdAt: '2026-09-01T00:00:00Z',
+  position: 0,
 }
 
 const jobs: Activity = {
@@ -72,6 +73,7 @@ const bookVenue: SubTask = {
   name: 'Book venue',
   category: 'PLEASURABLE',
   createdAt: '2026-09-01T00:00:00Z',
+  position: 0,
 }
 
 const noop = () => {}

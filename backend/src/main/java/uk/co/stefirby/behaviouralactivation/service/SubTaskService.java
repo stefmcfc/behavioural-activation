@@ -1,11 +1,19 @@
 package uk.co.stefirby.behaviouralactivation.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.stefirby.behaviouralactivation.dto.SubTaskReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskRequest;
+import uk.co.stefirby.behaviouralactivation.exception.InvalidSubTaskRequestException;
+import uk.co.stefirby.behaviouralactivation.exception.SubTaskReorderNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.model.Activity;
 import uk.co.stefirby.behaviouralactivation.model.SubTask;
 import uk.co.stefirby.behaviouralactivation.model.User;
@@ -42,15 +50,19 @@ public class SubTaskService {
     public Optional<SubTask> create(String ownerUsername, UUID activityId, SubTaskRequest request) {
         User owner = resolveOwner(ownerUsername);
         return findOwnedActivity(activityId, owner)
-            .map(activity -> subTaskRepository.save(
-                new SubTask(activity, request.name(), activity.getCategory(), owner)));
+            .map(activity -> {
+                SubTask subTask = new SubTask(activity, request.name(), activity.getCategory(), owner);
+                // PLANNER-023-AC-04 -- appended at the end, never into the middle of the existing order.
+                subTask.assignPosition((int) subTaskRepository.countByActivityIdAndOwner(activityId, owner));
+                return subTaskRepository.save(subTask);
+            });
     }
 
     @Transactional(readOnly = true)
     public Optional<List<SubTask>> listForActivity(String ownerUsername, UUID activityId) {
         User owner = resolveOwner(ownerUsername);
         return findOwnedActivity(activityId, owner)
-            .map(activity -> subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activityId, owner));
+            .map(activity -> subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner));
     }
 
     // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02) -- every sub-task owned by
@@ -81,9 +93,60 @@ public class SubTaskService {
             .flatMap(activity -> findOwnedSubTask(id, activityId, owner))
             .map(subTask -> {
                 subTaskRepository.delete(subTask);
+                renumberRemaining(activityId, owner); // PLANNER-023-AC-05
                 return true;
             })
             .orElse(false);
+    }
+
+    // planner_spec_023_subtask_reordering.md (PLANNER-023-AC-06/AC-07/AC-08/AC-09/AC-10/AC-11) --
+    // full-list-replacement reorder, mirroring PlanService.reorderBucket()'s pattern. Validation
+    // (duplicate ids) runs before any repository access; the activityId-scoped bulk fetch
+    // (findByIdInAndActivityIdAndOwner) means an id not found, not owned, or belonging to a
+    // different activity simply isn't found -- collapsing into the same 404 as any other
+    // not-found/not-yours case, with no separate "wrong activity" 409 needed (see the spec's
+    // Overview).
+    @Transactional
+    public Optional<List<SubTask>> reorder(String ownerUsername, UUID activityId, SubTaskReorderRequest request) {
+        validateNoDuplicateIds(request.subTaskIds());
+
+        User owner = resolveOwner(ownerUsername);
+
+        List<SubTask> found = subTaskRepository.findByIdInAndActivityIdAndOwner(request.subTaskIds(), activityId, owner);
+        Map<UUID, SubTask> foundById = found.stream()
+            .collect(Collectors.toMap(SubTask::getId, Function.identity()));
+        if (foundById.size() != request.subTaskIds().size()) {
+            return Optional.empty(); // PLANNER-023-AC-09
+        }
+        List<SubTask> submitted = request.subTaskIds().stream()
+            .map(foundById::get)
+            .toList();
+
+        List<SubTask> currentChecklist = subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner);
+        Set<UUID> currentIds = currentChecklist.stream().map(SubTask::getId).collect(Collectors.toSet());
+        Set<UUID> submittedIds = new HashSet<>(request.subTaskIds());
+        if (!currentIds.equals(submittedIds)) {
+            throw new SubTaskReorderNotAllowedException(
+                "subTaskIds must be exactly the current set of sub-tasks for the activity"); // PLANNER-023-AC-10
+        }
+
+        for (int i = 0; i < submitted.size(); i++) {
+            submitted.get(i).assignPosition(i); // PLANNER-023-AC-11
+        }
+        return Optional.of(submitted);
+    }
+
+    private void renumberRemaining(UUID activityId, User owner) {
+        List<SubTask> remaining = subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activityId, owner);
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).assignPosition(i);
+        }
+    }
+
+    private void validateNoDuplicateIds(List<UUID> subTaskIds) {
+        if (new HashSet<>(subTaskIds).size() != subTaskIds.size()) {
+            throw new InvalidSubTaskRequestException("subTaskIds must not contain duplicates"); // PLANNER-023-AC-08
+        }
     }
 
     private Optional<Activity> findOwnedActivity(UUID activityId, User owner) {

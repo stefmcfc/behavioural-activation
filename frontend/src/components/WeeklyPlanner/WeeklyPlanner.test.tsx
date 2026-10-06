@@ -339,7 +339,7 @@ describe('WeeklyPlanner', () => {
         },
       ])
       vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([
-        { id: 's1', activityId: 'a1', name: 'Send invites', category: 'PLEASURABLE', createdAt: '2026-09-01T00:00:00Z' },
+        { id: 's1', activityId: 'a1', name: 'Send invites', category: 'PLEASURABLE', createdAt: '2026-09-01T00:00:00Z', position: 0 },
       ])
       vi.mocked(planApi.getWeek).mockResolvedValue([])
       vi.mocked(planApi.create).mockResolvedValue({

@@ -22,4 +22,11 @@ export const subTaskApi = {
 
   remove: (activityId: string, id: string): Promise<void> =>
     request<void>(() => client.delete(`/activities/${activityId}/sub-tasks/${id}`)),
+
+  // FRONTEND-047-AC-11: persists a manually-reordered checklist, returning the updated sub-tasks
+  // in their new `position` order.
+  reorder: (activityId: string, subTaskIds: string[]): Promise<SubTask[]> =>
+    request<{ data: SubTask[]; count: number }>(() =>
+      client.put(`/activities/${activityId}/sub-tasks/order`, { subTaskIds }),
+    ).then((r) => r.data),
 }

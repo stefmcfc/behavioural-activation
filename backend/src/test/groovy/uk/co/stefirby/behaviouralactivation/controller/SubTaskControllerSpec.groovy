@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
@@ -270,6 +271,23 @@ class SubTaskControllerSpec extends Specification {
 
         then: "the response is 404"
             result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-023-AC-07: an empty subTaskIds list returns 400 without calling SubTaskService"() {
+        given: "an empty subTaskIds payload"
+            def activityId = UUID.randomUUID()
+
+        when: "PUT .../sub-tasks/order is requested with an empty subTaskIds list"
+            def result = mockMvc.perform(put("/api/v1/activities/${activityId}/sub-tasks/order")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content('{"subTaskIds":[]}'))
+
+        then: "the response is 400"
+            result.andExpect(status().isBadRequest())
+
+        and: "no reorder is attempted"
+            0 * subTaskService.reorder(_, _, _)
     }
 
     def "PLANNER-003-AC-21: an unauthenticated request to sub-tasks returns 401 (inherited SecurityFilterChain rule)"() {

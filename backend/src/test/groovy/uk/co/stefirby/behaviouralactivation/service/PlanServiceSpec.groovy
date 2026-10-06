@@ -570,7 +570,7 @@ class PlanServiceSpec extends Specification {
             plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
             completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
             completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.id, owner) >> []
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activity.id, owner) >> []
 
         when: "the occurrence is completed"
             def result = service.complete("steve", id)
@@ -592,7 +592,7 @@ class PlanServiceSpec extends Specification {
             plannedOccurrenceRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
             completionRecordRepository.findByPlannedOccurrenceIdAndOwner(_, owner) >> Optional.empty()
             completionRecordRepository.save(_ as CompletionRecord) >> { CompletionRecord r -> r }
-            subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(activity.id, owner) >> [firstSubTask, secondSubTask]
+            subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(activity.id, owner) >> [firstSubTask, secondSubTask]
             completionRecordRepository.findByOwnerAndPlannedOccurrence_SubTask_IdIn(owner, [firstSubTask.id, secondSubTask.id]) >>
                 [new CompletionRecord(existing, owner, Instant.now())]
 
@@ -622,7 +622,7 @@ class PlanServiceSpec extends Specification {
         then: "the activity stays archived, and the sub-task/save machinery is never touched"
             result.isPresent()
             activity.archived
-            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(_, _)
             0 * activityRepository.save(_)
     }
 
@@ -687,7 +687,7 @@ class PlanServiceSpec extends Specification {
         then: "the activity is never archived, and the sub-task check never even runs"
             result.isPresent()
             !activity.archived
-            0 * subTaskRepository.findByActivityIdAndOwnerOrderByCreatedAtAsc(_, _)
+            0 * subTaskRepository.findByActivityIdAndOwnerOrderByPositionAsc(_, _)
             0 * activityRepository.save(_)
     }
 

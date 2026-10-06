@@ -11,9 +11,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskListResponse;
+import uk.co.stefirby.behaviouralactivation.dto.SubTaskReorderRequest;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskRequest;
 import uk.co.stefirby.behaviouralactivation.dto.SubTaskResponse;
 import uk.co.stefirby.behaviouralactivation.model.SubTask;
@@ -72,6 +74,16 @@ public class SubTaskController {
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
+    // planner_spec_023_subtask_reordering.md (PLANNER-023-AC-06/AC-12) -- full-list-replacement
+    // reorder of the activity's sub-task checklist.
+    @PutMapping(NESTED_BASE_PATH + "/order")
+    public ResponseEntity<SubTaskListResponse> reorder(@PathVariable UUID activityId,
+            @Valid @RequestBody SubTaskReorderRequest request, Authentication authentication) {
+        return subTaskService.reorder(authentication.getName(), activityId, request)
+            .map(SubTaskController::toListResponse)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     // planner_spec_018_bulk_sub_task_fetch.md (PLANNER-018-AC-01/AC-02/AC-03) -- every sub-task
     // owned by the authenticated user, across all of their activities, in one call.
     @GetMapping("/api/v1/sub-tasks")
@@ -86,6 +98,6 @@ public class SubTaskController {
 
     private static SubTaskResponse toResponse(SubTask subTask) {
         return new SubTaskResponse(subTask.getId(), subTask.getActivity().getId(), subTask.getName(),
-            subTask.getCategory(), subTask.getCreatedAt());
+            subTask.getCategory(), subTask.getCreatedAt(), subTask.getPosition());
     }
 }

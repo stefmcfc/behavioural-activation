@@ -1,6 +1,7 @@
 import type { DragEvent } from 'react'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { ChevronIcon } from '../icons/ChevronIcon'
 import { CompletionIcon } from '../icons/CompletionIcon'
 import { Modal } from '../Modal/Modal'
 import { OccurrenceDetailCard } from './OccurrenceDetailCard'
@@ -97,7 +98,7 @@ function ReorderControls({
         disabled={isFirst || reorderDisabled}
         aria-label={`Move ${occurrenceName} up`}
       >
-        ↑
+        <ChevronIcon direction="up" />
       </button>
       <button
         type="button"
@@ -106,7 +107,7 @@ function ReorderControls({
         disabled={isLast || reorderDisabled}
         aria-label={`Move ${occurrenceName} down`}
       >
-        ↓
+        <ChevronIcon direction="down" />
       </button>
     </span>
   )
