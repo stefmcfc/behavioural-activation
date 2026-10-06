@@ -79,6 +79,7 @@ spec-tidying effort this came out of).
 | Collapsible sub-tasks + category grouping in the Assign Activity modal | — (frontend-only) | [`frontend_spec_045_assign_picker_collapsible_subtasks.md`](.claude/specs/frontend_spec_045_assign_picker_collapsible_subtasks.md) | ✅ Implemented (2026-10-05). `ActivityPickerList`'s `select` mode (the Assign Activity modal) now groups activities the same way the Activity Bank does, and collapses sub-tasks by default behind a "Show sub-tasks (N)"/"Hide sub-tasks" toggle, single-expansion. The `drag` mode (Today's activity drawer) was originally left unaffected here; `frontend_spec_046` later extended the same treatment to it. |
 | Category grouping + collapsible sub-tasks in the Activity Drawer | — (frontend-only) | [`frontend_spec_046_activity_drawer_collapsible_subtasks.md`](.claude/specs/frontend_spec_046_activity_drawer_collapsible_subtasks.md) | ✅ Implemented (2026-10-06). Extends `frontend_spec_045`'s treatment to Today's drag drawer (`ActivityPickerList`'s `drag` mode), deliberately superseding that spec's "drag mode unaffected" guarantee; grouping/collapsing logic is now shared between both modes. Real-browser verification found and fixed a toggle-text-wrapping bug specific to the drawer's narrow width, and re-measured the bucket list's reachability (previously a 1.5px near-miss) at a comfortable 92px margin. |
 | Sub-task manual reordering (Activities page) | [`planner_spec_023_subtask_reordering.md`](.claude/specs/planner_spec_023_subtask_reordering.md) | [`frontend_spec_047_subtask_reordering.md`](.claude/specs/frontend_spec_047_subtask_reordering.md) | ✅ Implemented (2026-10-06). New `position` field + `PUT .../sub-tasks/order` endpoint (mirrors the weekend bucket reordering pattern); keyboard-accessible Move up/Move down buttons only, no drag-and-drop (deliberate — avoids the bucket list's known touch-support gap). Appends new sub-tasks at the end, renumbers remaining ones contiguously on delete. Real-browser verified: reorder persists across a full page reload. |
+| Today view: drawer and Assign modal are mutually exclusive (bug fix) | — (frontend-only) | [`frontend_spec_048_today_view_picker_mutual_exclusion.md`](.claude/specs/frontend_spec_048_today_view_picker_mutual_exclusion.md) | ✅ Implemented (2026-10-06). Opening the drawer now closes an open Assign modal and vice versa, so `ActivityPickerList` is never double-mounted (eliminates the concurrent double-fetch this was found to cause). |
 
 ## Specced, coming soon
 
@@ -86,7 +87,6 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
-| *(none currently)* | | | |
 
 ## Internal / maintenance specs
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ActivityDrawer } from './ActivityDrawer'
 import { AssignActivityPicker } from './AssignActivityPicker'
+import type { AssignTarget } from './AssignActivityPicker'
 import { BucketList } from './BucketList'
 import { Modal } from '../Modal/Modal'
 import { PlannerGrid } from './PlannerGrid'
@@ -22,12 +23,30 @@ export function TodayView() {
   const today = getTodayPlanDayOfWeek()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  // FRONTEND-048: the drawer (drag-mode ActivityPickerList) and the Assign modal (select-mode
+  // ActivityPickerList) are mutually exclusive -- opening one closes the other, so at most one
+  // ActivityPickerList instance is ever mounted at a time.
+  const handleToggleDrawer = () => {
+    setDrawerOpen((open) => {
+      const next = !open
+      if (next) {
+        plan.handleCloseAssign()
+      }
+      return next
+    })
+  }
+
+  const handleRequestAssign = (target: AssignTarget) => {
+    setDrawerOpen(false)
+    plan.setAssignTarget(target)
+  }
+
   return (
     <section>
       <h2>Today</h2>
 
       <div className={styles.toolbar}>
-        <button type="button" onClick={() => setDrawerOpen((open) => !open)}>
+        <button type="button" onClick={handleToggleDrawer}>
           Browse activities
         </button>
       </div>
@@ -62,7 +81,7 @@ export function TodayView() {
                 todayColumn={today}
                 workDays={workDays.workDaysByDate}
                 onToggleWorkDay={workDays.handleToggle}
-                onAdd={(dayOfWeek, slot) => plan.setAssignTarget({ dayOfWeek, slot })}
+                onAdd={(dayOfWeek, slot) => handleRequestAssign({ dayOfWeek, slot })}
                 onOpenDetail={plan.handleOpenDetail}
                 onCloseDetail={plan.handleCloseDetail}
                 onStartRemove={plan.setConfirmingRemoveId}
@@ -88,7 +107,7 @@ export function TodayView() {
                 confirmingRemoveId={plan.confirmingRemoveId}
                 movingId={plan.movingId}
                 reorderInFlight={plan.bucketReorderInFlight}
-                onAdd={() => plan.setAssignTarget({ dayOfWeek: null, slot: null })}
+                onAdd={() => handleRequestAssign({ dayOfWeek: null, slot: null })}
                 onOpenDetail={plan.handleOpenDetail}
                 onCloseDetail={plan.handleCloseDetail}
                 onStartRemove={plan.setConfirmingRemoveId}
