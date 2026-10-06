@@ -13,6 +13,15 @@ All notable changes to this project are documented in this file, in
   drag the whole row, and the dialog visibly inherited the row's "grab" cursor throughout. The
   dialog now portals to `document.body`, out of the draggable row's DOM subtree.
 
+## [0.41.1] - 2026-10-06
+
+### Fixed
+
+- Completion tick marks on the Summary page's category bars and weekly placement grid were
+  rendering in a fixed accent colour instead of the mark's own computed high-contrast colour,
+  making them hard to see against some category colours (especially in dark mode). The marks and
+  their ticks are also slightly larger now for better visibility.
+
 ## [0.41.0] - 2026-10-06
 
 ### Added
