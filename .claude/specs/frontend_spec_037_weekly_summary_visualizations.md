@@ -216,6 +216,24 @@ set two or more category colours to look similar or identical.
   and count — inside the segment when it fits with padding, otherwise placed just outside/above the
   bar — never dropped to tooltip-only, since hue alone cannot be trusted to distinguish categories
   (user-customizable colours; see Overview).
+
+  **Amended 2026-10-06** (ID unchanged): the original "fit inside, else float outside the bar" rule
+  measured fit against the segment's share of its own bar — but `AC-11` already scales each bar's
+  overall width down to its location's share of the busiest location's total, so a segment's share
+  of its own (possibly already-shrunk) bar does not reflect its real rendered pixel width. In
+  practice this let a short, low-total bar (e.g. a 4-occurrence weekend bucket, 17% of a 23-total
+  weekday bar's track width) render a "fits inside" label that actually overflowed and collided with
+  its neighbour. Corrected to measure a segment's share of the *whole track*
+  (`planned / maxTotal`, algebraically equivalent to `share-of-own-bar × bar's-own-share-of-track`)
+  against two tiers: the full "Category (N)" label down to 12% of the track, a count-only "(N)" down
+  to 4%, and — only below that, where neither fits even without clipping — no inline label at all.
+  The "float outside the bar" fallback is also dropped: `AC-11`'s bars are *stacked*, so an interior
+  segment has no free end to float a label past without colliding with a sibling's own floated label,
+  which is exactly the collision this amendment fixes. In its place every segment (labelled or not)
+  gets the same hover/focus-visible tooltip pattern `CompletionMark` already uses (`AC-17`), carrying
+  the full "Category (N)" text — so a segment that drops its inline label is reachable by mouse and
+  keyboard alike, not literally tooltip-only in the sense the original wording warned against
+  (identity is never color-alone: the legend plus this tooltip still name every segment).
 - **FRONTEND-037-AC-14** [AUTO]: A legend naming the three categories (in the same fixed order)
   shall render once for the whole chart, not once per bar.
 
@@ -504,7 +522,8 @@ manually, per their own statements, in a real browser.
 - [x] FRONTEND-037-AC-10 — `byLocation` breakdown computed correctly per location × category
 - [x] FRONTEND-037-AC-11 — three stacked bars, length proportional to each location's total
 - [x] FRONTEND-037-AC-12 — segments always in fixed order, separated by a visible surface gap
-- [x] FRONTEND-037-AC-13 — every segment carries a direct text label, never tooltip-only
+- [x] FRONTEND-037-AC-13 — full label, else count-only, else no inline label — measured against the
+      whole track (amended 2026-10-06); every segment, labelled or not, carries a hover/focus tooltip
 - [x] FRONTEND-037-AC-14 — one shared legend, not per-bar
 - [x] FRONTEND-037-AC-15 — all three visualizations legible in Light and Dark (real-browser check)
 - [x] FRONTEND-037-AC-16 — breakdown chart stays readable under monochrome category colours (real-browser check)

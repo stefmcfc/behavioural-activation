@@ -440,9 +440,9 @@ describe('WeeklySummary', () => {
       render(<WeeklySummary />)
 
       const weekdayBar = await screen.findByRole('group', { name: /weekday grid/i })
-      const segments = within(weekdayBar).getAllByText(/routine|necessary|pleasurable/i)
-      expect(segments[0]).toHaveTextContent(/routine/i)
-      expect(segments[1]).toHaveTextContent(/pleasurable/i)
+      const segments = within(weekdayBar).getAllByRole('button')
+      expect(segments[0]).toHaveAccessibleName(/routine/i)
+      expect(segments[1]).toHaveAccessibleName(/pleasurable/i)
 
       expect(screen.getByRole('group', { name: /weekend grid/i })).toBeInTheDocument()
       expect(screen.getByRole('group', { name: /weekend bucket/i })).toBeInTheDocument()
@@ -501,8 +501,8 @@ describe('WeeklySummary', () => {
       render(<WeeklySummary />)
 
       const weekdayBar = await screen.findByRole('group', { name: /weekday grid/i })
-      expect(within(weekdayBar).getByText(/routine/i)).toBeInTheDocument()
-      expect(within(weekdayBar).getByText(/necessary/i)).toBeInTheDocument()
+      expect(within(weekdayBar).getByRole('button', { name: /routine/i })).toBeInTheDocument()
+      expect(within(weekdayBar).getByRole('button', { name: /necessary/i })).toBeInTheDocument()
     })
   })
 })

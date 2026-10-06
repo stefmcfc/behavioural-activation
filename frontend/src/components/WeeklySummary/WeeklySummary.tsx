@@ -76,35 +76,53 @@ const LOCATION_GROUP_LABELS: Record<SummaryLocation, string> = {
   BUCKET: 'Weekend bucket',
 }
 
-// FRONTEND-037-AC-13: below this share of its bar, a segment can't fit a direct text label inside
-// itself with padding -- the label renders just above the bar instead of being dropped to
-// tooltip-only (category colours are user-customizable and not guaranteed distinct, so hue alone
-// can never carry the identification here).
-const SMALL_SEGMENT_SHARE_THRESHOLD = 0.12
+// FRONTEND-037-AC-13 (revised): a segment's rendered width is its share of the whole track, not
+// just of its own (possibly already-shrunk, per AC-11) bar -- planned/locationTotal * locationTotal
+// /maxTotal simplifies to planned/maxTotal. Below FULL_LABEL_SHARE_THRESHOLD of the track, "Category
+// (N)" can't fit with padding; the count alone ("(N)") still can down to COUNT_ONLY_SHARE_THRESHOLD.
+// Below that, neither fits even un-clipped, so the segment carries no inline label at all -- the
+// legend still gives every segment's colour an identity, and the segment's own hover/focus tooltip
+// (the same shared pattern CompletionMark already uses, FRONTEND-037-AC-17) carries the exact
+// category + count for every segment, labelled or not.
+const FULL_LABEL_SHARE_THRESHOLD = 0.12
+const COUNT_ONLY_SHARE_THRESHOLD = 0.04
 
 interface BreakdownSegmentProps {
   readonly categoryStat: CategoryStat
-  readonly locationTotal: number
+  readonly maxTotal: number
 }
 
-function BreakdownSegment({ categoryStat, locationTotal }: BreakdownSegmentProps) {
+function BreakdownSegment({ categoryStat, maxTotal }: BreakdownSegmentProps) {
   const backgroundColor = getCategoryColor(categoryStat.category)
-  const share = locationTotal > 0 ? categoryStat.planned / locationTotal : 0
-  const label = `${CATEGORY_LABELS[categoryStat.category]} (${categoryStat.planned})`
+  const effectiveShare = maxTotal > 0 ? categoryStat.planned / maxTotal : 0
+  const fullLabel = `${CATEGORY_LABELS[categoryStat.category]} (${categoryStat.planned})`
+  const visibleLabel =
+    effectiveShare >= FULL_LABEL_SHARE_THRESHOLD
+      ? fullLabel
+      : effectiveShare >= COUNT_ONLY_SHARE_THRESHOLD
+        ? `(${categoryStat.planned})`
+        : null
 
   return (
-    <div
+    <button
+      type="button"
       className={styles.segment}
       style={{ flexGrow: categoryStat.planned, backgroundColor }}
+      aria-label={fullLabel}
     >
-      {share >= SMALL_SEGMENT_SHARE_THRESHOLD ? (
-        <span className={styles.segmentLabelInside} style={{ color: getReadableTextColor(backgroundColor) }}>
-          {label}
+      {visibleLabel !== null && (
+        <span
+          className={styles.segmentLabel}
+          style={{ color: getReadableTextColor(backgroundColor) }}
+          aria-hidden="true"
+        >
+          {visibleLabel}
         </span>
-      ) : (
-        <span className={styles.segmentLabelOutside}>{label}</span>
       )}
-    </div>
+      <span className={styles.tooltip} aria-hidden="true">
+        {fullLabel}
+      </span>
+    </button>
   )
 }
 
@@ -157,7 +175,7 @@ function BreakdownChart({ byLocation }: BreakdownChartProps) {
                     <BreakdownSegment
                       key={categoryStat.category}
                       categoryStat={categoryStat}
-                      locationTotal={locationStat.total}
+                      maxTotal={maxTotal}
                     />
                   ))}
               </div>
