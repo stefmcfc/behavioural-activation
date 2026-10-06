@@ -37,6 +37,12 @@ file's pipeline and structure):
   prompted by `planner_spec_023`/`frontend_spec_047`'s Move-button icon polish — see entry below.
 - added the CI + automated end-to-end testing candidate, item 4 of
   `.claude/audits/audit-2026-10-06.md`'s non-functional audit — see entry below.
+- added three new candidates from a V1 ideas review of the live app (browser walkthrough): a
+  "Duplicate activity" quick action, reconsidering the "Weekend bucket list" label shown even in
+  non-weekend contexts, and discoverability of the Settings category-colour swatches — see entries
+  below. The same review's four other findings went straight to real specs:
+  `frontend_spec_049_undo_delete.md`, `planner_spec_024`/`frontend_spec_050_change_password.md`,
+  `planner_spec_025`/`frontend_spec_051_data_export.md`, `frontend_spec_052_slot_item_counts.md`.
 
 `2026-10-05`
 
@@ -108,6 +114,56 @@ soon"
 ---
 
 ## Candidates
+
+## "Duplicate activity" quick action
+
+```
+Status: Confirmed worth a candidate, not yet specced.
+```
+
+Raised `2026-10-06` during a V1 ideas review of the live app. Building a variant of an existing
+activity (e.g. a longer version of "Go for a walk") means retyping it from scratch today — `Edit`/
+`Delete` exist per row, but no `Duplicate`. A lightweight `Duplicate` action next to the existing
+row controls (pre-filling the Add-activity form from the source activity's name/category/
+description/repeatable/favourite, not copying its sub-tasks or plan history) would lower that
+friction.
+
+Not yet specced: whether duplicating should also copy the source activity's sub-tasks (straight
+copy vs. a deliberately bare duplicate the user re-builds) is an open product question worth
+settling before writing ACs, not a technical blocker.
+
+## "Weekend bucket list" label shown outside weekend contexts
+
+```
+Status: Confirmed worth a candidate, not yet specced — softest/most subjective of this batch.
+```
+
+Raised `2026-10-06` during the same review. The Today view shows a section headed "Weekend bucket
+list" even when "today" is a weekday — accurate to the underlying concept (the bucket is flexible/
+unscheduled, not actually day-restricted), but the label could read oddly out of context to a user
+who isn't thinking of it as "the weekend bucket" on, say, a Tuesday. A possible fix: a more neutral
+label (e.g. "Flexible activities") in non-weekend-grid contexts, while keeping "Weekend bucket list"
+where it's actually shown alongside the Saturday/Sunday grid.
+
+Explicitly the weakest-confidence item of this batch — flagged for discussion, not a firm
+recommendation. "Weekend bucket list" is an established, consistent proper noun throughout this
+app's specs and UI; renaming it in only some contexts could itself be confusing in a different way.
+Worth a product decision before writing any AC, not just an implementation choice.
+
+## Category-colour swatch discoverability in Settings
+
+```
+Status: Confirmed worth a candidate, not yet specced.
+```
+
+Raised `2026-10-06` during the same review. Settings' "Category colours" section shows a plain
+circular swatch next to each category's "Reset to default" button — nothing visually hints that the
+circle itself is clickable and opens a colour picker. A small affordance (a visible "Change colour"
+label, a hover/focus state, or similar) would make this discoverable without a user needing to
+guess-click it.
+
+Minor, low-risk, but not yet scoped: exact treatment (label text, whether to add a focus ring/hover
+style, or both) isn't decided.
 
 ## CI + automated end-to-end testing
 
