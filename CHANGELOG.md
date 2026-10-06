@@ -15,6 +15,24 @@ All notable changes to this project are documented in this file, in
   count-only label when the full "Category (N)" text doesn't fit, and drop to no inline label (legend
   + a new hover/focus tooltip on every segment) only when neither fits.
 
+## [0.41.2] - 2026-10-06
+
+### Fixed
+
+- An occurrence's notes/actions dialog was rendered as a DOM child of its (native-HTML5-draggable)
+  grid row, so mouse-dragging to select text inside it — e.g. in the notes textarea — could instead
+  drag the whole row, and the dialog visibly inherited the row's "grab" cursor throughout. The
+  dialog now portals to `document.body`, out of the draggable row's DOM subtree.
+
+## [0.41.1] - 2026-10-06
+
+### Fixed
+
+- Completion tick marks on the Summary page's category bars and weekly placement grid were
+  rendering in a fixed accent colour instead of the mark's own computed high-contrast colour,
+  making them hard to see against some category colours (especially in dark mode). The marks and
+  their ticks are also slightly larger now for better visibility.
+
 ## [0.41.0] - 2026-10-06
 
 ### Added
