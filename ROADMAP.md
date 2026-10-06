@@ -87,6 +87,10 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 
 | Feature | Backend Spec | Frontend Spec | Status |
 |---|---|---|---|
+| Undo window for deleting an activity/sub-task | — (frontend-only) | [`frontend_spec_049_undo_delete.md`](.claude/specs/frontend_spec_049_undo_delete.md) | 📝 Specced (2026-10-06), not yet implemented. |
+| Change password | [`planner_spec_024_change_password.md`](.claude/specs/planner_spec_024_change_password.md) | [`frontend_spec_050_change_password.md`](.claude/specs/frontend_spec_050_change_password.md) | 📝 Specced (2026-10-06), not yet implemented. |
+| Export your data as replayable SQL | [`planner_spec_025_data_export.md`](.claude/specs/planner_spec_025_data_export.md) | [`frontend_spec_051_data_export.md`](.claude/specs/frontend_spec_051_data_export.md) | 📝 Specced (2026-10-06), not yet implemented. |
+| Item count on busy Weekly Planner slots | — (frontend-only) | [`frontend_spec_052_slot_item_counts.md`](.claude/specs/frontend_spec_052_slot_item_counts.md) | 📝 Specced (2026-10-06), not yet implemented. |
 
 ## Internal / maintenance specs
 
