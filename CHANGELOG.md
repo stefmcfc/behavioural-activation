@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.3] - 2026-10-06
+
+### Fixed
+
+- The "By schedule and category" breakdown chart could render a segment's inline label clipped and
+  overlapping its neighbour, in locations with a low total relative to the busiest one (e.g. a small
+  weekend bucket) — the fit check compared a segment's share of its own (already-shrunk) bar instead
+  of its real share of the full chart. Segments now measure against the whole track, fall back to a
+  count-only label when the full "Category (N)" text doesn't fit, and drop to no inline label (legend
+  + a new hover/focus tooltip on every segment) only when neither fits.
+
 ## [0.41.2] - 2026-10-06
 
 ### Fixed

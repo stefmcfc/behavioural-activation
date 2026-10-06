@@ -165,7 +165,9 @@
 
 /* FRONTEND-037-AC-12: a visible 2px surface-coloured gap (.bar's own background, shown through
    the flex gap above) separates every segment from its neighbours, so two segments sharing an
-   identical or near-identical category colour still read as distinct shapes. */
+   identical or near-identical category colour still read as distinct shapes. A <button> (not a
+   <div>) so every segment -- labelled or not, FRONTEND-037-AC-13 -- carries a keyboard-reachable
+   hover/focus tooltip with its exact category + count. */
 .segment {
   position: relative;
   display: flex;
@@ -173,31 +175,54 @@
   justify-content: center;
   min-width: 2px;
   overflow: visible;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: default;
 }
 
-.segmentLabelInside {
+.segmentLabel {
   font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
   padding: 0 0.3rem;
 }
 
-/* FRONTEND-037-AC-13: a segment too narrow to fit its label with padding renders the label just
-   above the bar instead -- never dropped to tooltip-only. */
-.segmentLabelOutside {
+/* FRONTEND-037-AC-13/AC-17: the same hover/focus-visible tooltip pattern CompletionMark.module.css
+   already uses -- shown above the segment, carries the full "Category (N)" text regardless of
+   whether a visible inline label fit. */
+.tooltip {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 0.4rem);
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-h);
   background: var(--surface);
+  color: var(--text-h);
   border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  padding: 0 0.3rem;
-  margin-bottom: 0.15rem;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  white-space: nowrap;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.segment:hover .tooltip,
+.segment:focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tooltip {
+    transition:
+      opacity 0.15s ease,
+      visibility 0.15s ease;
+  }
 }
 
 .emptyLocation {
