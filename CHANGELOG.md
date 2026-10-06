@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.39.2] - 2026-10-06
+
 ### Fixed
 
 - Today view's "Browse activities" drawer and "Add" (Assign Activity modal) are now mutually
