@@ -3,10 +3,10 @@
 **Maintenance rule**: update this file in the same change that creates, amends, or deletes an
 endpoint — don't defer it to a later documentation pass.
 
-**Status**: `Auth`, `Activities` (including its Sub-tasks section), `Planner / Weekly Grid`, and
-`Work Days` below are real, implemented sections — `Mood & Reflection` and `AI Suggestions` are
-still pending their own spec/pass. This file establishes where endpoint documentation lives from the
-start (see
+**Status**: `Auth`, `Activities` (including its Sub-tasks section), `Planner / Weekly Grid`,
+`Work Days`, and `Data Export` below are real, implemented sections — `Mood & Reflection` and
+`AI Suggestions` are still pending their own spec/pass. This file establishes where endpoint
+documentation lives from the start (see
 `PROCESS_CHANGES.md` for why: a per-endpoint table/list belongs in its own file, not folded into
 `README.md`, since it's high-churn and unrelated to a general project overview).
 
@@ -265,6 +265,29 @@ else `false`. An override always wins over the pattern for its date, in both dir
   `(owner, date)` pair). Returns `200` with `{ "date": "...", "dayOfWeek": "...", "workDay": ... }`.
   `400` if `workDay` is missing. No endpoint to clear an override back to the pattern default —
   toggling always submits an explicit value.
+
+## Data Export
+
+A cross-cutting, account-level endpoint (not tied to one feature area) for exporting all of the
+authenticated user's own data as a replayable SQL file — a manual backup/restore safety net for a
+self-hosted, single-user deployment with no other documented backup strategy. See
+`.claude/specs/planner_spec_025_data_export.md`. Export only — there is no in-app import/restore;
+replaying the file is a manual step the user performs themselves (`psql`/`docker exec`) against a
+database that has already been through this app's own Flyway migrations and bootstrap flow.
+
+- **`GET /api/v1/export`** — requires an authenticated session. Returns `200` with
+  `Content-Type: application/sql` and a `Content-Disposition: attachment;
+  filename="behavioural-activation-export-<date>.sql"` header; the response body is the generated
+  SQL text. Covers every row the authenticated user owns across `activities`, `sub_tasks`,
+  `planned_occurrences`, `completion_records`, `work_day_patterns`, and `work_day_overrides`, in
+  that FK-dependency order, wrapped in `BEGIN;`/`COMMIT;` so a failed replay rolls back cleanly. Every
+  `user_id` value is emitted as a `(SELECT id FROM users WHERE username = '...')` subquery, never a
+  literal UUID — the export is tied to the username, which survives a database reset, not the
+  database-generated id, which doesn't. No `users` row and no password hash is ever included; the
+  replayed file depends on the target database's own normal bootstrap flow (`APP_BOOTSTRAP_USERNAME`/
+  `APP_BOOTSTRAP_PASSWORD`) having already created a `users` row with a matching `username`. A user
+  with no owned data still gets `200` with a valid, near-empty file (header comment plus
+  `BEGIN;`/`COMMIT;`, no `INSERT` statements), not an error.
 
 ## Mood & Reflection
 

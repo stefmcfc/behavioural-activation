@@ -1,5 +1,6 @@
 import { useId, useState, type SubmitEvent } from 'react'
 import { authApi } from '../../services/authApi'
+import { exportApi } from '../../services/exportApi'
 import { getErrorMessage } from '../../utils/getErrorMessage'
 import { Modal } from '../Modal/Modal'
 import styles from './AccountMenu.module.css'
@@ -52,6 +53,9 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
   const resetChangePasswordForm = () => {
     setCurrentPassword('')
     setNewPassword('')
@@ -65,6 +69,29 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
   const handleCloseChangePassword = () => {
     setChangePasswordOpen(false)
     resetChangePasswordForm()
+  }
+
+  // The exportApi contract returns only the Blob (per frontend_spec_051_data_export.md's
+  // AC-05), not the full axios response, so the real Content-Disposition filename isn't
+  // available here -- a sensible generic client-side filename is used instead.
+  const handleExport = async () => {
+    setExportError(null)
+    setIsExporting(true)
+    try {
+      const blob = await exportApi.downloadExport()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'behavioural-activation-export.sql'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setExportError(getErrorMessage(error))
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const currentPasswordInvalid = currentPasswordTouchedEmpty && !currentPassword.trim()
@@ -129,6 +156,15 @@ export function AccountMenu({ username, onLogout, onPasswordChanged }: AccountMe
         >
           Change password
         </button>
+        <button
+          type="button"
+          className={styles.exportButton}
+          onClick={handleExport}
+          disabled={isExporting}
+        >
+          {isExporting ? 'Exporting…' : 'Export my data'}
+        </button>
+        {exportError && <p role="alert">{exportError}</p>}
       </div>
 
       <Modal isOpen={changePasswordOpen} titleId={formTitleId} onClose={handleCloseChangePassword}>

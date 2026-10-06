@@ -63,4 +63,10 @@ public interface PlannedOccurrenceRepository extends JpaRepository<PlannedOccurr
     // selected by this query, regardless of how old their weekStart is (PLANNER-011-AC-12).
     List<PlannedOccurrence> findByOwnerAndDayOfWeekIsNullAndSlotIsNullAndWeekStartBefore(
         User owner, LocalDate weekStart);
+
+    // planner_spec_025_data_export.md (PLANNER-025-AC-05) -- a plain, unordered, every-week
+    // owner-wide fetch for ExportService. No JOIN FETCH needed here unlike the methods above:
+    // ExportService only ever reads activity.getId()/subTask.getId() off the lazy associations,
+    // and Hibernate resolves an uninitialized proxy's id without a round trip.
+    List<PlannedOccurrence> findByOwner(User owner);
 }

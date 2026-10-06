@@ -1,6 +1,6 @@
 # Export Your Data as Replayable SQL (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `controller/ExportController.java`, `service/ExportService.java`
 **Priority**: P2 — safety net for a self-hosted, single-user deployment with no documented backup
 strategy
 **Depends on**: `planner_spec_002_activity_bank.md` (`Activity`), `planner_spec_003_sub_tasks.md`
@@ -262,16 +262,75 @@ parseable (if functionally empty) SQL.
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-025-AC-01 — endpoint returns a downloadable SQL file with the correct headers
-- [ ] PLANNER-025-AC-02 — export is strictly scoped to the authenticated user's own data
-- [ ] PLANNER-025-AC-03 — activities exported with original id, all columns, `user_id` subquery
-- [ ] PLANNER-025-AC-04 — sub-tasks exported with original id and intact `activity_id` FK
-- [ ] PLANNER-025-AC-05 — planned occurrences exported preserving the activity/sub-task XOR
-- [ ] PLANNER-025-AC-06 — completion records exported with intact `planned_occurrence_id` FK
-- [ ] PLANNER-025-AC-07 — work-day patterns and overrides exported
-- [ ] PLANNER-025-AC-08 — embedded single quotes in free-text fields are correctly escaped
-- [ ] PLANNER-025-AC-09 — statements ordered to satisfy FK dependencies
-- [ ] PLANNER-025-AC-10 — script wrapped in `BEGIN;`/`COMMIT;`
-- [ ] PLANNER-025-AC-11 — no `users` row or password hash ever included
-- [ ] PLANNER-025-AC-12 — leading comment documents the replay precondition
-- [ ] PLANNER-025-AC-13 — a user with no data gets a valid, near-empty file, not an error
+- [x] PLANNER-025-AC-01 — endpoint returns a downloadable SQL file with the correct headers
+- [x] PLANNER-025-AC-02 — export is strictly scoped to the authenticated user's own data
+- [x] PLANNER-025-AC-03 — activities exported with original id, all columns, `user_id` subquery
+- [x] PLANNER-025-AC-04 — sub-tasks exported with original id and intact `activity_id` FK
+- [x] PLANNER-025-AC-05 — planned occurrences exported preserving the activity/sub-task XOR
+- [x] PLANNER-025-AC-06 — completion records exported with intact `planned_occurrence_id` FK
+- [x] PLANNER-025-AC-07 — work-day patterns and overrides exported
+- [x] PLANNER-025-AC-08 — embedded single quotes in free-text fields are correctly escaped
+- [x] PLANNER-025-AC-09 — statements ordered to satisfy FK dependencies
+- [x] PLANNER-025-AC-10 — script wrapped in `BEGIN;`/`COMMIT;`
+- [x] PLANNER-025-AC-11 — no `users` row or password hash ever included
+- [x] PLANNER-025-AC-12 — leading comment documents the replay precondition
+- [x] PLANNER-025-AC-13 — a user with no data gets a valid, near-empty file, not an error
+
+## Summary
+
+### Implementation
+
+- New `controller/ExportController.java` — `GET /api/v1/export`, thin delegate to
+  `ExportService`, builds the `Content-Disposition`/filename and returns the generated SQL as a
+  `ResponseEntity<byte[]>` body.
+- New `service/ExportService.java` — owner-scoped SQL generation across all six tables, in FK
+  dependency order (`activities` → `sub_tasks` → `planned_occurrences` → `completion_records` →
+  `work_day_patterns` → `work_day_overrides`). Every `user_id` is emitted via the
+  `(SELECT id FROM users WHERE username = '...')` subquery; every other primary/foreign key is
+  emitted as its real literal UUID.
+- Extended `repository/PlannedOccurrenceRepository.java`, `CompletionRecordRepository.java`, and
+  `WorkDayOverrideRepository.java` with a plain `findByOwner(User)` each — `ActivityRepository`,
+  `SubTaskRepository`, `WorkDayPatternRepository` reused unmodified, as the spec anticipated.
+
+### Return type / content-type decision
+
+The spec deliberately left the exact Spring return type open. Chose
+`ResponseEntity<byte[]>` with `Content-Type: application/sql` (over `text/plain`) — the
+`.sql`-named downloadable file is unambiguously SQL, and `application/sql` is the more specific,
+IANA-registered media type for this case; `byte[]` (rather than `String`) avoids any
+character-encoding ambiguity for the `Content-Disposition` download path.
+
+### Tests
+
+- `controller/ExportControllerSpec.groovy` (new, `@WebMvcTest`, mocked `ExportService`) — 2 tests,
+  covering PLANNER-025-AC-01 (status/headers) and the inherited 401-when-unauthenticated rule.
+- `service/ExportServiceIntegrationSpec.groovy` (new, `@SpringBootTest`, real Postgres) — 12 tests,
+  one per remaining AC (PLANNER-025-AC-02 through AC-13).
+- Full backend suite: 338 tests before this change, 352 after (14 new, 0 regressions).
+
+### Findings
+
+- No real surprises — the spec's exact column lists (taken verbatim from the Flyway migrations)
+  matched the entity classes exactly, so no schema drift was found during implementation.
+- `PlannedOccurrenceRepository.findByOwner(User)` deliberately has no `JOIN FETCH` unlike this
+  repository's other query methods (which fetch-join `activity`/`subTask` to avoid N+1 for
+  response-mapping call sites) — `ExportService` only ever reads `.getId()` off those lazy
+  associations, and Hibernate resolves an uninitialized proxy's id without a round trip, so the
+  extra fetch-join would add query cost with no benefit here.
+
+### Real end-to-end replay verification (beyond the spec's own test suite)
+
+The Spock suite proves the generation logic is correct; it doesn't prove the *output file* is
+genuinely replayable SQL. Verified that directly against the real dev data: fetched the actual
+export via `curl` against the live `gradlew.bat bootRun` server (21 activities, 23 sub-tasks, 35
+occurrences, 9 completions, 5 work-day patterns, 6 overrides), confirmed by inspection that no
+`INSERT INTO users` or password-hash-shaped string appears anywhere in the output, then exercised
+the user's actual stated use case end-to-end: created a throwaway Postgres database in the same
+container, applied all 11 Flyway migrations fresh, inserted a **newly-bootstrapped `steve` user row
+with a brand-new random UUID** (simulating a real post-wipe restart), and replayed the exported file
+against it via `psql -f`. Every statement succeeded, the transaction committed, every table's row
+count matched the original exactly, and — the critical check — every replayed row's `user_id`
+correctly resolved to the *new* user's id via the `(SELECT id FROM users WHERE username = 'steve')`
+subquery, despite that id being completely different from the original export's source user. This is
+the actual "clean down the DB without losing progress" workflow proven to work, not just its
+component queries. Throwaway database dropped afterward.
