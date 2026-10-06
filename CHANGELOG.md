@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-10-06
+
 ### Added
 
 - You can now change your password from the Account menu, instead of needing to edit `.env` and
