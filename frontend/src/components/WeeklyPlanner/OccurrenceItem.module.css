@@ -58,6 +58,9 @@
 .moveButton {
   appearance: none;
   -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 4px;

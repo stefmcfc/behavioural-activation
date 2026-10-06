@@ -4,6 +4,7 @@ import { ApiError } from '../../types/api'
 import type { SubTask } from '../../types/subTask'
 import { SubTaskForm } from './SubTaskForm'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
+import { ChevronIcon } from '../icons/ChevronIcon'
 import { Modal } from '../Modal/Modal'
 import styles from './SubTaskList.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
@@ -169,6 +170,28 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
         <ul className={styles.list}>
           {sortedSubTasks.map((subTask, index) => (
             <li key={subTask.id} className={`${styles.row} ${styles.nested}`}>
+              {!readOnly && confirmingDeleteId !== subTask.id && (
+                <span className={styles.moveControls}>
+                  <button
+                    type="button"
+                    className={styles.moveButton}
+                    onClick={() => handleMoveUp(subTask.id)}
+                    disabled={index === 0 || reorderInFlight}
+                    aria-label={`Move ${subTask.name} up`}
+                  >
+                    <ChevronIcon direction="up" />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.moveButton}
+                    onClick={() => handleMoveDown(subTask.id)}
+                    disabled={index === sortedSubTasks.length - 1 || reorderInFlight}
+                    aria-label={`Move ${subTask.name} down`}
+                  >
+                    <ChevronIcon direction="down" />
+                  </button>
+                </span>
+              )}
               <span>{subTask.name}</span> <CategoryChip category={subTask.category} />
 
               {!readOnly &&
@@ -192,24 +215,6 @@ export function SubTaskList({ activityId, readOnly = false }: SubTaskListProps) 
                   </span>
                 ) : (
                   <span className={styles.actions}>
-                    <button
-                      type="button"
-                      className={styles.moveButton}
-                      onClick={() => handleMoveUp(subTask.id)}
-                      disabled={index === 0 || reorderInFlight}
-                      aria-label={`Move ${subTask.name} up`}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.moveButton}
-                      onClick={() => handleMoveDown(subTask.id)}
-                      disabled={index === sortedSubTasks.length - 1 || reorderInFlight}
-                      aria-label={`Move ${subTask.name} down`}
-                    >
-                      ↓
-                    </button>
                     <button type="button" onClick={() => setFormTarget(subTask)}>
                       Rename
                     </button>

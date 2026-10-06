@@ -37,9 +37,19 @@
   margin-left: auto;
 }
 
+.moveControls {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
 .moveButton {
   appearance: none;
   -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 4px;

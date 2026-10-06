@@ -543,3 +543,16 @@ pattern.
   coverage with a real-app check of the underlying mechanism. All three test sub-tasks were deleted
   afterward, leaving the activity bank as found. No deviations from the spec's embedded code
   sketches were needed.
+- **Post-ship polish (user feedback, same PR)**: the plain "↑"/"↓" text glyphs (from this spec's
+  own embedded sketches) were swapped for the shared `components/icons/ChevronIcon` component
+  (extended with an optional `direction: 'up' | 'down'` prop, default `'down'` — a no-behavior-
+  change extension for its pre-existing disclosure-triangle callers in `SuggestedActivities.tsx`).
+  Applied to both `SubTaskList.tsx`'s new buttons and the already-shipped
+  `frontend_spec_010_bucket_reordering.md`'s `OccurrenceItem.tsx` Move buttons, for visual
+  consistency between the two near-identical patterns — the latter is a cosmetic, no-behavior-
+  change touch-up (no AC there constrains the glyph), not a reopening of that spec. Also
+  repositioned `SubTaskList`'s Move up/down buttons from the trailing actions group (alongside
+  Rename/Delete) to a leading `.moveControls` span before the name/category chip, matching
+  `OccurrenceItem`'s `ReorderControls` layout exactly (per user request). All 652 frontend tests
+  still pass with no changes needed (every assertion targets `aria-label`, never the glyph or DOM
+  position); real-browser re-verified in both locations.

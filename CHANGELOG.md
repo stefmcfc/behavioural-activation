@@ -15,6 +15,13 @@ All notable changes to this project are documented in this file, in
   `SubTask`; newly-created sub-tasks append at the end, and deleting one renumbers the rest to stay
   contiguous.
 
+### Changed
+
+- Move up/Move down controls (sub-task checklist and the weekend bucket list) now use a proper SVG
+  chevron icon instead of plain "↑"/"↓" text characters. Sub-task checklist Move controls also
+  moved from the trailing Rename/Delete group to a leading position before the name, matching the
+  bucket list's layout.
+
 ## [0.38.0] - 2026-10-06
 
 ### Changed
