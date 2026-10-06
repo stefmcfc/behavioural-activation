@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- Today view's "Browse activities" drawer and "Add" (Assign Activity modal) are now mutually
+  exclusive — opening one closes the other, restoring `ActivityPickerList`'s "never mounted
+  simultaneously" invariant and eliminating the redundant concurrent activity/sub-task fetch that
+  resulted when both were left open at once.
+
 ## [0.39.1] - 2026-10-06
 
 ### Changed

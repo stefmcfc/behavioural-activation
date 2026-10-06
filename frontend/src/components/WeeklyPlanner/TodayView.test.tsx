@@ -231,6 +231,54 @@ describe('TodayView', () => {
     })
   })
 
+  describe('FRONTEND-048-AC-01: opening the drawer closes an open Assign modal', () => {
+    it('closes the Assign modal when Browse activities is clicked', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<TodayView />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /add to wednesday morning/i }))
+      expect(await screen.findByRole('dialog', { name: /assign an activity or sub-task/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /browse activities/i }))
+
+      expect(screen.queryByRole('dialog', { name: /assign an activity or sub-task/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-048-AC-02: requesting Assign closes an open drawer', () => {
+    it('closes the drawer when Add is clicked on a grid cell', async () => {
+      vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<TodayView />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /browse activities/i }))
+      expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /add to wednesday morning/i }))
+
+      expect(screen.queryByRole('complementary', { name: /activities/i })).not.toBeInTheDocument()
+      expect(await screen.findByRole('dialog', { name: /assign an activity or sub-task/i })).toBeInTheDocument()
+    })
+
+    it('closes the drawer when Add is clicked on the bucket list', async () => {
+      vi.mocked(planApi.getWeek).mockResolvedValue([])
+      vi.mocked(activityApi.getAll).mockResolvedValue([])
+      render(<TodayView />)
+
+      await userEvent.click(await screen.findByRole('button', { name: /browse activities/i }))
+      expect(screen.getByRole('complementary', { name: /activities/i })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('button', { name: /add to weekend bucket list/i }))
+
+      expect(screen.queryByRole('complementary', { name: /activities/i })).not.toBeInTheDocument()
+      expect(await screen.findByRole('dialog', { name: /assign an activity or sub-task/i })).toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-042-AC-05/AC-06: grid toggle reflects and updates a date\'s status', () => {
     it('shows the active badge for a marked date, and flips it on click', async () => {
       vi.setSystemTime(new Date('2026-09-30T09:00:00')) // a Wednesday, week of 2026-09-28

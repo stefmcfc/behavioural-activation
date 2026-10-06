@@ -1,6 +1,6 @@
 # Today View: Drawer and Assign Modal Are Mutually Exclusive (Bug Fix)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — see `components/WeeklyPlanner/TodayView.tsx`
 **Priority**: P2 — real violated invariant + a real, avoidable redundant network fetch, but low
 severity (no data corruption, no broken functionality today — just wasted work and a documented
 assumption silently gone false)
@@ -158,6 +158,46 @@ open/close toggle) and the existing "opens the Add picker modal" test must keep 
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-048-AC-01 — opening the drawer closes an open Assign modal
-- [ ] FRONTEND-048-AC-02 — requesting Assign closes an open drawer
-- [ ] FRONTEND-048-AC-03 — no regression to existing single-picker behavior
+- [x] FRONTEND-048-AC-01 — opening the drawer closes an open Assign modal
+- [x] FRONTEND-048-AC-02 — requesting Assign closes an open drawer
+- [x] FRONTEND-048-AC-03 — no regression to existing single-picker behavior
+
+## Summary
+
+**Implemented**: 2026-10-06, on `fix/today-view-picker-mutual-exclusion`.
+
+### Change
+
+- `TodayView.tsx`'s drawer-toggle handler (`handleToggleDrawer`) now calls
+  `plan.handleCloseAssign()` whenever it's about to *open* the drawer (not on close) —
+  `FRONTEND-048-AC-01`.
+- Both `PlannerGrid`'s and `BucketList`'s `onAdd` callbacks now route through one new shared
+  `handleRequestAssign(target: AssignTarget)` local handler, which calls `setDrawerOpen(false)`
+  before `plan.setAssignTarget(target)` — `FRONTEND-048-AC-02`.
+- No changes to `ActivityPickerList.tsx` (its "never mounted simultaneously" comment is accurate
+  again as a result) or `usePlanActions.ts` (shared with `WeeklyPlanner.tsx`, unaffected).
+
+### Test results
+
+- `TodayView.test.tsx`: 15 → 18 tests (3 new: 1 for AC-01, 2 for AC-02), all passing.
+- Full frontend suite (`npm test`): 46 test files, 663 tests passing (was 660 before this change),
+  zero regressions — `FRONTEND-016-AC-10`'s drawer toggle tests and the pre-existing "opens the Add
+  picker modal" test (AC-03) all pass unchanged.
+- `npm run lint` (oxlint): clean, exit 0.
+- `npx tsc -b --noEmit`: clean, no output.
+
+### Real-browser check
+
+Completed in a follow-up pass (Chrome automation, against the live `:4321`/`:8420` dev stack):
+logged into Today view, clicked "Browse activities" to open the drawer, clicked "Add" on the
+Morning grid cell — confirmed the drawer closed and the Assign modal opened in the same action.
+Cancelled the modal and clicked "Browse activities" again — confirmed the drawer reopened normally.
+Both directions of the fix verified working end-to-end, not just via Vitest.
+
+### Findings
+
+- No real surprises. The bucket list's "Add" button's accessible name is
+  `"Add to weekend bucket list"` (via `aria-label`, overriding its visible "Add" text) rather than
+  the spec sketch's `/^add$/i` — the implemented test uses
+  `name: /add to weekend bucket list/i` instead, confirmed against the live `BucketList.tsx` markup
+  rather than assumed from the spec prose.
