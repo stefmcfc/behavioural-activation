@@ -39,6 +39,23 @@ describe('LoginPage', () => {
     })
   })
 
+  describe('FRONTEND-050-AC-03: password-changed notice', () => {
+    it('shows a password-changed notice when passwordChanged is true', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} passwordChanged />)
+      expect(screen.getByRole('alert')).toHaveTextContent(/password changed/i)
+    })
+
+    it('shows no notice when passwordChanged is false', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} passwordChanged={false} />)
+      expect(screen.queryByText(/password changed/i)).not.toBeInTheDocument()
+    })
+
+    it('shows no notice when passwordChanged is omitted', () => {
+      render(<LoginPage onLoginSuccess={vi.fn()} />)
+      expect(screen.queryByText(/password changed/i)).not.toBeInTheDocument()
+    })
+  })
+
   describe('FRONTEND-001-AC-03/AC-04: valid submit logs in and signals success', () => {
     it('calls authApi.login and onLoginSuccess when the form is valid', async () => {
       vi.mocked(authApi.login).mockResolvedValue({ username: 'steve' })

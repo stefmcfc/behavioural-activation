@@ -84,3 +84,31 @@
 .logoutButton:focus-visible {
   border-color: var(--border-strong);
 }
+
+.formTitle {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.field input:user-invalid {
+  border-color: var(--error);
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.8rem;
+}
+
+.changePasswordButton {
+  margin-top: 0.25rem;
+}

@@ -14,7 +14,7 @@ import styles from './App.module.css'
 
 type SessionState =
   | { status: 'checking' }
-  | { status: 'unauthenticated'; expired?: boolean }
+  | { status: 'unauthenticated'; expired?: boolean; passwordChanged?: boolean }
   | { status: 'authenticated'; username: string }
 
 function App() {
@@ -64,6 +64,10 @@ function App() {
     setSession({ status: 'unauthenticated' })
   }, [])
 
+  const handlePasswordChanged = useCallback(() => {
+    setSession({ status: 'unauthenticated', passwordChanged: true })
+  }, [])
+
   if (session.status === 'checking') {
     return (
       <main>
@@ -73,7 +77,13 @@ function App() {
   }
 
   if (session.status === 'unauthenticated') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} sessionExpired={session.expired === true} />
+    return (
+      <LoginPage
+        onLoginSuccess={handleLoginSuccess}
+        sessionExpired={session.expired === true}
+        passwordChanged={session.passwordChanged === true}
+      />
+    )
   }
 
   return (
@@ -82,7 +92,11 @@ function App() {
         <h1>Behavioural Activation Planner</h1>
         <div className={styles.headerActions}>
           <SettingsMenu />
-          <AccountMenu username={session.username} onLogout={handleLogout} />
+          <AccountMenu
+            username={session.username}
+            onLogout={handleLogout}
+            onPasswordChanged={handlePasswordChanged}
+          />
         </div>
       </div>
       <TabNav />

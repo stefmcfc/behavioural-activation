@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- You can now change your password from the Account menu, instead of needing to edit `.env` and
+  wipe the database. A successful change logs you out with a confirmation message; your current
+  password must be re-entered to confirm the change, and your session is invalidated afterward.
+
 ## [0.39.2] - 2026-10-06
 
 ### Fixed

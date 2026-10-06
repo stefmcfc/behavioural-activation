@@ -37,7 +37,7 @@ describe('FRONTEND-030: SettingsMenu popover', () => {
       render(
         <>
           <SettingsMenu />
-          <AccountMenu username="steve" onLogout={() => {}} />
+          <AccountMenu username="steve" onLogout={() => {}} onPasswordChanged={() => {}} />
         </>,
       )
 

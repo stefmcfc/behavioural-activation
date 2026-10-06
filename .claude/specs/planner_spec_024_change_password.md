@@ -1,6 +1,7 @@
 # Change Password (Backend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `controller/AuthController.java` (`changePassword(...)`),
+`model/User.java` (`changePassword(...)` mutator), `dto/ChangePasswordRequest.java`
 **Priority**: P2 — real usability/security gap: today the only way to change the seeded user's
 password is editing `.env` and wiping the Postgres volume, losing all data
 **Depends on**: `planner_spec_001_auth.md` (`User`, `UserRepository`, `PasswordEncoder` bean,
@@ -215,8 +216,54 @@ def "PLANNER-024-AC-05: an unauthenticated request to change password returns 40
 
 ## Acceptance Criteria Summary
 
-- [ ] PLANNER-024-AC-01 — a valid request updates the password hash, returns 204
-- [ ] PLANNER-024-AC-02 — a wrong current password returns 401 (reused auth-failure handler), password unchanged
-- [ ] PLANNER-024-AC-03 — blank/too-short new password returns 400, password unchanged
-- [ ] PLANNER-024-AC-04 — a successful change invalidates the current session
-- [ ] PLANNER-024-AC-05 — unauthenticated requests return 401 (inherited rule, regression test)
+- [x] PLANNER-024-AC-01 — a valid request updates the password hash, returns 204
+- [x] PLANNER-024-AC-02 — a wrong current password returns 401 (reused auth-failure handler), password unchanged
+- [x] PLANNER-024-AC-03 — blank/too-short new password returns 400, password unchanged
+- [x] PLANNER-024-AC-04 — a successful change invalidates the current session
+- [x] PLANNER-024-AC-05 — unauthenticated requests return 401 (inherited rule, regression test)
+
+## Summary
+
+### Implementation
+
+- `controller/AuthController.java` — new `changePassword(...)` method on the existing controller
+  (no new `AuthService`). Verifies the current password via
+  `authenticationManager.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(authentication.getName(),
+  request.currentPassword()))`, looks up the `User` by the authenticated principal's own username
+  (never from the request body), calls `user.changePassword(passwordEncoder.encode(newPassword))`,
+  saves, then invalidates the session via a `logout()`/`changePassword()`-shared private
+  `invalidateSession(...)` helper, and returns `204 No Content`.
+- `model/User.java` — new `changePassword(String newPasswordHash)` mutator, same "set field
+  directly" shape as `SubTask.rename()`, minus an `updatedAt` touch (`User` has no such column).
+- `dto/ChangePasswordRequest.java` — new record exactly as specced (`@NotBlank` on both fields,
+  `@Size(min = 8)` on `newPassword`).
+- `GlobalExceptionHandler`, `SecurityConfig` — unchanged, as specced; the existing
+  `AuthenticationException` → 401 handler and `/api/v1/**` auth rule both already cover this
+  endpoint.
+
+### Tests
+
+- `controller/AuthControllerSpec.groovy` (existing `@WebMvcTest`, mocked
+  `AuthenticationManager`/`UserRepository`/`PasswordEncoder`) — 5 new test methods covering
+  AC-01 through AC-05 (AC-03's blank/too-short cases run as a 3-way `where:` table), proving the
+  controller's wiring and validation/auth-rule behavior.
+- `controller/AuthControllerChangePasswordIntegrationSpec.groovy` (new, `@SpringBootTest` +
+  `@AutoConfigureMockMvc`, real Postgres via docker-compose) — 3 tests proving the genuine
+  round-trip behavior a mocked `AuthenticationManager`/`PasswordEncoder` can't: AC-01 (new password
+  authenticates, old one no longer does), AC-02 (wrong current password rejected, original password
+  still works), AC-04 (the session used to change the password no longer authenticates
+  `GET /auth/me` afterward). Mirrors `SubTaskServiceReorderIntegrationSpec`'s throwaway-`User`
+  `setup()`/`cleanup()` pattern.
+- `model/UserSpec.groovy` — 1 new test for the `changePassword(...)` mutator in isolation.
+- Full suite: 324 tests before this change → 338 after (14 new, 0 regressions).
+
+### Findings
+
+- No `AuthService` existed and none was added — per the spec's own design note, current-password
+  verification and password persistence stay directly in `AuthController`, matching `login()`'s
+  existing style.
+- The spec's Red test sketches used a hypothetical `client`/`sessionCookie`/`owner`/
+  `bootstrapPassword` fixture that doesn't exist in this codebase; adapted to the two real testing
+  patterns already established here instead (`@WebMvcTest` with `@SpringBean` mocks for wiring/
+  validation, `@SpringBootTest` + real Postgres for the genuine auth round-trip) rather than
+  inventing a new fixture style.

@@ -48,6 +48,14 @@ wildcard) plus a `SameSite=Lax` session cookie.
   `200`, even with no active session (idempotent).
 - **`GET /api/v1/auth/me`** — returns `200` with `{ "username": "..." }` if the session is
   authenticated, `401` otherwise.
+- **`PATCH /api/v1/auth/password`** — requires an authenticated session. Body
+  `{ "currentPassword": "...", "newPassword": "..." }`. Verifies `currentPassword` against the
+  authenticated user's own stored hash (reusing the same `AuthenticationManager` check `login`
+  uses); on success, updates the stored password hash and invalidates the current session (the
+  caller must log in again with the new password). Returns `204` with no body on success, `401`
+  with the same generic message as a failed login if `currentPassword` is wrong, `400` if
+  `currentPassword` is blank, or `newPassword` is blank or shorter than 8 characters. See
+  `.claude/specs/planner_spec_024_change_password.md`.
 
 Error responses (auth or otherwise) share one shape: `{ "message": "...", "details": null | {...} }`.
 

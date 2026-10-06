@@ -1,6 +1,7 @@
 # Change Password (Frontend)
 
-**Status**: Not started
+**Status**: Implemented (2026-10-06) — `components/Navigation/AccountMenu.tsx`,
+`components/LoginPage.tsx`, `App.tsx`, `services/authApi.ts`
 **Priority**: P2 — matches `planner_spec_024_change_password.md`'s priority
 **Depends on**: `planner_spec_024_change_password.md` (paired backend spec — `PATCH
 /api/v1/auth/password`), `frontend_spec_030_header_restructure.md` (`AccountMenu`'s existing native
@@ -184,8 +185,62 @@ fixture — not a new AC, a mechanical consequence of the new required prop.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-050-AC-01 — AccountMenu gains a Change password form with LoginPage-style validation timing
-- [ ] FRONTEND-050-AC-02 — mismatched new password/confirmation blocks submit client-side
-- [ ] FRONTEND-050-AC-03 — a successful change logs out with a "Password changed" notice on LoginPage
-- [ ] FRONTEND-050-AC-04 — a failed change shows an error, user stays logged in
-- [ ] FRONTEND-050-AC-05 — `authApi.changePassword(...)` calls `PATCH /auth/password`
+- [x] FRONTEND-050-AC-01 — AccountMenu gains a Change password form with LoginPage-style validation timing
+- [x] FRONTEND-050-AC-02 — mismatched new password/confirmation blocks submit client-side
+- [x] FRONTEND-050-AC-03 — a successful change logs out with a "Password changed" notice on LoginPage
+- [x] FRONTEND-050-AC-04 — a failed change shows an error, user stays logged in
+- [x] FRONTEND-050-AC-05 — `authApi.changePassword(...)` calls `PATCH /auth/password`
+
+## Summary
+
+### Implementation
+
+- `services/authApi.ts` — added `changePassword(currentPassword, newPassword): Promise<void>`,
+  calling `PATCH /auth/password`, mirroring `login`/`logout`'s existing shape exactly.
+- `components/Navigation/AccountMenu.tsx` — added a "Change password" form (current password, new
+  password, confirm new password) directly inside the existing popover panel, below the username/
+  Log out controls. Required-field validation timing (blur-while-empty, clear-on-type, submit-
+  attempt) mirrors `LoginPage.tsx` field-for-field: `aria-invalid`/`aria-describedby` wired to
+  per-field `<p>` error elements. A client-only mismatch check (new vs. confirm) runs after the
+  required-field check and before calling the API, showing "Passwords don't match." without
+  touching the network. API failures (401 wrong-current-password, 400 validation) render via the
+  existing `getErrorMessage`/`role="alert"` pattern and leave the user logged in. New required prop
+  `onPasswordChanged: () => void`.
+- `App.tsx` — `SessionState`'s `unauthenticated` variant gained a second optional reason,
+  `passwordChanged?: boolean`, alongside the existing `expired?: boolean`. New `handlePasswordChanged`
+  callback sets `{ status: 'unauthenticated', passwordChanged: true }` directly (no `authApi.logout()`
+  call — the backend already invalidated the session as part of the successful change). Wired into
+  `AccountMenu`'s new `onPasswordChanged` prop and `LoginPage`'s new `passwordChanged` prop exactly
+  the way `onLogout`/`sessionExpired` already were.
+- `components/LoginPage.tsx` — new optional `passwordChanged?: boolean` prop, rendered as a second
+  `role="alert"` notice ("Password changed. Please log in with your new password.") alongside the
+  existing session-expired notice, using the same `sessionExpiredNotice` CSS class.
+
+### Testing
+
+- Red/green TDD throughout: each AC's test was written first against the not-yet-existing
+  prop/markup, confirmed failing, then made to pass.
+- `AccountMenu.test.tsx`'s base props fixture (every existing render call) was updated to include
+  the new required `onPasswordChanged` prop — a mechanical consequence of the new prop, not a new
+  AC, per the spec's own cross-reference note.
+- `SettingsMenu.test.tsx` also renders a bare `<AccountMenu>` to exercise the two-popover interaction
+  (FRONTEND-030-AC-09) and needed the same mechanical prop addition — this wasn't called out in the
+  spec but was caught by `tsc`, not by Vitest (the test used no typed import path that would have
+  failed at the Vitest/Babel-transform layer).
+- Test counts: 663 passing before this change, 675 passing after (12 new: 7 in
+  `AccountMenu.test.tsx`, 3 in `LoginPage.test.tsx`, 1 in `authApi.test.ts`, 1 in `App.test.tsx`).
+  Zero regressions across all 46 test files.
+- `npm run lint` (oxlint): clean, no findings.
+- `npx tsc -b --noEmit`: clean after the `SettingsMenu.test.tsx` fix above.
+
+### Real-browser verification — completed in a follow-up pass
+
+The implementing agent couldn't perform this (no browser tool available in that session) — completed
+separately (Chrome automation, against the live `:4321`/`:8420` dev stack) using the real seeded
+account. Logged in, opened the Account menu, submitted the Change password form (current/new/confirm)
+— confirmed the app bounced to the login page with "Password changed. Please log in with your new
+password." Confirmed the **old** password now returns "Invalid credentials", and the **new** password
+logs in successfully — the full backend round-trip (session invalidation, hash update) verified
+end-to-end, not just via Vitest. The password was then changed back to the original seeded value via
+the same form, confirmed working, so the local dev environment's documented `.env` credentials are
+unaffected.

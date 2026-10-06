@@ -31,6 +31,12 @@ public class User {
         this.createdAt = Instant.now();
     }
 
+    // planner_spec_024_change_password.md (PLANNER-024-AC-01) -- same "set field directly" shape as
+    // SubTask.rename()/recategorize(), minus the updatedAt touch: User has no updatedAt column.
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
     public UUID getId() {
         return id;
     }

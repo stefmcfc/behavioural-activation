@@ -8,4 +8,7 @@ export const authApi = {
   logout: (): Promise<void> => request<void>(() => client.post('/auth/logout')),
 
   me: (): Promise<User> => request<User>(() => client.get('/auth/me')),
+
+  changePassword: (currentPassword: string, newPassword: string): Promise<void> =>
+    request<void>(() => client.patch('/auth/password', { currentPassword, newPassword })),
 }
