@@ -20,4 +20,15 @@ class UserSpec extends Specification {
             !user.createdAt.isBefore(before)
             !user.createdAt.isAfter(after)
     }
+
+    def "PLANNER-024-AC-01: changePassword replaces the stored password hash"() {
+        given: "a User with an existing password hash"
+            def user = new User("steve", "old-hash")
+
+        when: "changePassword is called with a new hash"
+            user.changePassword("new-hash")
+
+        then: "the stored password hash is replaced"
+            user.passwordHash == "new-hash"
+    }
 }

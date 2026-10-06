@@ -79,6 +79,11 @@ this file.
 
 **Last updated:** `2026-10-06`
 
+- added two new ideas, raised by the user after `planner_spec_024`/`frontend_spec_050_change_password.md`
+  shipped: a password-recovery path for a locked-out user (no email field exists, no recovery today
+  beyond wiping the database), and user registration (already settled as deliberately out of scope
+  by `HIGH_LEVEL_DESIGN_FEEDBACK.md` §7a, logged here for discoverability rather than re-litigated) —
+  see entries below.
 - re-reviewed the "Pagination on `GET /api/v1/activities`" entry at the user's request, with real
   dev-data research backing it up — still not specced, now for a sharper reason (pagination
   actively conflicts with the current client-side-filtering UI, not just "no urgency yet"). The
@@ -110,6 +115,49 @@ this file.
   removed from this file.
 
 ---
+
+## Password recovery for a locked-out user
+
+```
+Status: Not specced.
+```
+
+Raised `2026-10-06`, prompted by the user asking about `planner_spec_024_change_password.md`'s
+scope. `User` has no `email` column at all (just `username`/`passwordHash`), and no email-sending
+infrastructure exists anywhere in the stack — confirmed via the Flyway migrations and `User.java`.
+Change Password (just shipped) only helps if you're already authenticated; if a user both forgets
+their password *and* has no active session, there is currently **no recovery path at all** short of
+`docker compose down -v`, which destroys every activity, plan, and completion record along with it.
+
+Not yet specced because the right shape is a real open question, not just unwritten effort — a
+traditional "email a reset link" flow needs an email field (schema change) plus real email-sending
+infrastructure (SMTP or a transactional-email API), which is a meaningfully bigger lift than this
+app's actual deployment model probably justifies: self-hosted, single user, who already has direct
+server/database access. A lighter-weight alternative — a documented `RUNBOOK.md` script/command that
+re-hashes a password directly in the database without touching any other data — likely fits better,
+but that's a product/ops-tradeoff decision to make deliberately, not default into. Revisit once
+there's a real opinion on which shape this should take (or if multi-user support ever becomes real,
+at which point email-based reset becomes much more clearly justified — see the "Registration" entry
+below, which would need to land first anyway).
+
+## User registration (multi-user sign-up)
+
+```
+Status: Not specced — deliberately deferred by prior architecture decision, not an oversight.
+```
+
+Raised `2026-10-06`, prompted by the user noticing there's no sign-up UI anywhere in the app. This
+isn't a gap to fix — it's a settled decision. `.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` §7a explicitly
+addresses this: owner-association on every entity and real Spring Security auth were built in from
+V1 as *seams* for possible future multi-user support, but registration/invite flows were deliberately
+left out — *"building those now would be speculative"* — until there's an actual concrete second
+user. The single account today is created entirely via `.env`'s `APP_BOOTSTRAP_USERNAME`/
+`APP_BOOTSTRAP_PASSWORD` on first startup, by design.
+
+Logged here only for discoverability (so this doesn't get re-raised as a surprise gap later), not
+because it's newly worth building. Revisit only if this app ever actually needs to support a second
+real person — at that point, this entry and the password-recovery entry above both become much more
+clearly justified together, rather than either being worth building in isolation for a single user.
 
 ## Enable JUnit Platform parallel test execution for the backend suite
 

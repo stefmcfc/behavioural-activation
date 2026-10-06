@@ -12,13 +12,17 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification
 import uk.co.stefirby.behaviouralactivation.config.CorsConfig
+import uk.co.stefirby.behaviouralactivation.model.User
+import uk.co.stefirby.behaviouralactivation.repository.UserRepository
 import uk.co.stefirby.behaviouralactivation.security.SecurityConfig
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -35,6 +39,12 @@ class AuthControllerSpec extends Specification {
 
     @SpringBean
     AuthenticationManager authenticationManager = Mock()
+
+    @SpringBean
+    UserRepository userRepository = Mock()
+
+    @SpringBean
+    PasswordEncoder passwordEncoder = Mock()
 
     def "PLANNER-001-AC-05: successful login authenticates, stores session, returns username"() {
         given: "a valid username/password body"
@@ -177,5 +187,120 @@ class AuthControllerSpec extends Specification {
         and: "no stack trace or raw exception fields leak"
             result.andExpect(jsonPath('$.trace').doesNotExist())
             result.andExpect(jsonPath('$.exception').doesNotExist())
+    }
+
+    // PLANNER-024-AC-01 through AC-05 (planner_spec_024_change_password.md) -- these exercise the
+    // controller's wiring against mocked AuthenticationManager/UserRepository/PasswordEncoder beans,
+    // the same style as every other test above. The real-hash, real-round-trip proof ("the new
+    // password now authenticates, the old one no longer does") needs a genuine AuthenticationManager
+    // and PasswordEncoder, which this mocked @WebMvcTest deliberately doesn't have -- that's covered
+    // separately by AuthControllerChangePasswordIntegrationSpec.groovy's full @SpringBootTest.
+
+    def "PLANNER-024-AC-01: a valid password change updates the stored hash and returns 204"() {
+        given: "an authenticated principal and a valid change-password request"
+            def body = objectMapper.writeValueAsString([currentPassword: "correct-horse", newPassword: "a-new-strong-password"])
+
+        and: "AuthenticationManager verifies the current password, and the user is found"
+            authenticationManager.authenticate(_) >> new UsernamePasswordAuthenticationToken(
+                "steve", null, [new SimpleGrantedAuthority("ROLE_USER")])
+            def user = new User("steve", "old-hash")
+            userRepository.findByUsername("steve") >> Optional.of(user)
+            passwordEncoder.encode("a-new-strong-password") >> "new-hash"
+
+        when: "PATCH /api/v1/auth/password is requested"
+            def result = mockMvc.perform(patch("/api/v1/auth/password")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 204"
+            result.andExpect(status().isNoContent())
+
+        and: "the stored password hash is updated via the encoder, not stored in plaintext"
+            1 * userRepository.save({ User saved -> saved.passwordHash == "new-hash" })
+    }
+
+    def "PLANNER-024-AC-02: an incorrect current password returns 401, password unchanged"() {
+        given: "a request with the wrong current password"
+            def body = objectMapper.writeValueAsString([currentPassword: "wrong-password", newPassword: "a-new-strong-password"])
+
+        and: "AuthenticationManager rejects it"
+            authenticationManager.authenticate(_) >> { throw new BadCredentialsException("Bad credentials") }
+
+        when: "PATCH /api/v1/auth/password is requested"
+            def result = mockMvc.perform(patch("/api/v1/auth/password")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 401"
+            result.andExpect(status().isUnauthorized())
+
+        and: "the password is never updated"
+            0 * userRepository.save(_)
+    }
+
+    def "PLANNER-024-AC-03: a blank or too-short new password returns 400, password unchanged"() {
+        given: "a request with an invalid new password"
+            def body = objectMapper.writeValueAsString(requestBody)
+
+        when: "PATCH /api/v1/auth/password is requested"
+            def result = mockMvc.perform(patch("/api/v1/auth/password")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 400"
+            result.andExpect(status().isBadRequest())
+
+        and: "AuthenticationManager is never consulted and the password is never updated"
+            0 * authenticationManager.authenticate(_)
+            0 * userRepository.save(_)
+
+        where:
+            requestBody << [
+                [currentPassword: "correct-horse", newPassword: "abc"],
+                [currentPassword: "correct-horse", newPassword: ""],
+                [currentPassword: "", newPassword: "a-new-strong-password"]
+            ]
+    }
+
+    def "PLANNER-024-AC-04: a successful password change invalidates the current session"() {
+        given: "an active session and a valid change-password request"
+            def session = new MockHttpSession()
+            def body = objectMapper.writeValueAsString([currentPassword: "correct-horse", newPassword: "a-new-strong-password"])
+            authenticationManager.authenticate(_) >> new UsernamePasswordAuthenticationToken(
+                "steve", null, [new SimpleGrantedAuthority("ROLE_USER")])
+            userRepository.findByUsername("steve") >> Optional.of(new User("steve", "old-hash"))
+            passwordEncoder.encode("a-new-strong-password") >> "new-hash"
+
+        when: "PATCH /api/v1/auth/password is requested"
+            def result = mockMvc.perform(patch("/api/v1/auth/password")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve"))
+                .session(session)
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 204"
+            result.andExpect(status().isNoContent())
+
+        and: "the session is invalidated"
+            session.isInvalid()
+    }
+
+    def "PLANNER-024-AC-05: an unauthenticated request to change password returns 401 (inherited rule)"() {
+        given: "a change-password body, but no authenticated session"
+            def body = objectMapper.writeValueAsString([currentPassword: "x", newPassword: "a-new-strong-password"])
+
+        when: "PATCH /api/v1/auth/password is requested with no session"
+            def result = mockMvc.perform(patch("/api/v1/auth/password")
+                .contentType("application/json")
+                .content(body))
+
+        then: "the response is 401, from the existing SecurityFilterChain rule, unmodified"
+            result.andExpect(status().isUnauthorized())
+
+        and: "AuthenticationManager is never consulted"
+            0 * authenticationManager.authenticate(_)
     }
 }

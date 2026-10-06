@@ -7,9 +7,14 @@ import buttonStyles from '../styles/buttonVariants.module.css'
 interface LoginPageProps {
   readonly onLoginSuccess: (username: string) => void
   readonly sessionExpired?: boolean
+  readonly passwordChanged?: boolean
 }
 
-export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageProps) {
+export function LoginPage({
+  onLoginSuccess,
+  sessionExpired = false,
+  passwordChanged = false,
+}: LoginPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [usernameTouchedEmpty, setUsernameTouchedEmpty] = useState(false)
@@ -47,6 +52,11 @@ export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageP
       {sessionExpired && (
         <p className={styles.sessionExpiredNotice} role="alert">
           Your session has expired. Please log in again.
+        </p>
+      )}
+      {passwordChanged && (
+        <p className={styles.sessionExpiredNotice} role="alert">
+          Password changed. Please log in with your new password.
         </p>
       )}
       <form onSubmit={handleSubmit} noValidate>

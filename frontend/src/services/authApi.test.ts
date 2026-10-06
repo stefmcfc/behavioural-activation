@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const post = vi.fn()
 const get = vi.fn()
-const create = vi.fn(() => ({ post, get, interceptors: { response: { use: vi.fn() } } }))
+const patch = vi.fn()
+const create = vi.fn(() => ({ post, get, patch, interceptors: { response: { use: vi.fn() } } }))
 
 function isMockAxiosError(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'isAxiosError' in error
@@ -22,6 +23,7 @@ describe('authApi', () => {
   beforeEach(() => {
     post.mockReset()
     get.mockReset()
+    patch.mockReset()
   })
 
   it('FRONTEND-001-AC-01: configures its axios instance with withCredentials: true', () => {
@@ -66,5 +68,16 @@ describe('authApi', () => {
     await authApi.logout()
 
     expect(post).toHaveBeenCalledWith('/auth/logout')
+  })
+
+  it('FRONTEND-050-AC-05: changePassword() patches /auth/password with the current and new password', async () => {
+    patch.mockResolvedValue({ data: undefined })
+
+    await authApi.changePassword('old-password', 'new-password')
+
+    expect(patch).toHaveBeenCalledWith('/auth/password', {
+      currentPassword: 'old-password',
+      newPassword: 'new-password',
+    })
   })
 })

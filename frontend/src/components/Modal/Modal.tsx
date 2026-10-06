@@ -25,7 +25,16 @@ export function Modal({ isOpen, titleId, ariaLabel, onClose, children, className
     if (isOpen && !dialog.open) {
       previouslyFocusedRef.current = document.activeElement as HTMLElement | null
       dialog.showModal()
-      dialog.focus()
+      // showModal() already autofocuses the first focusable descendant per spec (e.g. a form's
+      // first input) when one exists -- only fall back to focusing the dialog container itself
+      // when nothing inside it was focusable, so callers still get a defined post-open focus
+      // target. Unconditionally calling dialog.focus() here would steal focus straight back off
+      // that autofocused element, firing a blur on it while still empty -- which any blur-timed
+      // "touched empty" validation (e.g. this project's LoginPage-style forms) reads as the user
+      // having left it blank, showing a required error nobody actually triggered.
+      if (!dialog.contains(document.activeElement)) {
+        dialog.focus()
+      }
     } else if (!isOpen && dialog.open) {
       // isOpen already reflects the caller's desired state here (e.g. a sibling instance
       // became the active one) -- close() still fires the native 'close' event below, but
