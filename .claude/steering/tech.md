@@ -171,6 +171,7 @@ npm install
 npm run dev                    # Vite dev server on :4321, proxies /api to :8420
 npm test                       # Vitest, single run
 npm run test:watch             # Vitest watch mode
+npm run test:coverage          # Vitest with coverage report (no threshold/gate set)
 npm run lint                   # oxlint
 npm run build                  # production build
 

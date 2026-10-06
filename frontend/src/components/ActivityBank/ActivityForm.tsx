@@ -1,11 +1,11 @@
 import { useState, type SubmitEvent } from 'react'
 import { activityApi } from '../../services/activityApi'
-import { ApiError } from '../../types/api'
 import type { Activity, ActivityCategory } from '../../types/activity'
 import { CategoryPicker } from './CategoryPicker'
 import { CategoryGuidance } from './CategoryGuidance'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './ActivityForm.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -14,21 +14,6 @@ interface ActivityFormProps {
   readonly activity?: Activity
   readonly onSuccess: (activity: Activity) => void
   readonly onCancel?: () => void
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export function ActivityForm({ mode, activity, onSuccess, onCancel }: ActivityFormProps) {

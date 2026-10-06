@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { activityApi } from '../../services/activityApi'
-import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
 import { SubTaskList } from './SubTaskList'
@@ -12,6 +11,7 @@ import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import { CATEGORY_ORDER } from '../../utils/categoryLabels'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './ActivityBank.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
 
@@ -26,21 +26,6 @@ function getSubTasksLabel(activity: Activity, isExpanded: boolean): string {
     return 'Hide sub-tasks'
   }
   return activity.subTaskCount === 0 ? 'Add sub-tasks' : `Show sub-tasks (${activity.subTaskCount})`
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export function ActivityBank() {

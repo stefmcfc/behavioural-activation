@@ -1,24 +1,9 @@
 import { useEffect, useState } from 'react'
 import { planApi } from '../../services/planApi'
-import { ApiError } from '../../types/api'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import type { AssignTarget } from './AssignActivityPicker'
 import type { DragPayload } from './dragPayload'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
-}
+import { getErrorMessage } from '../../utils/getErrorMessage'
 
 // FRONTEND-016: extracted from WeeklyPlanner.tsx's pre-existing body (occurrence fetch plus every
 // assign/move/complete/undo/remove/carry-forward/reorder/drag handler) so WeeklyPlanner and the new

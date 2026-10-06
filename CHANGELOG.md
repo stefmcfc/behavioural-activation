@@ -6,6 +6,22 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.39.1] - 2026-10-06
+
+### Changed
+
+- Deduplicated the frontend's 11 copy-pasted `getErrorMessage()` implementations into one shared
+  `frontend/src/utils/getErrorMessage.ts` utility; no behavior change.
+- Unified the two unrelated `ChevronIcon` components into one shared, four-direction
+  (`up`/`down`/`left`/`right`) icon component; `WeekNav.tsx` now renders the shared component
+  instead of its own local copy. No visual or behavior change.
+
+### Added
+
+- Wired up the already-installed `@vitest/coverage-v8` frontend test-coverage tooling: a
+  `test:coverage` script and a `vitest.config.ts` coverage block. No threshold/gate is enforced yet
+  — reporting only.
+
 ## [0.39.0] - 2026-10-06
 
 ### Added

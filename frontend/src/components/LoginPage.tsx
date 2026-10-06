@@ -1,27 +1,12 @@
 import { useState, type SubmitEvent } from 'react'
 import { authApi } from '../services/authApi'
-import { ApiError } from '../types/api'
+import { getErrorMessage } from '../utils/getErrorMessage'
 import styles from './LoginPage.module.css'
 import buttonStyles from '../styles/buttonVariants.module.css'
 
 interface LoginPageProps {
   readonly onLoginSuccess: (username: string) => void
   readonly sessionExpired?: boolean
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export function LoginPage({ onLoginSuccess, sessionExpired = false }: LoginPageProps) {

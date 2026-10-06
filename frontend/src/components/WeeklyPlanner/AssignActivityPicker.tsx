@@ -1,25 +1,10 @@
 import { useState } from 'react'
-import { ApiError } from '../../types/api'
 import type { PlanDayOfWeek, PlannedOccurrence, PlanSlot } from '../../types/plan'
 import { planApi } from '../../services/planApi'
 import { ActivityPickerList, type ActivityPickerSelection } from './ActivityPickerList'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './AssignActivityPicker.module.css'
 import buttonStyles from '../../styles/buttonVariants.module.css'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
-}
 
 export interface AssignTarget {
   readonly dayOfWeek: PlanDayOfWeek | null

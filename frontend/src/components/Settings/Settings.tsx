@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ActivityCategory } from '../../types/activity'
 import type { PlanDayOfWeek } from '../../types/plan'
-import { ApiError } from '../../types/api'
 import { workDayApi } from '../../services/workDayApi'
 import { CATEGORY_LABELS } from '../../utils/categoryLabels'
 import {
@@ -20,6 +19,7 @@ import {
   setGridOrientation as persistGridOrientation,
   type GridOrientation,
 } from '../../utils/gridOrientation'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 import styles from './Settings.module.css'
 
 const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
@@ -50,24 +50,6 @@ const WORK_DAYS: readonly { value: PlanDayOfWeek; label: string }[] = [
 
 function getSystemPrefersDark(): boolean {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-// FRONTEND-042: this project's per-component-duplicated error-formatting helper (see
-// usePlanActions.ts's identical copy) -- this is the first Settings section with a real network
-// dependency, so it needs its own copy, unlike its localStorage-only sibling fieldsets.
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 function getCategoryColorSnapshot(): Record<ActivityCategory, string> {

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import type { DragEvent } from 'react'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
-import { ApiError } from '../../types/api'
 import type { Activity } from '../../types/activity'
 import type { SubTask } from '../../types/subTask'
 import { CategoryChip } from '../CategoryChip/CategoryChip'
@@ -11,6 +10,7 @@ import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import { CATEGORY_ORDER } from '../../utils/categoryLabels'
+import { getErrorMessage } from '../../utils/getErrorMessage'
 // FRONTEND-028-AC-01: this extraction reuses AssignActivityPicker's own CSS module rather than
 // introducing a parallel one -- the two components render identical markup/classnames in `select`
 // mode, so sharing the module keeps the one `moduleStyles.test.ts` check on this file's selectors
@@ -37,21 +37,6 @@ const FAVOURITE_FILTER_OPTIONS: readonly { value: FavouriteFilter; label: string
 // which doesn't reflect the active category filter.
 function getSubTasksToggleLabel(count: number, isExpanded: boolean): string {
   return isExpanded ? 'Hide sub-tasks' : `Show sub-tasks (${count})`
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as { message: unknown }).message === 'string'
-  ) {
-    return (error as { message: string }).message
-  }
-  return 'Something went wrong. Please try again.'
 }
 
 export type ActivityPickerMode = 'select' | 'drag'
