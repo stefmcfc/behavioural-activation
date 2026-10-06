@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './Modal.module.css'
 
 interface ModalProps {
@@ -53,7 +54,15 @@ export function Modal({ isOpen, titleId, ariaLabel, onClose, children, className
     onClose()
   }
 
-  return (
+  // Portalled to document.body rather than rendered where the caller places it in the tree: a
+  // caller like OccurrenceItem nests this inside a native drag-and-drop `draggable` grid row, and
+  // the browser's drag-source lookup walks up the real DOM tree from any mousedown target to find
+  // the nearest `draggable=true` ancestor -- so an inline-rendered dialog (and its `cursor: grab`,
+  // inherited the same way) would hijack mouse-drag text selection inside it (e.g. the notes
+  // textarea) into dragging the underlying row instead. `<dialog>` + showModal() already renders
+  // in the browser's top layer regardless of DOM position, so this changes DOM ancestry only, not
+  // layout or visual stacking.
+  return createPortal(
     <dialog // NOSONAR(typescript:S6847, typescript:S1082): the onClick below only detects a click
       // landing on the backdrop (see the handler's own target-equality check) to close the dialog as
       // a mouse-only convenience -- it's never the sole way to close: Escape (native <dialog> behavior)
@@ -73,6 +82,7 @@ export function Modal({ isOpen, titleId, ariaLabel, onClose, children, className
       }}
     >
       {children}
-    </dialog>
+    </dialog>,
+    document.body,
   )
 }
