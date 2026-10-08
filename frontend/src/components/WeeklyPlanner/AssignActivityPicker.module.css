@@ -130,6 +130,20 @@
   gap: 0.5rem;
 }
 
+/* FRONTEND-054-AC-01/AC-02: highlights the currently-selected activity/sub-task button so it's
+   visually clear which row is selected before clicking "Assign" -- same accent/accent-ink pairing
+   already used for "this is the active choice" elsewhere, e.g. .filterGroup
+   label:has(input:checked) above. The [aria-pressed='true'] selector (rather than a new className)
+   is what satisfies FRONTEND-054-AC-04 by construction: drag-mode rows render a plain <span>,
+   never a button with aria-pressed, so this rule can never match there. Specificity (0,2,1) beats
+   index.css's `button:hover` (0,1,1), so the highlight wins over hover without a separate :hover
+   override. */
+.activityRow button[aria-pressed='true'],
+.subTaskRow button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 /* FRONTEND-045: right-aligned, matching ActivityBank.module.css's own .actions treatment for its
    "Show sub-tasks" toggle. FRONTEND-046: flex-wrap/flex-shrink:0/white-space:nowrap (the latter
    inherited by the toggle button inside) -- in the Activity Drawer's narrow 320px column, without

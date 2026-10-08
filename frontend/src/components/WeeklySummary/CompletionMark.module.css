@@ -54,7 +54,11 @@
   padding: 0.25rem 0.5rem;
   font-size: 0.72rem;
   font-weight: 400;
-  white-space: nowrap;
+  /* FRONTEND-053-AC-03: note text can run up to 200 chars (FRONTEND-043-AC-04) -- wrap within a
+     bounded width instead of nowrap, which would otherwise force one unbounded-width line. */
+  white-space: normal;
+  max-width: min(85vw, 16rem);
+  text-align: left;
   z-index: 10;
   opacity: 0;
   visibility: hidden;

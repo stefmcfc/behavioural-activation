@@ -25,16 +25,14 @@ function makeOccurrence(overrides: Partial<PlannedOccurrence> = {}): PlannedOccu
   }
 }
 
-describe('FRONTEND-043-AC-07: has-notes tooltip hint', () => {
-  it('appends the hint to the tooltip and aria-label when notes is present', () => {
+describe('FRONTEND-053-AC-01/AC-02: note text in the tooltip, replacing the generic hint', () => {
+  it("includes the note's own text when notes is present", () => {
     render(<CompletionMark occurrence={makeOccurrence({ notes: 'Book A' })} shape="circle" />)
-    expect(screen.getByRole('button')).toHaveAccessibleName(expect.stringContaining('has a note'))
+    expect(screen.getByRole('button')).toHaveAccessibleName(expect.stringContaining('Book A'))
   })
 
-  it('omits the hint when notes is null', () => {
+  it('omits any note-related text when notes is null', () => {
     render(<CompletionMark occurrence={makeOccurrence({ notes: null })} shape="circle" />)
-    expect(screen.getByRole('button')).toHaveAccessibleName(
-      expect.not.stringContaining('has a note'),
-    )
+    expect(screen.getByRole('button')).toHaveAccessibleName(expect.not.stringContaining('note'))
   })
 })

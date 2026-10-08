@@ -6,6 +6,16 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Fixed
+
+- The Weekly Summary's completion-mark tooltip only ever said ", has a note" for an occurrence
+  with a note, with no way to read the note itself without opening its detail card — it now shows
+  the note's own text, wrapping within a bounded tooltip width instead of forcing one unbounded
+  line.
+- Clicking an activity or sub-task in the "Assign an activity or sub-task" modal gave no visible
+  confirmation of which row was selected before clicking "Assign" — the selected row is now
+  visually highlighted.
+
 ## [0.41.3] - 2026-10-06
 
 ### Fixed
