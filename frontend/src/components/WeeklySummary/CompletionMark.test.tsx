@@ -36,3 +36,29 @@ describe('FRONTEND-053-AC-01/AC-02: note text in the tooltip, replacing the gene
     expect(screen.getByRole('button')).toHaveAccessibleName(expect.not.stringContaining('note'))
   })
 })
+
+describe('FRONTEND-055-AC-01: visual tooltip is three stacked lines, with no status text', () => {
+  it('shows name, location, and a labelled notes line as separate lines', () => {
+    render(<CompletionMark occurrence={makeOccurrence({ notes: 'Book A' })} shape="circle" />)
+    const tooltip = document.querySelector('[aria-hidden="true"]')
+    const lines = Array.from(tooltip?.children ?? []).map((child) => child.textContent)
+    expect(lines).toEqual(['Go for a walk', 'Monday Morning', 'Notes: Book A'])
+  })
+
+  it('omits the notes line entirely when there is no note', () => {
+    render(<CompletionMark occurrence={makeOccurrence({ notes: null })} shape="circle" />)
+    const tooltip = document.querySelector('[aria-hidden="true"]')
+    const lines = Array.from(tooltip?.children ?? []).map((child) => child.textContent)
+    expect(lines).toEqual(['Go for a walk', 'Monday Morning'])
+  })
+
+  it('never shows "completed"/"not completed" text, regardless of completion state', () => {
+    const { rerender } = render(
+      <CompletionMark occurrence={makeOccurrence({ completed: true })} shape="circle" />,
+    )
+    expect(document.querySelector('[aria-hidden="true"]')).not.toHaveTextContent(/completed/i)
+
+    rerender(<CompletionMark occurrence={makeOccurrence({ completed: false })} shape="circle" />)
+    expect(document.querySelector('[aria-hidden="true"]')).not.toHaveTextContent(/completed/i)
+  })
+})
