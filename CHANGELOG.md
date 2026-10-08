@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.41.4] - 2026-10-08
+
 ### Fixed
 
 - The Weekly Summary's completion-mark tooltip only ever said ", has a note" for an occurrence
