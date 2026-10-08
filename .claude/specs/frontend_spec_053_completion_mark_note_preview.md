@@ -112,6 +112,31 @@ being over-applied to the accessible name too.
 - `frontend/src/components/icons/CompletionIcon.tsx` (`aria-label="Completed"`, overridden by the
   ancestor `<button>`'s own `aria-label`)
 
+#### FRONTEND-056-AC-01 [AUTO]: Tooltip sizes to its own content, not its containing block
+**Statement**: While the `CompletionMark` tooltip is visible, its rendered width shall reflect its
+own text content (wrapping only once a line would otherwise exceed the tooltip's `max-width`), and
+shall not collapse to the width of its single longest unbreakable word regardless of available
+`max-width`.
+
+**Rationale**: Found immediately after `FRONTEND-055` shipped — real-browser verification showed
+every line (including short ones like the occurrence name) wrapping one or two words at a time, so
+the box read as "squashed" rather than three readable lines. Root cause: `.tooltip` is
+`position: absolute` with `width` left at its `auto` default, so its *containing block* for sizing
+purposes is `.block`/`.circle` itself (only ~1.1–1.2rem wide, per `FRONTEND-037`). The CSS
+shrink-to-fit formula for `width: auto` absolutely-positioned boxes derives "available width" from
+that containing block, which — once `white-space: normal` was introduced by `FRONTEND-053-AC-03` —
+is smaller than even the tooltip's single longest word, so the box collapsed to min-content width
+instead of growing to fill `max-width`. `max-width` only ever caps a box's width from above; it
+cannot make a shrink-to-fit box grow past what the (tiny) containing block implies. Setting an
+explicit `width: max-content` sizes the box from its own content instead of the containing block,
+restoring `max-width` to its intended role as an actual cap that gets reached for long content.
+
+**References**:
+- `frontend/src/components/WeeklySummary/CompletionMark.module.css` (`.tooltip` → `width:
+  max-content` plus `max-width: min(90vw, 22rem)`, up from `min(85vw, 18rem)`)
+- CSS 2.1 §10.3.7 (shrink-to-fit sizing for absolutely-positioned, non-replaced elements with
+  `width: auto`)
+
 ## Cross-references
 
 | This spec depends on / contracts against | Why |
@@ -142,6 +167,10 @@ being over-applied to the accessible name too.
   `Notes: ${occurrence.notes}` line — instead of one concatenated string. `aria-label` is left
   untouched (`FRONTEND-055-AC-02`) and still includes `status`; only the visual tooltip's JSX and
   the `notesHint`-adjacent code comment change.
+- **`CompletionMark.module.css` (`FRONTEND-056-AC-01`)**: on `.tooltip`, add `width: max-content;`
+  and widen `max-width` from `min(85vw, 18rem)` to `min(90vw, 22rem)`. The `width: max-content` line
+  is the actual fix — without it, `max-width` alone cannot prevent the shrink-to-fit collapse
+  described in `FRONTEND-056-AC-01`'s Rationale, regardless of how large a value is given.
 
 ## TDD test case sketches
 
@@ -199,19 +228,30 @@ existing `FRONTEND-043-AC-07` tests in `CompletionMark.test.tsx` (which assert t
 - [x] FRONTEND-053-AC-03: Tooltip wraps a long note instead of forcing one unbounded-width line
 - [x] FRONTEND-055-AC-01: Visual tooltip renders as three stacked lines, dropping status
 - [x] FRONTEND-055-AC-02: `aria-label` keeps completion status (regression guard, accessibility)
+- [x] FRONTEND-056-AC-01: Tooltip sizes to its own content, not its containing block
 
 ## Summary
 
-Implemented as specced, no deviations, across two rounds in the same session: Requirement 1
-(`FRONTEND-053`) landed first; the user then saw it rendered with a real note and asked for the
-three-line restructure in Requirement 2 (`FRONTEND-055`) immediately after.
+Implemented as specced, no deviations, across three rounds in the same session: Requirement 1
+(`FRONTEND-053`) landed first; the user saw it rendered with a real note and asked for the
+three-line restructure in Requirement 2 (`FRONTEND-055`) immediately after; a real-browser check of
+*that* then surfaced the actual layout bug fixed by Requirement 3 (`FRONTEND-056`) — every line,
+including the short occurrence name, was wrapping one or two words at a time rather than filling
+the intended width.
+
 `CompletionMark.tsx`'s `notesHint` interpolates `occurrence.notes` directly for `aria-label`
 (unchanged by Requirement 2, per `FRONTEND-055-AC-02`); the visual tooltip `<span>` is now a flex
 column of up to three child `<span>`s (name, bold via `.tooltipName`; location; a conditional
-`Notes: ...` line), with no status text. `.tooltip` wraps at `max-width: min(85vw, 18rem)` instead
-of forcing a single `nowrap` line. The two pre-existing `FRONTEND-043-AC-07` tests in
-`CompletionMark.test.tsx` were updated in place for Requirement 1; Requirement 2 added three new
-tests asserting the three-line structure and the status-text omission directly (querying the
-`aria-hidden` tooltip element's children, since Vitest/jsdom doesn't render the CSS that makes each
-`<span>` its own line — confirmed visually in a real browser instead, both themes). Full frontend
-suite green (686/686), lint/`tsc -b` clean.
+`Notes: ...` line), with no status text. `.tooltip` has `width: max-content` (the load-bearing fix
+— see `FRONTEND-056-AC-01`'s Rationale for the shrink-to-fit/containing-block mechanism) and wraps
+at `max-width: min(90vw, 22rem)`, up from the Requirement 1 value of `min(85vw, 18rem)`, instead of
+forcing a single `nowrap` line.
+
+The two pre-existing `FRONTEND-043-AC-07` tests in `CompletionMark.test.tsx` were updated in place
+for Requirement 1; Requirement 2 added three new tests asserting the three-line structure and the
+status-text omission directly (querying the `aria-hidden` tooltip element's children). Requirement
+3 added no new Vitest assertions — jsdom doesn't run layout, so it could not have caught this bug
+in the first place and cannot usefully assert the fix either; verification was a real-browser pass
+in both themes, with and without a note present, confirming each line now wraps at a sensible
+multi-word width instead of collapsing to one word per line. Full frontend suite green (686/686),
+lint/`tsc -b` clean.
