@@ -51,14 +51,37 @@
   border: 1px solid var(--border-strong);
   border-radius: 4px;
   box-shadow: var(--shadow);
-  padding: 0.25rem 0.5rem;
+  padding: 0.35rem 0.6rem;
   font-size: 0.72rem;
   font-weight: 400;
-  white-space: nowrap;
+  /* FRONTEND-055-AC-01: three stacked lines (name/location/notes) rather than one run-on sentence
+     -- a flex column turns each child <span> into its own line without needing display:block on
+     every one individually. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* FRONTEND-053-AC-03: note text can run up to 200 chars (FRONTEND-043-AC-04) -- wrap within a
+     bounded width instead of nowrap, which would otherwise force one unbounded-width line.
+     FRONTEND-056-AC-01: `width: max-content` is load-bearing, not decorative -- this tooltip's
+     containing block (for `position: absolute` sizing purposes) is `.block`/`.circle` itself,
+     only ~1.1-1.2rem wide. With `width` left at its `auto` default, the browser's shrink-to-fit
+     formula computes "available width" from that tiny containing block, which is smaller than
+     even the single longest word -- so the box collapsed to one-word-per-line (min-content width)
+     instead of filling out to max-width. Setting `width: max-content` sizes the box from its own
+     content instead, so max-width below now actually acts as a cap that gets reached, rather than
+     never mattering. */
+  width: max-content;
+  white-space: normal;
+  max-width: min(90vw, 22rem);
+  text-align: left;
   z-index: 10;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+.tooltipName {
+  font-weight: 600;
 }
 
 .block:hover .tooltip,

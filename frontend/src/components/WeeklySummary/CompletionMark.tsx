@@ -27,10 +27,12 @@ export function CompletionMark({ occurrence, shape }: CompletionMarkProps) {
       ? `${DAY_LABELS[occurrence.dayOfWeek]} ${SLOT_LABELS[occurrence.slot]}`
       : 'Weekend bucket'
   const status = occurrence.completed ? 'completed' : 'not completed'
-  // FRONTEND-043-AC-07: a has-notes hint appended to the same accessible string already built up
-  // from name/location/status -- no separate tooltip-vs-aria-label branching, matching the existing
-  // single-string construction below.
-  const notesHint = occurrence.notes ? ', has a note' : ''
+  // FRONTEND-055-AC-02: status stays in the accessible name even though the visual tooltip below
+  // drops it -- the mark's ticked/unticked fill (FRONTEND-037-AC-03) conveys completion visually,
+  // but a screen reader user only gets this button's own aria-label, not CompletionIcon's nested
+  // one (overridden once an ancestor sets aria-label), so dropping it here would be a real loss of
+  // information, not just redundant text.
+  const notesHint = occurrence.notes ? `, note: ${occurrence.notes}` : ''
   // The completed checkmark renders via currentColor -- computed per the mark's own (user-
   // customizable, arbitrary) fill colour, same approach as CategoryChip's text, so the icon stays
   // legible against every possible category colour rather than assuming a fixed accent token.
@@ -44,9 +46,14 @@ export function CompletionMark({ occurrence, shape }: CompletionMarkProps) {
       aria-label={`${occurrence.name}, ${location}, ${status}${notesHint}`}
     >
       {occurrence.completed && <CompletionIcon />}
+      {/* FRONTEND-055-AC-01: three stacked lines (name / location / notes) instead of one run-on
+          sentence -- status is dropped here (not just reworded) since the mark's own ticked/
+          unticked fill already conveys it visually, the same reasoning category relies on its
+          fill colour alone for in this same tooltip. */}
       <span className={styles.tooltip} aria-hidden="true">
-        {occurrence.name} — {location}, {status}
-        {notesHint}
+        <span className={styles.tooltipName}>{occurrence.name}</span>
+        <span>{location}</span>
+        {occurrence.notes && <span>Notes: {occurrence.notes}</span>}
       </span>
     </button>
   )
