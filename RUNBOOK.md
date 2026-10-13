@@ -132,8 +132,9 @@ gradlew.bat bootRun
 
 The server starts at **http://localhost:8420**. Flyway runs migrations automatically on startup.
 
-> Only the Windows wrapper (`gradlew.bat`) is present in this repo. If you need to run on macOS/
-> Linux, generate the Unix wrapper script with `gradle wrapper` (requires a local Gradle install).
+> `gradlew` (Unix) is also checked in, for Linux-based tooling that can't invoke a `.bat` file (e.g.
+> the Docker build stage — see "Running via Docker Compose" below). Day-to-day local development on
+> this machine still uses `gradlew.bat`.
 
 **For active backend development**, use `gradlew.bat bootRun --continuous` instead:
 `spring-boot-devtools` (a `developmentOnly` dependency, excluded from the built jar) automatically
@@ -254,6 +255,59 @@ cd backend && gradlew.bat build   # jar at backend/build/libs/*.jar
 # Frontend
 cd frontend && npm run build      # static bundle at frontend/dist/
 ```
+
+---
+
+## Running via Docker Compose
+
+`docker-compose.yml` runs the whole app — Postgres, backend, and frontend — as three services
+(`tooling_spec_006`), instead of just Postgres as in local dev. The backend and frontend images are
+built from `backend/Dockerfile`/`frontend/Dockerfile` (multi-stage: a build stage, then a slim
+runtime — JRE 25 for the backend, nginx for the frontend's static bundle). The frontend container's
+nginx reverse-proxies `/api/` to the backend container (same pattern as `vite.config.ts`'s dev-time
+proxy), so the browser only ever talks to one origin and `app.cors.allowed-origins` never needs
+touching for this.
+
+**This is a separate way to run the app from the "Quick Start (scripts)" / `gradlew.bat bootRun` /
+`npm run dev` flow above** — use one or the other, not both at once, since they'd otherwise fight
+over the same host ports (`8420`, `4321`) and the same Postgres container/port (`5432`).
+
+### 1. Set bootstrap credentials
+
+Create a git-ignored `.env` at the repo root (copy `.env.example`) if you haven't already —
+`docker-compose.yml`'s `backend` service reads `APP_BOOTSTRAP_USERNAME`/`APP_BOOTSTRAP_PASSWORD`
+from it the same way `scripts/start-dev.sh` does for the non-Docker flow (see Environment
+Variables, above). Compose refuses to start the `backend` service with a clear error if these
+aren't set.
+
+### 2. Build and start everything
+
+```bash
+docker compose up --build -d
+```
+
+Builds (or rebuilds, if sources changed) the backend and frontend images, then starts all three
+services. `backend` waits for `postgres` to report healthy; `frontend` waits for `backend` to
+report healthy (its healthcheck hits `/api/v1/auth/me`, same "any response counts as ready" signal
+used elsewhere in this file).
+
+```bash
+docker compose ps                    # check all three are healthy/running
+docker compose logs -f backend       # tail a service's logs
+docker compose down                  # stop everything (add -v to also drop the Postgres volume)
+```
+
+Once healthy, open **http://localhost:4321** — this is the nginx-served frontend, not Vite's dev
+server, but the URL is deliberately the same port as local dev for consistency.
+
+### Notes
+
+- The backend's Postgres connection inside Compose points at the `postgres` service's Compose DNS
+  name (`jdbc:postgresql://postgres:5432/...`), not `localhost` — this is set directly in
+  `docker-compose.yml`'s `backend.environment` block, not something you configure yourself.
+- No TLS, no CI image build/push, and no multi-arch (`linux/arm64`) builds are part of this — see
+  `tooling_spec_006`'s Out of scope. This is the "self-hosted, personal use" stage of the hosting
+  plan in `.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` §7c; Tailscale/Fly.io/Railway are later stages.
 
 ---
 

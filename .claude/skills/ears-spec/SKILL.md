@@ -17,11 +17,15 @@ in this session.
    the next available number in the right sequence (`planner_spec_00N_*` or `frontend_spec_00N_*`).
 
 2. **Ground it in reality, not assumption.** Before writing requirements:
-   - Backend: read `.claude/steering/structure.md` and `.claude/steering/tech.md`, and grep the
-     actual `backend/src/main/java/...` for related existing classes (once any exist).
-   - Frontend: read `.claude/steering/frontend_structure.md` and
+   - Backend: read `.claude/steering/structure.md` and `.claude/steering/tech.md` (refreshed
+     2026-10-08 against the real tree — six controllers, a dozen entities/DTOs, 11 Flyway
+     migrations), and grep the actual `backend/src/main/java/...` for related existing classes
+     anyway — a steering doc can still drift between refreshes, so treat it as a fast orientation
+     pass, not a substitute for checking the real source on anything this spec will actually touch.
+   - Frontend: read `.claude/steering/frontend_structure.md` (also refreshed 2026-10-08) and
      `.claude/steering/frontend_conventions.md`, and check what actually exists under
-     `frontend/src/` — most of the target layout in that steering doc isn't built yet early on.
+     `frontend/src/` for the same reason — this is a real, fairly large React app now, not a
+     placeholder shell, but the doc is a snapshot, not a live view.
    - Check dependency specs' actual `Status` line and cross-check against the real source.
    - Read `.claude/HIGH_LEVEL_DESIGN.md` for the relevant user story/ies and
      `.claude/HIGH_LEVEL_DESIGN_FEEDBACK.md` for any architecture decision already made that

@@ -63,10 +63,13 @@ behavioural-activation/
 │   ├── src/main/resources/
 │   │   ├── application.yml
 │   │   └── db/migration/  # Flyway SQL scripts
-│   └── src/test/groovy/   # Spock specifications
+│   ├── src/test/groovy/   # Spock specifications
+│   └── Dockerfile         # Production image (multi-stage: Gradle build, JRE 25 runtime)
 ├── frontend/              # React + Vite application
+│   ├── Dockerfile         # Production image (multi-stage: Vite build, nginx runtime)
+│   └── nginx.conf         # Serves the static bundle, proxies /api/ to the backend container
 ├── scripts/               # Dev-server start/stop/restart bash scripts
-├── docker-compose.yml     # Local Postgres
+├── docker-compose.yml     # Postgres + backend + frontend (production-style images)
 ├── CLAUDE.md              # Claude Code steering entrypoint
 ├── README.md
 ├── API.md                 # API endpoint reference
@@ -93,7 +96,9 @@ full endpoint list and behavior notes.
 
 ## Getting Started
 
-See [RUNBOOK.md](./RUNBOOK.md) for detailed setup and local development instructions.
+See [RUNBOOK.md](./RUNBOOK.md) for detailed setup and local development instructions. For running
+the whole app (Postgres + backend + frontend) as production-style Docker images instead, see
+RUNBOOK.md's "Running via Docker Compose" section — `docker compose up --build -d`.
 
 ## Features Roadmap
 
