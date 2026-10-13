@@ -41,8 +41,9 @@ otherwise.
   requirement — see `.claude/steering/ears_format.md` and the `ears-spec` skill. Exception: a
   one-off, no-behavior-change quality/maintenance pass doesn't need a spec.
 - **Never commit secrets.** No `.env`, API keys, or credentials — see `.claude/steering/tech.md`.
-- **Only `gradlew.bat` (Windows) is checked in** for the Gradle wrapper. Don't add a Unix `gradlew`
-  script unless asked.
+- **Both `gradlew.bat` (Windows) and `gradlew` (Unix) are checked in** for the Gradle wrapper — the
+  Unix script was added in PR #34 for Linux-based tooling (e.g. Docker builds) that can't invoke a
+  `.bat` file. Day-to-day local development on this machine still uses `gradlew.bat`.
 - **No Lombok.** Plain Java — records, explicit constructors/getters.
 - **Spock (Groovy), not JUnit/Mockito, for backend tests.**
 

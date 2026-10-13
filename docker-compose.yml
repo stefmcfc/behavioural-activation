@@ -16,5 +16,39 @@ services:
       timeout: 5s
       retries: 5
 
+  # Production-style images (tooling_spec_006) -- backend/frontend still run via
+  # gradlew.bat bootRun / npm run dev for day-to-day development, see RUNBOOK.md.
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/behaviouralactivation
+      DB_USERNAME: behaviouralactivation
+      DB_PASSWORD: behaviouralactivation
+      APP_BOOTSTRAP_USERNAME: ${APP_BOOTSTRAP_USERNAME:?Set APP_BOOTSTRAP_USERNAME in .env (see .env.example)}
+      APP_BOOTSTRAP_PASSWORD: ${APP_BOOTSTRAP_PASSWORD:?Set APP_BOOTSTRAP_PASSWORD in .env (see .env.example)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8420:8420"
+    healthcheck:
+      # /api/v1/auth/me responds 401 with no session -- any HTTP response (not just 2xx) means
+      # the app started, matching RUNBOOK.md's own definition of "ready" for this auth-gated API.
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost:8420/api/v1/auth/me"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "4321:80"
+
 volumes:
   postgres-data:

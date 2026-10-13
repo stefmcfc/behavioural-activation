@@ -6,6 +6,21 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- Production-style multi-stage Dockerfiles for the backend (Gradle build stage, JRE 25 runtime)
+  and frontend (Vite build stage, nginx runtime proxying `/api/` to the backend, same-origin — no
+  CORS change needed). `docker-compose.yml` gains `backend`/`frontend` services alongside the
+  existing `postgres` one, so `docker compose up --build` now starts the whole app
+  (`tooling_spec_006`).
+
+### Fixed
+
+- `CLAUDE.md`'s hard rule claiming only `gradlew.bat` (Windows) was checked in for the Gradle
+  wrapper was stale — `backend/gradlew` (Unix) has been committed since PR #34. Corrected here
+  (also in `.claude/steering/tech.md` and `RUNBOOK.md`) alongside using it directly in the new
+  backend Dockerfile's build stage.
+
 ## [0.41.4] - 2026-10-08
 
 ### Fixed

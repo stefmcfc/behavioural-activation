@@ -62,9 +62,10 @@ Compose) and there's no later migration surprise. Run locally via Docker Compose
 ## Build Tools
 
 ### Backend
-- **Gradle** via the wrapper (bundled Gradle 9.7.1). Only `gradlew.bat` (Windows) is checked in,
-  matching every other Java project on this machine — never plain `gradlew`/`./gradlew` (the
-  Spring-Initializr-generated Unix `gradlew` was deleted at scaffolding time).
+- **Gradle** via the wrapper (bundled Gradle 9.8.0). Both `gradlew.bat` (Windows) and `gradlew`
+  (Unix) are checked in — day-to-day local development on this machine uses `gradlew.bat`; the Unix
+  script (added in PR #34) exists for Linux-based tooling that can't invoke a `.bat` file, e.g. the
+  Docker build stage in `backend/Dockerfile` (`tooling_spec_006`).
 
 ### Frontend
 - **Vite**: dev server, production build, asset bundling
