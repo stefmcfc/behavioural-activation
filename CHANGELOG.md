@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.42.0] - 2026-10-13
+
 ### Added
 
 - Production-style multi-stage Dockerfiles for the backend (Gradle build stage, JRE 25 runtime)
