@@ -1,6 +1,6 @@
 # Item Count on Busy Weekly Planner Slots
 
-**Status**: Not started
+**Status**: Implemented (2026-10-29)
 **Priority**: P3 — small scannability polish
 **Depends on**: `frontend_spec_004_week_planning.md` (`PlannerGrid`'s original slot rendering),
 `frontend_spec_012_grid_orientation_toggle.md` (both grid orientations this spec must cover)
@@ -113,6 +113,40 @@ renders under both orientations.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-052-AC-01 — slot label shows "(N)" when it holds more than one item
-- [ ] FRONTEND-052-AC-02 — no count shown for zero or one item (regression guard)
-- [ ] FRONTEND-052-AC-03 — count applies identically in both grid orientations
+- [x] FRONTEND-052-AC-01 — slot label shows "(N)" when it holds more than one item
+- [x] FRONTEND-052-AC-02 — no count shown for zero or one item (regression guard)
+- [x] FRONTEND-052-AC-03 — count applies identically in both grid orientations
+
+## Summary
+
+Implemented exactly as specced — a single conditional in `PlannerGrid.tsx`'s shared `renderCell`:
+`cellOccurrences.length > 1` appends `` (${count})`` after `SLOT_LABELS[slot]` inside the existing
+`<span className={styles.slotLabel}>`; `SLOT_LABELS` itself is untouched. Because `renderCell` is
+the one function both grid orientations and both `WeeklyPlanner`/`TodayView` call, no per-surface or
+per-orientation code was needed.
+
+Red/green TDD: added 6 new tests to `PlannerGrid.test.tsx` (AC-01's 4-occurrence Monday-evening
+fixture rendering "Evening (4)"; AC-02's zero/one-item regression guard; AC-03's explicit
+day-columns/day-rows pair, plus one more folded into the existing
+`FRONTEND-012-AC-07/AC-09` day-rows describe block per the spec's own suggestion) — confirmed red
+(6 failing) against the unmodified component, then green after the one-line implementation change.
+Full suite: 47 files / 712 tests passing, `npm run lint` (oxlint) clean, no regressions.
+
+**Fixture-name deviation from the spec's sketch**: the spec's Test Case sketches used
+`plannedOccurrence(...)`/`baseProps(...)`, which don't exist in the real file — the actual
+colocated helpers are `makeOccurrence(...)` and `baseGridProps(...)`. Tests were written against
+the real names.
+
+**One correctness fix needed in the AC-02 sketch**: the spec's own `screen.getByText('Morning')`
+assertion fails as written — `baseGridProps()`'s default `days` is `WEEKDAY_DAYS` (5 columns), each
+rendering its own "Morning" cell header, so an unscoped `getByText` throws on multiple matches
+regardless of this spec's change (pre-existing fixture shape, not a regression). Fixed by scoping
+both AC-02 assertions to the Monday cell specifically, via
+`screen.getByLabelText('Add to Monday Morning').closest('div')!` + `within(...)`, matching the
+scoping pattern `PlannerGrid.test.tsx` already uses elsewhere (e.g. `FRONTEND-012-AC-08`).
+
+No real browser verification was performed for this change — it's a pure text-content change
+inside an already-rendered, already-styled `<span className={styles.slotLabel}>`, with no new CSS,
+layout, or DOM structure, so the jsdom/RTL coverage above is considered sufficient. If a visual
+check is wanted, open the Weekly Planner or Today view with any slot holding 2+ items (either grid
+orientation, either theme) and confirm the header reads e.g. "Evening (4)".

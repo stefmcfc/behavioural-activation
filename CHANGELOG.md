@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- Item count on busy Weekly Planner slots (`frontend_spec_052_slot_item_counts.md`): a day/slot
+  cell's header now reads e.g. "Evening (4)" once it holds more than one occurrence, instead of a
+  bare "Evening" — zero or exactly one item still shows the bare label unchanged. Implemented once
+  in `PlannerGrid.tsx`'s shared `renderCell`, so it applies to both grid orientations and both the
+  Weekly Planner and Today view automatically.
+
 ## [0.45.0] - 2026-10-29
 
 ### Added

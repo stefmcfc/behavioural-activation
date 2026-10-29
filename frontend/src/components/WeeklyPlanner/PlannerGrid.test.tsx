@@ -391,6 +391,24 @@ describe('FRONTEND-012-AC-07/AC-09: day-rows layout renders one section per day,
     expect(screen.getByRole('heading', { name: /sunday/i, level: 4 })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /monday/i, level: 4 })).not.toBeInTheDocument()
   })
+
+  it('FRONTEND-052-AC-03: shows a busy slot\'s item count in the day-rows layout', () => {
+    setGridOrientation('day-rows')
+
+    render(
+      <PlannerGrid
+        {...baseGridProps()}
+        occurrences={[
+          makeOccurrence({ id: '1', name: 'Walk', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+          makeOccurrence({ id: '2', name: 'Read', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+          makeOccurrence({ id: '3', name: 'Cook', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+          makeOccurrence({ id: '4', name: 'Call a friend', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('Evening (4)')).toBeInTheDocument()
+  })
 })
 
 describe('FRONTEND-012-AC-08: day-rows cells render the same slot label/Add/list content', () => {
@@ -564,5 +582,53 @@ describe('FRONTEND-042-AC-07: regression guard -- the work-day toggle never chan
     expect(screen.getByLabelText('Add to Monday Morning')).toBeInTheDocument()
     expect(screen.getByLabelText('Add to Monday Afternoon')).toBeInTheDocument()
     expect(screen.getByLabelText('Add to Monday Evening')).toBeInTheDocument()
+  })
+})
+
+const busyMondayEvening = [
+  makeOccurrence({ id: '1', name: 'Walk', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+  makeOccurrence({ id: '2', name: 'Read', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+  makeOccurrence({ id: '3', name: 'Cook', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+  makeOccurrence({ id: '4', name: 'Call a friend', dayOfWeek: 'MONDAY', slot: 'EVENING' }),
+]
+
+describe('FRONTEND-052-AC-01: slot label shows a count when it holds more than one item', () => {
+  it('renders "Evening (4)" for a slot with four occurrences', () => {
+    render(<PlannerGrid {...baseGridProps()} occurrences={busyMondayEvening} />)
+
+    expect(screen.getByText('Evening (4)')).toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-052-AC-02: no count for an empty or single-item slot', () => {
+  it('renders the bare label for zero items', () => {
+    renderGrid()
+
+    const mondayMorningCell = screen.getByLabelText('Add to Monday Morning').closest('div')!
+    expect(within(mondayMorningCell).getByText('Morning')).toBeInTheDocument()
+  })
+
+  it('renders the bare label for exactly one item', () => {
+    render(<PlannerGrid {...baseGridProps()} occurrences={[occurrenceOnMonMorning]} />)
+
+    const mondayMorningCell = screen.getByLabelText('Add to Monday Morning').closest('div')!
+    expect(within(mondayMorningCell).getByText('Morning')).toBeInTheDocument()
+    expect(within(mondayMorningCell).queryByText(/morning \(/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('FRONTEND-052-AC-03: the slot count applies identically in both grid orientations', () => {
+  it('shows the count in the default day-columns orientation', () => {
+    render(<PlannerGrid {...baseGridProps()} occurrences={busyMondayEvening} />)
+
+    expect(screen.getByText('Evening (4)')).toBeInTheDocument()
+  })
+
+  it('shows the count in the day-rows orientation', () => {
+    setGridOrientation('day-rows')
+
+    render(<PlannerGrid {...baseGridProps()} occurrences={busyMondayEvening} />)
+
+    expect(screen.getByText('Evening (4)')).toBeInTheDocument()
   })
 })
