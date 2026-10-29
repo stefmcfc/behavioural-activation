@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SubTaskList } from './SubTaskList'
 import { subTaskApi } from '../../services/subTaskApi'
 import { ApiError } from '../../types/api'
@@ -19,6 +19,15 @@ const guestList: SubTask = {
   position: 0,
 }
 
+const bookVenue: SubTask = {
+  id: 's2',
+  activityId: 'a1',
+  name: 'Book a venue',
+  category: 'PLEASURABLE',
+  createdAt: '2026-09-29T00:00:00Z',
+  position: 1,
+}
+
 describe('SubTaskList', () => {
   beforeEach(() => {
     vi.mocked(subTaskApi.getAll).mockReset()
@@ -26,6 +35,13 @@ describe('SubTaskList', () => {
     vi.mocked(subTaskApi.update).mockReset()
     vi.mocked(subTaskApi.remove).mockReset()
     vi.mocked(subTaskApi.reorder).mockReset()
+  })
+
+  // FRONTEND-049: safety net -- if a fake-timer test throws before reaching its own
+  // vi.useRealTimers() call, fake timers would otherwise leak into every later test in this file
+  // and hang them (real-timer-dependent userEvent/RTL internals never fire).
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('FRONTEND-003-AC-03: fetches the checklist on mount', () => {
@@ -220,17 +236,21 @@ describe('SubTaskList', () => {
     })
   })
 
-  describe('FRONTEND-003-AC-14/AC-16: confirming delete removes the sub-task', () => {
-    it('calls subTaskApi.remove and removes the row on success', async () => {
+  describe('FRONTEND-003-AC-14/AC-16 & FRONTEND-049-AC-03: confirming delete removes the sub-task', () => {
+    it('calls subTaskApi.remove and removes the row once the undo window expires', async () => {
+      vi.useFakeTimers()
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
       vi.mocked(subTaskApi.remove).mockResolvedValue(undefined)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<SubTaskList activityId="a1" />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
-      await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-      expect(subTaskApi.remove).toHaveBeenCalledWith('a1', 's1')
-      await waitFor(() => expect(screen.queryByText('Create a guest list')).not.toBeInTheDocument())
+      expect(screen.queryByText('Create a guest list')).not.toBeInTheDocument()
+      vi.advanceTimersByTime(6000)
+      await vi.waitFor(() => expect(subTaskApi.remove).toHaveBeenCalledWith('a1', 's1'))
+      vi.useRealTimers()
     })
   })
 
@@ -258,17 +278,112 @@ describe('SubTaskList', () => {
     })
   })
 
-  describe('FRONTEND-003-AC-21: delete failure shows an alert and keeps the sub-task', () => {
-    it('displays the error and leaves the row in place', async () => {
+  describe('FRONTEND-003-AC-21 & FRONTEND-049-AC-03: delete failure shows an alert and keeps the sub-task', () => {
+    it('displays the error and restores the row once the deferred delete fails', async () => {
+      vi.useFakeTimers()
       vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
       vi.mocked(subTaskApi.remove).mockRejectedValue({ status: 500, message: 'Server error' })
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<SubTaskList activityId="a1" />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
-      await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(screen.getByRole('button', { name: /confirm delete/i }))
+      vi.advanceTimersByTime(6000)
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByText('Create a guest list')).toBeInTheDocument()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-01: confirming delete hides the row and defers the API call', () => {
+    it('removes the row from view and shows an undo notice without calling the API yet', async () => {
+      vi.useFakeTimers()
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      const removeSpy = vi.mocked(subTaskApi.remove)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<SubTaskList activityId="a1" />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(screen.queryByText('Create a guest list')).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/create a guest list.*deleted/i)
+      expect(removeSpy).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-02: Undo cancels the pending deletion', () => {
+    it('restores the row and never calls the delete API', async () => {
+      vi.useFakeTimers()
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      const removeSpy = vi.mocked(subTaskApi.remove)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<SubTaskList activityId="a1" />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+      expect(screen.getByText('Create a guest list')).toBeInTheDocument()
+      vi.advanceTimersByTime(10000)
+      expect(removeSpy).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-02 regression: Undo clicked after the window has already elapsed is a safe no-op', () => {
+    it('does not show the row as falsely restored while the already-fired delete is still in flight', async () => {
+      vi.useFakeTimers()
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList])
+      let resolveRemove: () => void = () => {}
+      vi.mocked(subTaskApi.remove).mockReturnValue(
+        new Promise<void>((resolve) => {
+          resolveRemove = resolve
+        }),
+      )
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<SubTaskList activityId="a1" />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      // The window elapses -- commitDelete has started and subTaskApi.remove is now in flight,
+      // but its promise is deliberately held open to simulate the real window this regression
+      // guards: the timer has fired, but the undo notice hasn't been cleared by the resolved
+      // response yet.
+      vi.advanceTimersByTime(6000)
+
+      await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+      // The row must not reappear as a normal, safe row (Rename button back) while the delete
+      // it's "undoing" is still actually in flight -- that would be a false "it's safe" signal.
+      expect(screen.queryByRole('button', { name: 'Rename' })).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/create a guest list.*deleted/i)
+
+      resolveRemove()
+      await waitFor(() => expect(screen.queryByText('Create a guest list')).not.toBeInTheDocument())
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-04: multiple pending deletions are independent', () => {
+    it('undoing one pending deletion leaves a second one still pending', async () => {
+      vi.useFakeTimers()
+      vi.mocked(subTaskApi.getAll).mockResolvedValue([guestList, bookVenue])
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<SubTaskList activityId="a1" />)
+
+      await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      await user.click(screen.getAllByRole('button', { name: 'Undo' })[0])
+
+      expect(screen.getByText('Create a guest list')).toBeInTheDocument()
+      expect(screen.queryByText('Book a venue')).not.toBeInTheDocument()
+      vi.useRealTimers()
     })
   })
 

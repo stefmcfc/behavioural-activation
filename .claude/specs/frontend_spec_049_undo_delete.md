@@ -1,6 +1,6 @@
 # Undo Window for Deleting an Activity or Sub-task
 
-**Status**: Not started
+**Status**: Implemented (2026-10-29)
 **Priority**: P2 — safety/UX improvement for an existing irreversible action
 **Depends on**: `frontend_spec_002_activity_bank.md` (`ActivityBank`'s delete flow),
 `frontend_spec_003_sub_tasks.md` (`SubTaskList`'s delete flow), `frontend_spec_031_button_hierarchy.md`
@@ -249,8 +249,111 @@ the timer mechanics directly.
 
 ## Acceptance Criteria Summary
 
-- [ ] FRONTEND-049-AC-01 — confirming delete hides the row and starts a 6-second window, no API call yet
-- [ ] FRONTEND-049-AC-02 — Undo cancels the pending deletion, API never called
-- [ ] FRONTEND-049-AC-03 — window expiry commits the deletion; failure restores the row + shows an error
-- [ ] FRONTEND-049-AC-04 — multiple pending deletions tracked independently
-- [ ] FRONTEND-049-AC-05 — a pending deletion still commits even if the component unmounts
+- [x] FRONTEND-049-AC-01 — confirming delete hides the row and starts a 6-second window, no API call yet
+- [x] FRONTEND-049-AC-02 — Undo cancels the pending deletion, API never called
+- [x] FRONTEND-049-AC-03 — window expiry commits the deletion; failure restores the row + shows an error
+- [x] FRONTEND-049-AC-04 — multiple pending deletions tracked independently
+- [x] FRONTEND-049-AC-05 — a pending deletion still commits even if the component unmounts (verified by
+  code review, per this spec's own test-case note — no `clearTimeout` in either component's unmount
+  cleanup)
+
+## Summary
+
+Implemented in both `ActivityBank.tsx` and `SubTaskList.tsx` as independent, parallel
+implementations (no shared hook introduced, per scope). Each component gained:
+`pendingDeleteIds` (a `Set<string>` of ids currently inside their undo window, used to filter them
+out of the visible list), a `pendingDeleteTimersRef` (`Record<string, ReturnType<typeof
+setTimeout>>`, deliberately a ref, not state, so the timers aren't tied to a render and are never
+cleared by the unmount cleanup effect), an `isMountedRef` guarding the `setState` calls inside the
+deferred commit (mirroring the `cancelled`-flag convention used by the existing fetch effects, but
+as a ref since the timer outlives any single effect), and a `role="status"` notice rendered per
+pending id with its own "Undo" button.
+
+**Tests**: 10 new/updated test cases across the two files (5 per component — AC-01/02/03/04 plus one
+Undo-race regression, see below; AC-05 is verified by code review only, per the spec's own note)
+plus 2 pre-existing tests per file (the old synchronous confirm-delete success/failure cases)
+updated to use fake timers and assert the new deferred timing. `ActivityBank.test.tsx` +
+`SubTaskList.test.tsx` together: 101 tests passing. Full frontend suite: 694 tests passing.
+`npm run lint` clean.
+
+**Real finding — `@testing-library/dom`'s `waitFor`/`findBy*` silently hang under
+`vi.useFakeTimers()` without a `globalThis.jest` shim**: this is the first use of
+`vi.useFakeTimers()` anywhere in this test suite, and every `await screen.findByRole(...)`/`await
+vi.waitFor(...)` call made while fake timers were active hung until Vitest's own per-test timeout
+(5s), cascading into dozens of unrelated timed-out tests later in the same file once one fake-timer
+test failed to reach its own `vi.useRealTimers()` cleanup. Root cause (confirmed by reading
+`node_modules/@testing-library/dom/dist/wait-for.js`): its fake-timer support is Jest-specific —
+`jestFakeTimersAreEnabled()` literally checks `typeof jest !== 'undefined'`, which is never true
+under Vitest, so it falls through to a "real timers" branch that polls via a plain `setInterval` —
+itself one of the globals `vi.useFakeTimers()` has already faked, so that interval never fires on
+its own. Fixed with a `globalThis.jest = vi` shim added to `src/test-setup.ts`: Vitest's `vi`
+object deliberately mirrors Jest's fake-timer API 1:1 (`useFakeTimers`/`useRealTimers`/
+`advanceTimersByTime`/...), so aliasing it under the `jest` name is enough for testing-library's
+existing Jest-oriented fake-timer branch to work correctly against Vitest too. Also added a
+defensive `afterEach(() => vi.useRealTimers())` to both test files, so a future fake-timer test
+that throws before its own cleanup can't leak fake timers into every later test in the same file.
+This is a reusable finding for any future spec in this codebase that needs `vi.useFakeTimers()` —
+the shim is now in place project-wide via `test-setup.ts`, so later specs shouldn't need to
+rediscover this.
+
+**Real finding (post-implementation, found during real-browser verification) — Undo clicked after
+the window has already elapsed falsely showed the row as "restored"**: `handleUndoDelete`
+unconditionally cleared `pendingDeleteIds` regardless of whether it actually found a live timer to
+cancel. `commitDelete` deletes its `pendingDeleteTimersRef` entry **synchronously** the instant the
+timer fires — before its `await activityApi.remove(id)`/`await subTaskApi.remove(...)` call even
+starts — so there's a real window, roughly the length of that network round-trip, where the delete
+is already irreversibly in motion but the Undo button is still rendered and clickable. Clicking it
+in that window cleared `pendingDeleteIds` anyway, making the row briefly reappear as a normal, safe
+row — a false "it's safe" signal — before it silently vanished again (or showed an error) once the
+real result arrived. Found for real: an actual seeded activity ("Journal") was genuinely deleted
+this way during manual verification, because the Undo click (via browser automation, with real
+round-trip latency between actions) landed just after the window had elapsed. The activity was
+manually recreated afterward (best-effort — name/category/repeatable/favourite only, no description
+field since none was visible in the UI to recover). **Fix**: `handleUndoDelete` is now a no-op
+(`return` immediately) when no live timer is found, in both `ActivityBank.tsx` and `SubTaskList.tsx`
+— `commitDelete`'s own success/failure branch is the sole source of truth for that id's state once
+the window has elapsed. New regression test added per file, verified red (against the unpatched
+code) before green (against the fix): asserts that clicking Undo after `vi.advanceTimersByTime(6000)`
+(with the delete promise deliberately held open) does not bring back the row's normal action
+buttons while the delete is still in flight.
+
+**Real finding (post-implementation, found during real-browser verification) — the deferred commit
+never visibly completed in a real dev-mode browser session, even on success**: a second, more
+fundamental bug, found after the first fix, while re-verifying in a real browser. The mount-tracking
+effect only set `isMountedRef.current = false` in its cleanup — it never reset it back to `true` in
+its setup:
+```js
+useEffect(() => {
+  return () => { isMountedRef.current = false }
+}, [])
+```
+React's `<StrictMode>` (`main.tsx` wraps the whole app in it) deliberately double-invokes every
+effect once on initial mount in development — mount, run effects, simulate unmount (run cleanups),
+simulate remount (run effect setups again), all on the **same** component instance. That dance ran
+this effect's cleanup once immediately after every real mount, leaving `isMountedRef.current`
+permanently `false` for the rest of the instance's actual lifetime, since nothing ever set it back
+to `true`. Since `commitDelete`'s state updates (both the success path that removes a row and the
+failure path that restores one) are gated behind `isMountedRef.current`, this silently disabled
+*every* deferred delete's visible completion in real dev-mode browser usage: the real `DELETE` call
+still fired and succeeded (confirmed directly against Postgres — the row was genuinely gone), but
+the UI never reflected it, leaving the "X deleted. Undo" notice stuck on screen forever. Reproduced
+three times in a row against three different throwaway activities before being root-caused. **Fix**:
+set `isMountedRef.current = true` in the effect's setup too, not just rely on `useRef(true)`'s
+one-time initial value — the standard, StrictMode-safe form of this pattern.
+**This class of bug could not be caught by the automated test suite at all**: production builds
+don't double-invoke effects (so it would never have manifested in a deployed build), and React
+Testing Library's `render()` doesn't wrap in `<StrictMode>` by default (confirmed directly — a test
+wrapping `<ActivityBank>` in `<StrictMode>` passed identically against both the buggy and fixed
+code, giving false confidence), so the entire 694-test suite was blind to it regardless of how the
+mount effect was written. Only real-browser verification — the thing this project's Definition of
+Done already requires for UI work — caught it. No attempt was made to force Vitest/jsdom to
+replicate StrictMode's double-invoke behavior; the test-suite gap this reveals (this codebase's
+automated tests cannot currently catch a mount-effect that doesn't idempotently reset its own
+guard/flag state) is logged as its own entry in `.claude/ideas/future_ideas.md` rather than chased
+further here.
+
+No deviations from the spec's acceptance criteria. The only implementation choice not explicitly
+dictated by the spec: `deletingId` state (used pre-this-spec to disable the Confirm delete/Cancel
+buttons while the API call was in flight) was removed from both components, since confirming
+delete now hides the row synchronously before any API call — there is no longer an in-flight state
+for those buttons to visibly reflect.

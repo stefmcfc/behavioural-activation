@@ -1,4 +1,19 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
+
+// @testing-library/dom's waitFor/findBy* only special-case fake timers when a global `jest`
+// object is present (it checks `typeof jest !== 'undefined'` and calls `jest.advanceTimersByTime`
+// internally) -- without this, under vi.useFakeTimers() with no global `jest`, it falls back to
+// its "real timers" branch (a plain setInterval + MutationObserver), and that setInterval is
+// itself one of the globals vi.useFakeTimers() has faked, so it silently never fires and any
+// findBy*/waitFor call made while fake timers are active hangs until Vitest's own per-test
+// timeout. Vitest's `vi` object deliberately mirrors `jest`'s fake-timer API 1:1
+// (useFakeTimers/useRealTimers/advanceTimersByTime/...), so aliasing it under the `jest` name is
+// enough to make testing-library's existing Jest-oriented fake-timer support work correctly here
+// too. Confirmed via FRONTEND-049's own tests (first use of vi.useFakeTimers() in this suite).
+if (typeof (globalThis as Record<string, unknown>).jest === 'undefined') {
+  ;(globalThis as Record<string, unknown>).jest = vi
+}
 
 // jsdom doesn't implement matchMedia. Provide a default stub (prefers-color-scheme: dark = false)
 // so components that call it (e.g. Settings' "System" mode indicator) don't crash in tests that

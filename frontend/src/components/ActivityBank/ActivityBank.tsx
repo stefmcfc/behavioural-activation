@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { activityApi } from '../../services/activityApi'
 import type { Activity } from '../../types/activity'
 import { ActivityForm } from './ActivityForm'
@@ -21,6 +21,9 @@ function formTargetTitleId(formTarget: FormTarget): string {
   return `activity-form-title-${formTarget === 'create' || formTarget === null ? 'create' : 'edit'}`
 }
 
+// FRONTEND-049: fixed undo window for a deferred delete -- not configurable, see spec.
+const UNDO_DELETE_WINDOW_MS = 6000
+
 function getSubTasksLabel(activity: Activity, isExpanded: boolean): string {
   if (isExpanded) {
     return 'Hide sub-tasks'
@@ -33,8 +36,18 @@ export function ActivityBank() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formTarget, setFormTarget] = useState<FormTarget>(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  // FRONTEND-049: ids currently inside their post-confirm undo window -- the row is hidden but
+  // activityApi.remove has not been called yet. Keyed by id (not a single scalar) so multiple
+  // pending deletions are tracked independently (FRONTEND-049-AC-04).
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set())
+  // Plain setTimeout handles, not React state -- deliberately NOT cleared on unmount (see
+  // FRONTEND-049-AC-05): a confirmed deletion must still commit even if the user navigates away.
+  const pendingDeleteTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Guards setState calls from a deferred-delete timer that fires after unmount -- mirrors the
+  // `cancelled` flag convention used by the fetch effect below, but as a ref since the timer
+  // outlives any single effect/render.
+  const isMountedRef = useRef(true)
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
@@ -69,6 +82,30 @@ export function ActivityBank() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showArchived])
+
+  // Real bug found in manual browser verification (2026-10-29): this effect originally only set
+  // isMountedRef.current = false in its cleanup, never resetting it to true in its setup. React's
+  // <StrictMode> (main.tsx wraps the whole app in it) deliberately double-invokes every effect on
+  // initial mount in development -- mount, run effects, simulate unmount (run cleanups), simulate
+  // remount (run effect setups again) -- on the SAME component instance. That cleanup-then-resetup
+  // dance ran this effect's cleanup once immediately after mount, leaving isMountedRef.current
+  // permanently false for the rest of the instance's real lifetime, since nothing ever set it back
+  // to true. That silently disabled commitDelete's own state updates (both the success path that
+  // removes a row and the failure path that restores one) for every deletion, in every real
+  // browser dev session -- the DELETE call itself still fired correctly, but the UI never reflected
+  // it completing (the undo notice stayed stuck forever). Production builds don't double-invoke
+  // effects, so this never manifested there, and React Testing Library's render() doesn't wrap in
+  // StrictMode by default, so the entire automated suite was blind to it -- only real-browser
+  // verification caught it. Fix: set isMountedRef.current = true in the setup too, not just rely on
+  // useRef(true)'s one-time initial value.
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      // Deliberately NOT clearing pendingDeleteTimersRef's timers here (FRONTEND-049-AC-05) --
+      // a confirmed deletion must still commit after unmount, not be silently cancelled.
+    }
+  }, [])
 
   const handleRetryLoad = () => {
     fetchActivities(showArchived)
@@ -138,18 +175,75 @@ export function ActivityBank() {
     setActivities((previous) => (previous ? [...previous, activity] : [activity]))
   }
 
-  const handleConfirmDelete = async (id: string) => {
-    setDeleteError(null)
-    setDeletingId(id)
+  // FRONTEND-049-AC-03: the deferred commit itself -- fires when the undo window expires. Not
+  // guarded by isMountedRef for the API call (it must still happen after unmount), only for the
+  // setState calls that follow it.
+  const commitDelete = async (id: string) => {
+    delete pendingDeleteTimersRef.current[id]
     try {
       await activityApi.remove(id)
-      setActivities((previous) => previous?.filter((activity) => activity.id !== id) ?? previous)
-      setConfirmingDeleteId(null)
+      if (isMountedRef.current) {
+        setActivities((previous) => previous?.filter((activity) => activity.id !== id) ?? previous)
+        setPendingDeleteIds((previous) => {
+          const next = new Set(previous)
+          next.delete(id)
+          return next
+        })
+      }
     } catch (error) {
-      setDeleteError(getErrorMessage(error))
-    } finally {
-      setDeletingId(null)
+      if (isMountedRef.current) {
+        setDeleteError(getErrorMessage(error))
+        setPendingDeleteIds((previous) => {
+          const next = new Set(previous)
+          next.delete(id)
+          return next
+        })
+      }
     }
+  }
+
+  // FRONTEND-049-AC-01: confirming delete hides the row and starts the undo window immediately --
+  // activityApi.remove is not called here, only after the window expires (see commitDelete).
+  const handleConfirmDelete = (id: string) => {
+    setDeleteError(null)
+    setConfirmingDeleteId(null)
+    setPendingDeleteIds((previous) => {
+      const next = new Set(previous)
+      next.add(id)
+      return next
+    })
+    pendingDeleteTimersRef.current[id] = setTimeout(() => {
+      commitDelete(id)
+    }, UNDO_DELETE_WINDOW_MS)
+  }
+
+  // FRONTEND-049-AC-02: Undo cancels the pending timer and restores the row -- the delete API is
+  // never called for this id.
+  //
+  // Real bug found in manual browser verification (2026-10-29): commitDelete deletes this id's
+  // pendingDeleteTimersRef entry SYNCHRONOUSLY the instant the timer fires, before its `await
+  // activityApi.remove(id)` call even starts -- so there's a real window, roughly the length of
+  // that network round-trip, where the timer has already fired (the delete is irreversibly in
+  // motion) but the Undo button is still rendered and clickable (pendingDeleteIds hasn't been
+  // updated yet -- that only happens once the await resolves). Clicking Undo in that window must
+  // be a no-op, not an optimistic "restored" update: if it unconditionally cleared
+  // pendingDeleteIds, the row would briefly render as a normal, safe row again, then silently
+  // vanish a second time (or show an error) once commitDelete's real result arrives -- a false
+  // "it's safe" signal to the user while the row is still actually being deleted. Only clear
+  // pendingDeleteIds when a live timer was actually found and cancelled; otherwise, let
+  // commitDelete's own success/failure branch be the sole source of truth for this id's state.
+  const handleUndoDelete = (id: string) => {
+    const timer = pendingDeleteTimersRef.current[id]
+    if (!timer) {
+      return
+    }
+    clearTimeout(timer)
+    delete pendingDeleteTimersRef.current[id]
+    setPendingDeleteIds((previous) => {
+      const next = new Set(previous)
+      next.delete(id)
+      return next
+    })
   }
 
   const renderRowActions = (activity: Activity) => {
@@ -181,15 +275,10 @@ export function ActivityBank() {
             type="button"
             className={buttonStyles.destructive}
             onClick={() => handleConfirmDelete(activity.id)}
-            disabled={deletingId === activity.id}
           >
             Confirm delete
           </button>
-          <button
-            type="button"
-            onClick={() => setConfirmingDeleteId(null)}
-            disabled={deletingId === activity.id}
-          >
+          <button type="button" onClick={() => setConfirmingDeleteId(null)}>
             Cancel
           </button>
         </>
@@ -217,6 +306,7 @@ export function ActivityBank() {
 
   const visibleActivities = (activities ?? []).filter(
     (activity) =>
+      !pendingDeleteIds.has(activity.id) &&
       (categoryFilter === 'ALL' || activity.category === categoryFilter) &&
       (!favouriteFilter || activity.favourite),
   )
@@ -307,6 +397,20 @@ export function ActivityBank() {
       {deleteError && <p role="alert">{deleteError}</p>}
       {unarchiveError && <p role="alert">{unarchiveError}</p>}
       {favouriteError && <p role="alert">{favouriteError}</p>}
+
+      {/* FRONTEND-049-AC-01: a transient, non-persistent status notice per pending deletion --
+          role="status" (not "alert") since this isn't an error; dismissed by Undo or by the
+          window expiring, never by the user. */}
+      {(activities ?? [])
+        .filter((activity) => pendingDeleteIds.has(activity.id))
+        .map((activity) => (
+          <p role="status" key={activity.id}>
+            {activity.name} deleted.{' '}
+            <button type="button" onClick={() => handleUndoDelete(activity.id)}>
+              Undo
+            </button>
+          </p>
+        ))}
 
       {activities === null && !loadError && <output>Loading activities…</output>}
 

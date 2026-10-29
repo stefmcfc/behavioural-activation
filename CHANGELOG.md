@@ -6,6 +6,18 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+### Added
+
+- An undo window for deleting an activity or sub-task (`frontend_spec_049_undo_delete.md`):
+  confirming delete now hides the row immediately and shows a `role="status"` "{name} deleted.
+  [Undo]" notice, deferring the actual `DELETE` call behind a fixed 6-second `setTimeout` instead
+  of calling it synchronously. Undo within the window cancels the timer and restores the row with
+  no API call ever made; letting the window expire commits the deletion (or restores the row and
+  shows the existing error alert on failure). Implemented independently in both `ActivityBank.tsx`
+  and `SubTaskList.tsx`. Added a `globalThis.jest = vi` shim to `src/test-setup.ts` so
+  `@testing-library/dom`'s fake-timer-aware `waitFor`/`findBy*` support (which only checks for a
+  `jest` global) works correctly under Vitest's `vi.useFakeTimers()`.
+
 ## [0.43.0] - 2026-10-29
 
 ### Added
