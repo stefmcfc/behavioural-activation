@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-29
+
 ### Added
 
 - A `hashPassword` Gradle task (`gradlew.bat hashPassword -Ppassword="..."`) that prints a BCrypt
