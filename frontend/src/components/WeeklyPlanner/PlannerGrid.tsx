@@ -199,7 +199,14 @@ export function PlannerGrid({
         onDrop={() => handleDrop(day, slot)}
       >
         <div className={styles.cellHeader}>
-          <span className={styles.slotLabel}>{SLOT_LABELS[slot]}</span>
+          <span className={styles.slotLabel}>
+            {/* FRONTEND-052-AC-01/AC-02: append the item count only once a slot holds more than
+                one occurrence -- a single item is already fully visible below, so a "(1)" count
+                would be redundant noise. */}
+            {cellOccurrences.length > 1
+              ? `${SLOT_LABELS[slot]} (${cellOccurrences.length})`
+              : SLOT_LABELS[slot]}
+          </span>
           <button
             type="button"
             onClick={() => onAdd(day, slot)}
