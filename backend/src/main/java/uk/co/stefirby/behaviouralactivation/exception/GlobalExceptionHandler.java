@@ -68,6 +68,12 @@ public class GlobalExceptionHandler {
             .body(ApiError.of(ex.getMessage()));
     }
 
+    @ExceptionHandler(ActivityDeleteNotAllowedException.class)
+    public ResponseEntity<ApiError> handleActivityDeleteNotAllowedException(ActivityDeleteNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ApiError.of(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();

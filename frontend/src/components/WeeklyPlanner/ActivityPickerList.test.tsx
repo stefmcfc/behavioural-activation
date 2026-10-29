@@ -287,6 +287,28 @@ describe('FRONTEND-033-AC-02/AC-03/AC-04: bulk fetch replaces the per-activity f
     expect(subTaskApi.getAll).not.toHaveBeenCalled()
   })
 
+  // FRONTEND-058-AC-15 (regression): activityApi.getAll() is called with no argument here, so
+  // includeArchived defaults to false on the backend -- archived activities (and, since sub-tasks
+  // are grouped under their parent activity, their sub-tasks too) stay excluded from the "Assign
+  // activity" picker and the Today-view Activity Drawer, matching how this already worked before
+  // frontend_spec_058 (which only changed ActivityBank.tsx, not this file).
+  it('AC-15 (regression): calls activityApi.getAll with no argument, excluding archived activities', async () => {
+    vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+    vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([])
+
+    render(
+      <ActivityPickerList
+        mode="select"
+        selected={null}
+        onSelectActivity={vi.fn()}
+        onSelectSubTask={vi.fn()}
+      />,
+    )
+    await screen.findByText(walk.name)
+
+    expect(activityApi.getAll).toHaveBeenCalledWith()
+  })
+
   it('AC-04: groups the flat sub-task list by activityId, including an empty array for an activity with none', async () => {
     vi.mocked(activityApi.getAll).mockResolvedValue([walk, party])
     vi.mocked(subTaskApi.getAllForOwner).mockResolvedValue([sendInvitations]) // walk has zero sub-tasks

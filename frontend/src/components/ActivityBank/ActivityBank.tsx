@@ -9,6 +9,7 @@ import { CategoryGroupHeading } from '../CategoryGroupHeading/CategoryGroupHeadi
 import { Modal } from '../Modal/Modal'
 import { RepeatableIcon } from '../RepeatableIcon/RepeatableIcon'
 import { FavouriteIcon } from '../FavouriteIcon/FavouriteIcon'
+import { ChevronIcon } from '../icons/ChevronIcon'
 import { type CategoryFilter, CATEGORY_FILTER_OPTIONS } from '../../utils/categoryFilter'
 import { CATEGORY_ORDER } from '../../utils/categoryLabels'
 import { getErrorMessage } from '../../utils/getErrorMessage'
@@ -49,7 +50,6 @@ export function ActivityBank() {
   // outlives any single effect/render.
   const isMountedRef = useRef(true)
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [favouriteFilter, setFavouriteFilter] = useState(false)
   const [unarchivingId, setUnarchivingId] = useState<string | null>(null)
@@ -57,11 +57,24 @@ export function ActivityBank() {
   const [favouritingId, setFavouritingId] = useState<string | null>(null)
   const [favouriteError, setFavouriteError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  // FRONTEND-058-AC-02/AC-03: Archive is the only destructive-ish action reachable from an active
+  // row -- mirrors handleUnarchive's existing no-confirm shape exactly.
+  const [archivingId, setArchivingId] = useState<string | null>(null)
+  const [archiveError, setArchiveError] = useState<string | null>(null)
+  // FRONTEND-058-AC-09 through AC-13: the impact check gating an archived row's Confirm delete.
+  const [impactCheckingId, setImpactCheckingId] = useState<string | null>(null)
+  const [impactWarning, setImpactWarning] = useState<
+    { id: string; plannedOccurrenceCount: number; completionCount: number } | null
+  >(null)
+  const [impactError, setImpactError] = useState<{ id: string; message: string } | null>(null)
 
-  const fetchActivities = (includeArchived: boolean, onCancelled: () => boolean = () => false) => {
-    setLoadError(null)
+  // Deliberately does not reset loadError itself -- loadError is already null on initial mount, so
+  // the mount effect below has no synchronous setState call of its own (avoids oxlint's
+  // react(set-state-in-effect) cascading-render warning for a no-op reset); handleRetryLoad resets
+  // it explicitly instead, since that call is a genuine "clear the previous error" state change.
+  const fetchActivities = (onCancelled: () => boolean = () => false) => {
     activityApi
-      .getAll(includeArchived)
+      .getAll(true)
       .then((data) => {
         if (!onCancelled()) {
           setActivities(data)
@@ -74,14 +87,16 @@ export function ActivityBank() {
       })
   }
 
+  // FRONTEND-058-AC-04: always fetches with includeArchived: true on mount -- partitioned
+  // client-side into visibleActivities/archivedActivities below, replacing the previous
+  // showArchived-conditional fetch/refetch.
   useEffect(() => {
     let cancelled = false
-    fetchActivities(showArchived, () => cancelled)
+    fetchActivities(() => cancelled)
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived])
+  }, [])
 
   // Real bug found in manual browser verification (2026-10-29): this effect originally only set
   // isMountedRef.current = false in its cleanup, never resetting it to true in its setup. React's
@@ -108,7 +123,26 @@ export function ActivityBank() {
   }, [])
 
   const handleRetryLoad = () => {
-    fetchActivities(showArchived)
+    setLoadError(null)
+    fetchActivities()
+  }
+
+  // FRONTEND-058-AC-02/AC-03: direct, unconfirmed archive -- mirrors handleUnarchive's own
+  // no-confirm shape. On success the activity now has archived: true, so it renders in the
+  // archived section (via archivedActivities below) instead of "My Activities".
+  const handleArchive = async (id: string) => {
+    setArchiveError(null)
+    setArchivingId(id)
+    try {
+      const updated = await activityApi.archive(id)
+      setActivities((previous) =>
+        previous?.map((existing) => (existing.id === id ? updated : existing)) ?? previous,
+      )
+    } catch (error) {
+      setArchiveError(getErrorMessage(error))
+    } finally {
+      setArchivingId(null)
+    }
   }
 
   const handleUnarchive = async (id: string) => {
@@ -246,12 +280,111 @@ export function ActivityBank() {
     })
   }
 
+  // FRONTEND-058-AC-09/AC-10/AC-11/AC-13: replaces the direct setConfirmingDeleteId(null) +
+  // handleConfirmDelete(id) call Confirm-delete used to make on an active row -- now checks the
+  // activity's deletion impact first. handleConfirmDelete itself (the actual deferred-delete/
+  // undo-window starter) is unchanged from frontend_spec_049.
+  const handleDeleteConfirmed = async (id: string) => {
+    setImpactError(null)
+    setImpactCheckingId(id)
+    try {
+      const impact = await activityApi.deletionImpact(id)
+      setImpactCheckingId(null)
+      if (impact.plannedOccurrenceCount === 0 && impact.completionCount === 0) {
+        handleConfirmDelete(id)
+      } else {
+        setImpactWarning({ id, ...impact })
+      }
+    } catch (error) {
+      setImpactCheckingId(null)
+      setImpactError({ id, message: getErrorMessage(error) })
+    }
+  }
+
+  // FRONTEND-058-AC-12: "Delete anyway" enters the same undo-window flow as the zero-impact case.
+  const handleDeleteAnyway = (id: string) => {
+    setImpactWarning(null)
+    handleConfirmDelete(id)
+  }
+
+  // FRONTEND-058-AC-14: Cancel at any stage (first confirm, impact-warning, impact-error) returns
+  // to idle with no API call for that attempt.
+  const handleCancelArchivedDelete = (id: string) => {
+    setConfirmingDeleteId(null)
+    if (impactWarning?.id === id) {
+      setImpactWarning(null)
+    }
+    if (impactError?.id === id) {
+      setImpactError(null)
+    }
+  }
+
   const renderRowActions = (activity: Activity) => {
     const toggleSubTasks = () =>
       setExpandedActivityId((current) => (current === activity.id ? null : activity.id))
     const subTasksLabel = getSubTasksLabel(activity, expandedActivityId === activity.id)
 
     if (activity.archived) {
+      if (impactWarning?.id === activity.id) {
+        return (
+          <>
+            <p>
+              This activity has {impactWarning.plannedOccurrenceCount} planned occurrence(s),{' '}
+              {impactWarning.completionCount} of them completed. Deleting it will remove those
+              too.
+            </p>
+            <button
+              type="button"
+              className={buttonStyles.destructive}
+              onClick={() => handleDeleteAnyway(activity.id)}
+            >
+              Delete anyway
+            </button>
+            <button type="button" onClick={() => handleCancelArchivedDelete(activity.id)}>
+              Cancel
+            </button>
+          </>
+        )
+      }
+
+      if (impactError?.id === activity.id) {
+        return (
+          <>
+            <p role="alert">
+              {impactError.message}{' '}
+              <button type="button" onClick={() => handleDeleteConfirmed(activity.id)}>
+                Retry
+              </button>
+            </p>
+            <button type="button" onClick={() => handleCancelArchivedDelete(activity.id)}>
+              Cancel
+            </button>
+          </>
+        )
+      }
+
+      if (confirmingDeleteId === activity.id) {
+        return (
+          <>
+            <button
+              type="button"
+              className={buttonStyles.destructive}
+              onClick={() => handleDeleteConfirmed(activity.id)}
+              disabled={impactCheckingId === activity.id}
+            >
+              Confirm delete
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCancelArchivedDelete(activity.id)}
+              disabled={impactCheckingId === activity.id}
+            >
+              Cancel
+            </button>
+          </>
+        )
+      }
+
       return (
         <>
           <button type="button" onClick={toggleSubTasks}>
@@ -264,27 +397,19 @@ export function ActivityBank() {
           >
             Unarchive
           </button>
-        </>
-      )
-    }
-
-    if (confirmingDeleteId === activity.id) {
-      return (
-        <>
           <button
             type="button"
             className={buttonStyles.destructive}
-            onClick={() => handleConfirmDelete(activity.id)}
+            onClick={() => setConfirmingDeleteId(activity.id)}
           >
-            Confirm delete
-          </button>
-          <button type="button" onClick={() => setConfirmingDeleteId(null)}>
-            Cancel
+            Delete
           </button>
         </>
       )
     }
 
+    // FRONTEND-058-AC-01: an active row's only exit is Archive -- Delete/Confirm delete/Cancel are
+    // never reachable from here.
     return (
       <>
         <button type="button" onClick={toggleSubTasks}>
@@ -295,10 +420,10 @@ export function ActivityBank() {
         </button>
         <button
           type="button"
-          className={buttonStyles.destructive}
-          onClick={() => setConfirmingDeleteId(activity.id)}
+          onClick={() => handleArchive(activity.id)}
+          disabled={archivingId === activity.id}
         >
-          Delete
+          Archive
         </button>
       </>
     )
@@ -306,9 +431,21 @@ export function ActivityBank() {
 
   const visibleActivities = (activities ?? []).filter(
     (activity) =>
+      !activity.archived &&
       !pendingDeleteIds.has(activity.id) &&
       (categoryFilter === 'ALL' || activity.category === categoryFilter) &&
       (!favouriteFilter || activity.favourite),
+  )
+
+  // FRONTEND-058-AC-04/AC-07: archived activities render only in their own section, never
+  // interleaved into "My Activities" -- the favourite filter deliberately does not apply here (it
+  // stays scoped to pinning/filtering the active list), but the category filter does (it's a
+  // page-level toolbar control shared by both sections).
+  const archivedActivities = (activities ?? []).filter(
+    (activity) =>
+      activity.archived &&
+      !pendingDeleteIds.has(activity.id) &&
+      (categoryFilter === 'ALL' || activity.category === categoryFilter),
   )
 
   // FRONTEND-044-AC-03/AC-04: fixed category order, respecting the existing category filter --
@@ -316,6 +453,37 @@ export function ActivityBank() {
   // backend already provides.
   const visibleCategories =
     categoryFilter === 'ALL' ? CATEGORY_ORDER : CATEGORY_ORDER.filter((c) => c === categoryFilter)
+
+  const renderActivityRow = (activity: Activity) => (
+    <li key={activity.id} className={styles.row}>
+      <button
+        type="button"
+        className={styles.favouriteToggle}
+        aria-pressed={activity.favourite}
+        aria-label={activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`}
+        onClick={() => handleToggleFavourite(activity)}
+        disabled={favouritingId === activity.id}
+      >
+        <FavouriteIcon filled={activity.favourite} />
+      </button>
+      <span>{activity.name}</span> <CategoryChip category={activity.category} />
+      {activity.repeatable && <RepeatableIcon />}
+
+      <span className={styles.actions}>{renderRowActions(activity)}</span>
+
+      {activity.description && <p>{activity.description}</p>}
+
+      {expandedActivityId === activity.id && (
+        <div className={styles.details}>
+          <SubTaskList
+            key={`${activity.id}-${refreshKey}`}
+            activityId={activity.id}
+            readOnly={activity.archived}
+          />
+        </div>
+      )}
+    </li>
+  )
 
   return (
     <section>
@@ -359,14 +527,6 @@ export function ActivityBank() {
             <label className={styles.archivedToggle}>
               <input
                 type="checkbox"
-                checked={showArchived}
-                onChange={(event) => setShowArchived(event.target.checked)}
-              />{' '}
-              Show archived
-            </label>
-            <label className={styles.archivedToggle}>
-              <input
-                type="checkbox"
                 checked={favouriteFilter}
                 onChange={(event) => setFavouriteFilter(event.target.checked)}
               />{' '}
@@ -397,6 +557,7 @@ export function ActivityBank() {
       {deleteError && <p role="alert">{deleteError}</p>}
       {unarchiveError && <p role="alert">{unarchiveError}</p>}
       {favouriteError && <p role="alert">{favouriteError}</p>}
+      {archiveError && <p role="alert">{archiveError}</p>}
 
       {/* FRONTEND-049-AC-01: a transient, non-persistent status notice per pending deletion --
           role="status" (not "alert") since this isn't an error; dismissed by Undo or by the
@@ -438,43 +599,44 @@ export function ActivityBank() {
                 className={styles.list}
                 role="presentation"
               >
-                {activitiesInCategory.map((activity) => (
-                  <li key={activity.id} className={styles.row}>
-                    <button
-                      type="button"
-                      className={styles.favouriteToggle}
-                      aria-pressed={activity.favourite}
-                      aria-label={
-                        activity.favourite ? `Unfavourite ${activity.name}` : `Favourite ${activity.name}`
-                      }
-                      onClick={() => handleToggleFavourite(activity)}
-                      disabled={favouritingId === activity.id}
-                    >
-                      <FavouriteIcon filled={activity.favourite} />
-                    </button>
-                    <span>{activity.name}</span> <CategoryChip category={activity.category} />
-                    {activity.repeatable && <RepeatableIcon />}
-                    {activity.archived && <span className={styles.archivedLabel}>(Archived)</span>}
-
-                    <span className={styles.actions}>{renderRowActions(activity)}</span>
-
-                    {activity.description && <p>{activity.description}</p>}
-
-                    {expandedActivityId === activity.id && (
-                      <div className={styles.details}>
-                        <SubTaskList
-                          key={`${activity.id}-${refreshKey}`}
-                          activityId={activity.id}
-                          readOnly={activity.archived}
-                        />
-                      </div>
-                    )}
-                  </li>
-                ))}
+                {activitiesInCategory.map((activity) => renderActivityRow(activity))}
               </ul>
             </div>
           )
         })}
+
+      {/* FRONTEND-058-AC-04/AC-05/AC-06: archived activities live in their own, closed-by-default
+          section -- structurally the same <details>/<summary> + category-grouping idiom as
+          SuggestedActivities.tsx, reused a third time in this codebase. Always closed by default,
+          regardless of content (unlike SuggestedActivities' empty-bank auto-open). */}
+      <details className={styles.archivedDetails}>
+        <summary className={styles.sectionHeading}>
+          Archived activities ({archivedActivities.length})
+          <ChevronIcon />
+        </summary>
+
+        {archivedActivities.length === 0 && <p>No archived activities.</p>}
+
+        {archivedActivities.length > 0 &&
+          visibleCategories.map((category) => {
+            const activitiesInCategory = archivedActivities.filter((a) => a.category === category)
+            if (activitiesInCategory.length === 0) {
+              return null
+            }
+            return (
+              <div key={category}>
+                <CategoryGroupHeading category={category} />
+                <ul // NOSONAR(typescript:S6819): deliberate -- same reasoning as the "My
+                  // Activities" group above.
+                  className={styles.list}
+                  role="presentation"
+                >
+                  {activitiesInCategory.map((activity) => renderActivityRow(activity))}
+                </ul>
+              </div>
+            )
+          })}
+      </details>
 
       <SuggestedActivities
         activities={activities ?? []}

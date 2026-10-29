@@ -6,6 +6,20 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-10-29
+
+### Added
+
+- Archive-before-delete for activities: an active activity's only exit is now **Archive** (instant,
+  no confirm) — `Delete` is gone from active rows, and `ActivityService.delete()` now rejects
+  (`409`) a non-archived activity regardless of what the UI allows. Archived activities moved into
+  their own closed-by-default "Archived activities" section. Deleting an archived activity now
+  checks a new `GET /api/v1/activities/{id}/deletion-impact` endpoint first: zero history proceeds
+  straight into the existing undo-window flow, any history shows a combined-count warning requiring
+  one more explicit "Delete anyway". Raised after a real incident this session where an unguarded
+  delete destroyed a seeded activity's full history with no warning
+  (`planner_spec_027_archive_before_delete.md`/`frontend_spec_058_archive_before_delete.md`).
+
 ## [0.44.0] - 2026-10-29
 
 ### Added

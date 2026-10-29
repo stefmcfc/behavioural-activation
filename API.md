@@ -91,8 +91,19 @@ unarchive symmetry. Repeatable activities never auto-archive.
   `archived` is never settable here — only via the archive/unarchive endpoints below. Returns `200`
   with the updated activity, `400` on the same validation failures as create, `404` if `id` isn't
   owned by the authenticated user.
-- **`DELETE /api/v1/activities/{id}`** — permanently deletes the activity. Returns `204`, or `404`
-  if `id` isn't owned by the authenticated user.
+- **`DELETE /api/v1/activities/{id}`** — permanently deletes the activity (cascading through its
+  sub-tasks, planned occurrences, and completion records). Requires the activity to already be
+  `archived: true` — deleting an active (non-archived) activity returns `409` instead (see
+  `.claude/specs/planner_spec_027_archive_before_delete.md`). Returns `204` on success, or `404`
+  if `id` isn't owned by the authenticated user (the ownership check happens before the
+  archived-state check, so not-found/not-yours is still `404`, never `409`).
+- **`GET /api/v1/activities/{id}/deletion-impact`** — read-only, reachable regardless of the
+  activity's `archived` state. Returns `200` with
+  `{ "plannedOccurrenceCount": N, "completionCount": N }` — the total number of `PlannedOccurrence`
+  rows targeting the activity directly or via any of its sub-tasks, and the total number of
+  `CompletionRecord` rows tied to those occurrences, so a caller can show real numbers before
+  confirming a delete. Returns `404` if `id` isn't owned by the authenticated user. Purely
+  informational — doesn't change what deleting the activity actually does.
 - **`POST /api/v1/activities/{id}/archive`** — sets `archived: true`. Idempotent — archiving an
   already-archived activity is still a `200` success, not an error. Returns `200` with the updated
   activity, `404` if `id` isn't owned by the authenticated user.

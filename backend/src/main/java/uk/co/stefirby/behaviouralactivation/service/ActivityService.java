@@ -7,11 +7,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.stefirby.behaviouralactivation.dto.ActivityDeletionImpactResponse;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
+import uk.co.stefirby.behaviouralactivation.exception.ActivityDeleteNotAllowedException;
 import uk.co.stefirby.behaviouralactivation.model.Activity;
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory;
 import uk.co.stefirby.behaviouralactivation.model.User;
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository;
+import uk.co.stefirby.behaviouralactivation.repository.CompletionRecordRepository;
+import uk.co.stefirby.behaviouralactivation.repository.PlannedOccurrenceRepository;
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskCountProjection;
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository;
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository;
@@ -30,12 +34,17 @@ public class ActivityService {
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final SubTaskRepository subTaskRepository;
+    private final PlannedOccurrenceRepository plannedOccurrenceRepository;
+    private final CompletionRecordRepository completionRecordRepository;
 
     public ActivityService(ActivityRepository activityRepository, UserRepository userRepository,
-            SubTaskRepository subTaskRepository) {
+            SubTaskRepository subTaskRepository, PlannedOccurrenceRepository plannedOccurrenceRepository,
+            CompletionRecordRepository completionRecordRepository) {
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
         this.subTaskRepository = subTaskRepository;
+        this.plannedOccurrenceRepository = plannedOccurrenceRepository;
+        this.completionRecordRepository = completionRecordRepository;
     }
 
     @Transactional
@@ -97,15 +106,38 @@ public class ActivityService {
             .forEach(subTask -> subTask.recategorize(newCategory));
     }
 
+    // planner_spec_027_archive_before_delete.md (PLANNER-027-AC-01/AC-03) -- supersedes
+    // PLANNER-002-AC-16's "delete is unconditional": an active (non-archived) activity can no
+    // longer be permanently deleted. The ownership check (findByIdAndOwner) still happens first --
+    // not-found/not-yours stays 404 without the archived-state rule ever being evaluated
+    // (PLANNER-027-AC-04).
     @Transactional
     public boolean delete(String ownerUsername, UUID id) {
         User owner = resolveOwner(ownerUsername);
         return activityRepository.findByIdAndOwner(id, owner)
             .map(activity -> {
+                if (!activity.isArchived()) {
+                    throw new ActivityDeleteNotAllowedException(
+                        "An active activity must be archived before it can be deleted");
+                }
                 activityRepository.delete(activity);
                 return true;
             })
             .orElse(false);
+    }
+
+    // planner_spec_027_archive_before_delete.md (PLANNER-027-AC-05/AC-06/AC-07) -- read-only, no
+    // archived-state precondition (PLANNER-027-AC-09): reports how much planning/completion history
+    // deleting this activity would actually remove, so the caller can make an informed choice.
+    @Transactional(readOnly = true)
+    public Optional<ActivityDeletionImpactResponse> getDeletionImpact(String ownerUsername, UUID id) {
+        User owner = resolveOwner(ownerUsername);
+        return activityRepository.findByIdAndOwner(id, owner)
+            .map(activity -> new ActivityDeletionImpactResponse(
+                plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, id)
+                    + plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, id),
+                completionRecordRepository.countByOwnerAndPlannedOccurrence_Activity_Id(owner, id)
+                    + completionRecordRepository.countByOwnerAndPlannedOccurrence_SubTask_Activity_Id(owner, id)));
     }
 
     @Transactional
