@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-10-29
+
 ### Added
 
 - An undo window for deleting an activity or sub-task (`frontend_spec_049_undo_delete.md`):
