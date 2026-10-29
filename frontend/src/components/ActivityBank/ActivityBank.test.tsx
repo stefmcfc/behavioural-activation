@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ActivityBank } from './ActivityBank'
 import { activityApi } from '../../services/activityApi'
 import { subTaskApi } from '../../services/subTaskApi'
@@ -58,6 +58,13 @@ describe('ActivityBank', () => {
     vi.mocked(activityApi.markFavourite).mockReset()
     vi.mocked(activityApi.unmarkFavourite).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
+  })
+
+  // FRONTEND-049: safety net -- if a fake-timer test throws before reaching its own
+  // vi.useRealTimers() call, fake timers would otherwise leak into every later test in this file
+  // and hang them (real-timer-dependent userEvent/RTL internals never fire).
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('FRONTEND-002-AC-07: fetches the list on mount', () => {
@@ -293,31 +300,130 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-002-AC-23/AC-25: confirming delete removes the activity', () => {
-    it('calls activityApi.remove and removes the row on success', async () => {
+  describe('FRONTEND-002-AC-23/AC-25 & FRONTEND-049-AC-03: confirming delete removes the activity', () => {
+    it('calls activityApi.remove and removes the row once the undo window expires', async () => {
+      vi.useFakeTimers()
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       vi.mocked(activityApi.remove).mockResolvedValue(undefined)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
-      await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-      expect(activityApi.remove).toHaveBeenCalledWith('1')
-      await waitFor(() => expect(screen.queryByText('Walk')).not.toBeInTheDocument())
+      expect(screen.queryByText('Walk')).not.toBeInTheDocument()
+      vi.advanceTimersByTime(6000)
+      await vi.waitFor(() => expect(activityApi.remove).toHaveBeenCalledWith('1'))
+      vi.useRealTimers()
     })
   })
 
-  describe('FRONTEND-002-AC-26: failed delete shows an alert and keeps the activity', () => {
-    it('displays the error and leaves the row in place', async () => {
+  describe('FRONTEND-002-AC-26 & FRONTEND-049-AC-03: failed delete shows an alert and keeps the activity', () => {
+    it('displays the error and restores the row once the deferred delete fails', async () => {
+      vi.useFakeTimers()
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       vi.mocked(activityApi.remove).mockRejectedValue({ status: 500, message: 'Server error' })
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
 
-      await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
-      await userEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(screen.getByRole('button', { name: /confirm delete/i }))
+      vi.advanceTimersByTime(6000)
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
       expect(screen.getByText('Walk')).toBeInTheDocument()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-01: confirming delete hides the row and defers the API call', () => {
+    it('removes the row from view and shows an undo notice without calling the API yet', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      const removeSpy = vi.mocked(activityApi.remove)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(screen.queryByText('Walk')).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/walk.*deleted/i)
+      expect(removeSpy).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-02: Undo cancels the pending deletion', () => {
+    it('restores the row and never calls the delete API', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      const removeSpy = vi.mocked(activityApi.remove)
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+      expect(screen.getByText('Walk')).toBeInTheDocument()
+      vi.advanceTimersByTime(10000)
+      expect(removeSpy).not.toHaveBeenCalled()
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-02 regression: Undo clicked after the window has already elapsed is a safe no-op', () => {
+    it('does not show the row as falsely restored while the already-fired delete is still in flight', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      let resolveRemove: () => void = () => {}
+      vi.mocked(activityApi.remove).mockReturnValue(
+        new Promise<void>((resolve) => {
+          resolveRemove = resolve
+        }),
+      )
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      // The window elapses -- commitDelete has started and activityApi.remove is now in flight,
+      // but its promise is deliberately held open to simulate the real window this regression
+      // guards: the timer has fired, but the undo notice hasn't been cleared by the resolved
+      // response yet.
+      vi.advanceTimersByTime(6000)
+
+      await user.click(screen.getByRole('button', { name: 'Undo' }))
+
+      // The row must not reappear as a normal, safe row (Edit button back) while the delete it's
+      // "undoing" is still actually in flight -- that would be a false "it's safe" signal.
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/walk.*deleted/i)
+
+      resolveRemove()
+      await waitFor(() => expect(screen.queryByText('Walk')).not.toBeInTheDocument())
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-049-AC-04: multiple pending deletions are independent', () => {
+    it('undoing one pending deletion leaves a second one still pending', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, read])
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+
+      await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      await user.click(screen.getAllByRole('button', { name: 'Undo' })[0])
+
+      expect(screen.getByText('Walk')).toBeInTheDocument()
+      expect(screen.queryByText('Read a book')).not.toBeInTheDocument()
+      vi.useRealTimers()
     })
   })
 

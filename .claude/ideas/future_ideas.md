@@ -129,6 +129,14 @@ this file.
 
 ---
 
+**Last updated:** `2026-10-29`
+
+- added a new idea, surfaced while implementing/verifying `frontend_spec_049_undo_delete.md`: the
+  Vitest/RTL suite can't catch a mount effect that doesn't idempotently reset its own guard/flag
+  state across React `<StrictMode>`'s dev-mode double-invoke-on-mount behavior — see entry below.
+
+---
+
 ## Overdue-activity banner/icon (Pair 2 of the recurrence/reminders idea)
 
 ```
@@ -226,6 +234,44 @@ app's current single-user V1 scale:
 
 Revisit either only if real usage ever grows list/dataset sizes enough for these to become
 measurable — don't add the index or the memoization ahead of that actually happening.
+
+## Vitest/RTL can't catch a mount effect that doesn't survive React StrictMode's double-invoke
+
+```
+Status: Not specced.
+```
+
+Raised `2026-10-29`, surfaced while implementing and real-browser-verifying
+`frontend_spec_049_undo_delete.md`. A real bug shipped in that spec's first pass: a mount-tracking
+`useEffect` only set `isMountedRef.current = false` in its cleanup, never resetting it to `true` in
+its setup. `main.tsx` wraps the whole app in `<StrictMode>`, which deliberately double-invokes every
+effect once on initial mount in development (mount → run effects → simulate unmount, run cleanups →
+simulate remount, run effect setups again — all on the same component instance, to help catch
+exactly this class of bug). That left `isMountedRef.current` permanently `false` for the rest of the
+component's real lifetime, silently disabling a deferred-action's own success/failure state updates
+in every real dev-mode browser session, while the underlying API call still fired and succeeded —
+confirmed the hard way: an actual seeded activity got deleted for real while its "Undo" notice stuck
+around forever, visually implying nothing had happened yet.
+
+The automated suite (694 tests passing throughout) never caught this, and structurally can't:
+production builds don't double-invoke effects (so this never manifests in what actually ships), and
+React Testing Library's `render()` doesn't wrap in `<StrictMode>` by default. A direct test was
+tried — wrapping the component under test in `<StrictMode>` inside `render()` — and it passed
+identically against both the buggy and the fixed code, meaning Vitest's React environment doesn't
+reproduce StrictMode's double-invoke-on-mount behavior the way a real browser's dev build does. Only
+real-browser verification caught this, which is exactly why this project's Definition of Done
+already requires it for UI work — this is a concrete example of why, not just the usual CSS-can't-
+be-tested-in-jsdom case.
+
+Not yet specced because the right shape of a fix is a real open question: possibilities include
+finding a way to force Vitest's React build into genuinely double-invoking effects for a targeted
+set of tests (unclear if this is even achievable without deeper Vitest/React config changes), a
+lint rule or code-review checklist item flagging the "cleanup sets a ref/flag but setup never resets
+it" pattern specifically, or simply accepting this as a known gap that real-browser verification
+exists to catch and not chasing automated coverage for it at all. Revisit if this exact bug shape
+(a mount-effect guard that doesn't idempotently reset) turns up again in a future spec — two
+occurrences would be a much stronger signal that it's worth solving generically rather than
+case-by-case.
 
 ## Finer-grained/custom time slots for planned activities
 
