@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-10-29
+
 ### Added
 
 - Archive-before-delete for activities: an active activity's only exit is now **Archive** (instant,
