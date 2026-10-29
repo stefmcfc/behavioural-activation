@@ -352,6 +352,35 @@ backend's *first* startup against a given database. Setting them later doesn't r
 or update the user — either reset the database (`docker compose down -v && docker compose up -d`) or
 check what was actually seeded.
 
+**Recovering a locked-out user (forgotten password, no active session)**
+
+This app has no self-service password-reset flow (no `email` column, no email-sending
+infrastructure — deliberately, see `.claude/ideas/future_ideas.md`'s "Password recovery for a
+locked-out user" entry): it's a self-hosted, single-user app where whoever is locked out already has
+direct database access. Recovery is a two-step manual process — generate a BCrypt hash for the new
+password, then write it directly into the `users` table. **This replaces only that one row's
+`password_hash`** — no other data (activities, plans, completions) is touched, unlike
+`docker compose down -v`, which destroys everything.
+
+1. Generate a BCrypt hash for the new password (`backend/build.gradle.kts`'s `hashPassword` task —
+   no Spring context, no database access, just prints a hash):
+   ```bash
+   cd backend
+   gradlew.bat hashPassword -Ppassword="your-new-password"
+   ```
+   The hash (starting `$2a$...`) is printed on its own line above Gradle's own build-status output.
+
+2. Write it into the database, via Compose so you don't need to know the container's name — assign
+   the hash to a shell variable first, **in single quotes**, so its `$` characters aren't
+   mis-interpreted as shell variable references when the command below expands `$HASH`:
+   ```bash
+   HASH='<paste the hash from step 1>'
+   docker compose exec postgres psql -U behaviouralactivation -d behaviouralactivation \
+     -c "UPDATE users SET password_hash = '$HASH' WHERE username = 'your-username';"
+   ```
+   Expect `UPDATE 1`. Log in with the new password immediately — nothing else about the account
+   changes, including its active sessions (none, if you were already logged out) or any other data.
+
 ---
 
 ## CI/CD

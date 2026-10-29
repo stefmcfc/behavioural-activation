@@ -70,3 +70,17 @@ tasks.named<BootRun>("bootRun") {
 		suspend.set(false)
 	}
 }
+
+// Ops-only utility, not a feature -- prints a BCrypt hash for manual password recovery of a
+// locked-out user. See RUNBOOK.md's "Recovering a locked-out user" section.
+tasks.register<JavaExec>("hashPassword") {
+	description = "Prints a BCrypt hash for a password, for manual password recovery (see RUNBOOK.md)."
+	group = "application"
+	classpath = sourceSets["main"].runtimeClasspath
+	mainClass.set("uk.co.stefirby.behaviouralactivation.security.PasswordHashCli")
+	doFirst {
+		val password = project.findProperty("password") as String?
+			?: error("Pass the new password: gradlew.bat hashPassword -Ppassword=\"<new-password>\"")
+		args(password)
+	}
+}

@@ -28,6 +28,21 @@ file's pipeline and structure):
 
 ---
 
+**Last updated: `2026-10-29`**
+
+- the "Duplicate activity" quick action candidate moved to a real spec —
+  `frontend_spec_056_duplicate_activity.md`, see `ROADMAP.md`'s "Specced, coming soon" — removed
+  from this file. Its one open question (whether to copy sub-tasks) is resolved there: a bare
+  duplicate, no sub-tasks copied.
+- the "Category-colour swatch discoverability in Settings" candidate moved to a real spec —
+  `frontend_spec_057_category_colour_swatch_discoverability.md`, see `ROADMAP.md`'s "Specced,
+  coming soon" — removed from this file. Its unscoped "exact treatment" question is resolved there:
+  a plain (non-`<label>`) "Change colour" hint span plus a hover/focus ring on the swatch itself,
+  chosen specifically to avoid changing the swatch's existing accessible name (which five pre-
+  existing `Settings.test.tsx` tests depend on via an exact-anchored `getByLabelText` match).
+
+---
+
 **Last updated: `2026-10-06`**
 
 - the preset/starter activity bank candidate moved to a real spec —
@@ -115,23 +130,6 @@ soon"
 
 ## Candidates
 
-## "Duplicate activity" quick action
-
-```
-Status: Confirmed worth a candidate, not yet specced.
-```
-
-Raised `2026-10-06` during a V1 ideas review of the live app. Building a variant of an existing
-activity (e.g. a longer version of "Go for a walk") means retyping it from scratch today — `Edit`/
-`Delete` exist per row, but no `Duplicate`. A lightweight `Duplicate` action next to the existing
-row controls (pre-filling the Add-activity form from the source activity's name/category/
-description/repeatable/favourite, not copying its sub-tasks or plan history) would lower that
-friction.
-
-Not yet specced: whether duplicating should also copy the source activity's sub-tasks (straight
-copy vs. a deliberately bare duplicate the user re-builds) is an open product question worth
-settling before writing ACs, not a technical blocker.
-
 ## "Weekend bucket list" label shown outside weekend contexts
 
 ```
@@ -149,21 +147,6 @@ Explicitly the weakest-confidence item of this batch — flagged for discussion,
 recommendation. "Weekend bucket list" is an established, consistent proper noun throughout this
 app's specs and UI; renaming it in only some contexts could itself be confusing in a different way.
 Worth a product decision before writing any AC, not just an implementation choice.
-
-## Category-colour swatch discoverability in Settings
-
-```
-Status: Confirmed worth a candidate, not yet specced.
-```
-
-Raised `2026-10-06` during the same review. Settings' "Category colours" section shows a plain
-circular swatch next to each category's "Reset to default" button — nothing visually hints that the
-circle itself is clickable and opens a colour picker. A small affordance (a visible "Change colour"
-label, a hover/focus state, or similar) would make this discoverable without a user needing to
-guess-click it.
-
-Minor, low-risk, but not yet scoped: exact treatment (label text, whether to add a focus ring/hover
-style, or both) isn't decided.
 
 ## CI + automated end-to-end testing
 
