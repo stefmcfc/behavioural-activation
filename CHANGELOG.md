@@ -6,6 +6,8 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-10-29
+
 ### Added
 
 - Item count on busy Weekly Planner slots (`frontend_spec_052_slot_item_counts.md`): a day/slot
