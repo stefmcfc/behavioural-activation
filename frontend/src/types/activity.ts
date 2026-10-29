@@ -18,3 +18,10 @@ export interface ActivityInput {
   description: string | null
   repeatable: boolean
 }
+
+// FRONTEND-058: returned by GET /activities/{id}/deletion-impact -- checked before an archived
+// activity's delete is allowed to proceed past Confirm delete.
+export interface ActivityDeletionImpact {
+  plannedOccurrenceCount: number
+  completionCount: number
+}

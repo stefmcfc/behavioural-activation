@@ -42,6 +42,12 @@ file's pipeline and structure):
   existing `Settings.test.tsx` tests depend on via an exact-anchored `getByLabelText` match).
 - added the "Deleting an activity with existing history" candidate, raised by the user while
   reviewing `frontend_spec_049_undo_delete.md`'s delete flow — see entry below.
+- the "Deleting an activity with existing history" candidate moved to a real spec pair —
+  `planner_spec_027_archive_before_delete.md`/`frontend_spec_058_archive_before_delete.md`, see
+  `ROADMAP.md`'s "Specced, coming soon" — removed from this file. The user resolved it as shape (2)
+  of the three discussed: active activities can only be archived, never deleted directly; deleting
+  an archived activity checks history first (zero history deletes immediately, any history shows a
+  combined-count warning requiring one more confirmation) rather than blocking outright.
 
 ---
 
@@ -131,47 +137,6 @@ soon"
 ---
 
 ## Candidates
-
-## Deleting an activity with existing history
-
-```
-Status: Confirmed worth a candidate, not yet specced — needs a product decision on the fix shape
-before writing ACs, not just an implementation choice.
-```
-
-Raised `2026-10-29` while reviewing `frontend_spec_049_undo_delete.md`'s delete flow during a real
-bug investigation (a real-browser test accidentally deleted a seeded activity for real, which
-prompted a closer look at what delete actually does). Confirmed directly against the schema and
-`ActivityService.delete()` — not assumed:
-
-- `ActivityService.delete()` has **no guards at all** — no check for `favourite`, `archived`, or
-  outstanding `PlannedOccurrence`s. It's an owner-scoped lookup followed by an unconditional
-  `activityRepository.delete(activity)`.
-- The cascade is real and total, via the Flyway migrations' `ON DELETE CASCADE` chain:
-  `activities → sub_tasks` (activity_id), `activities → planned_occurrences` (activity_id, direct
-  occurrences), `sub_tasks → planned_occurrences` (sub_task_id, sub-task occurrences), and
-  `planned_occurrences → completion_records` (planned_occurrence_id). Deleting an `Activity` wipes
-  **every** `PlannedOccurrence` ever created for it — past and future, every week, not just
-  upcoming/"outstanding" ones — and every `CompletionRecord` (historical completion/mood data) tied
-  to any of them.
-- The frontend's confirm-delete step (`Delete` → `Confirm delete`/`Cancel`,
-  `frontend_spec_002_activity_bank.md`) is generic — no warning about what else gets destroyed.
-- This directly conflicts with `product.md`'s V2 roadmap item ("mood/pleasure/achievement ratings")
-  and `HIGH_LEVEL_DESIGN.md`'s stated goal of identifying "activities that consistently improve
-  mood": deleting an activity with completion history destroys exactly the data that analysis would
-  need, with no warning and no recovery path.
-- The app already has a non-destructive alternative in place — `archive` — which touches none of
-  `sub_tasks`/`planned_occurrences`/`completion_records`, just sets a flag. The natural fix likely
-  leans on this existing mechanism rather than inventing a new one.
-
-Three shapes were discussed, not yet decided: (1) warn before deleting, showing what will actually
-be lost, but still allow it; (2) block delete outright when real history exists (planned occurrences
-and/or completions, on the activity or any of its sub-tasks), forcing `archive` instead, with hard
-delete reserved for genuinely history-free activities; (3) something else entirely. Favourite status
-was separately confirmed **not** worth gating on — it's a UI-pin/filter convenience, not a
-protection flag, and blocking delete on it would be surprising in the other direction. Revisit once
-there's a product decision on which shape to build, ideally before V2's mood-tracking work begins
-(the conflict gets more concrete, not less, once real completion-history data exists to lose).
 
 ## "Weekend bucket list" label shown outside weekend contexts
 

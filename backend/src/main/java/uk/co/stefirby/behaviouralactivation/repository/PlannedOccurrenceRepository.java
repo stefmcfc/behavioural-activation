@@ -69,4 +69,11 @@ public interface PlannedOccurrenceRepository extends JpaRepository<PlannedOccurr
     // ExportService only ever reads activity.getId()/subTask.getId() off the lazy associations,
     // and Hibernate resolves an uninitialized proxy's id without a round trip.
     List<PlannedOccurrence> findByOwner(User owner);
+
+    // planner_spec_027_archive_before_delete.md (PLANNER-027-AC-05) -- feeds
+    // ActivityService.getDeletionImpact's plannedOccurrenceCount: occurrences targeting the
+    // activity directly, and (separately) occurrences targeting any of its sub-tasks.
+    long countByOwnerAndActivity_Id(User owner, UUID activityId);
+
+    long countByOwnerAndSubTask_Activity_Id(User owner, UUID activityId);
 }

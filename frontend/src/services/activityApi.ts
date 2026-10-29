@@ -1,4 +1,4 @@
-import type { Activity, ActivityInput } from '../types/activity'
+import type { Activity, ActivityDeletionImpact, ActivityInput } from '../types/activity'
 import { client, request } from './client'
 
 export const activityApi = {
@@ -26,4 +26,9 @@ export const activityApi = {
 
   unmarkFavourite: (id: string): Promise<void> =>
     request<void>(() => client.delete(`/activities/${id}/favourite`)),
+
+  // FRONTEND-058-AC-09: checked before Confirm delete on an archived row is allowed to start the
+  // undo-window flow -- see ActivityBank.tsx's handleDeleteConfirmed.
+  deletionImpact: (id: string): Promise<ActivityDeletionImpact> =>
+    request<ActivityDeletionImpact>(() => client.get(`/activities/${id}/deletion-impact`)),
 }

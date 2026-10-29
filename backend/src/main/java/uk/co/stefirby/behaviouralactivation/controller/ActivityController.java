@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.stefirby.behaviouralactivation.dto.ActivityDeletionImpactResponse;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityListResponse;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest;
 import uk.co.stefirby.behaviouralactivation.dto.ActivityResponse;
@@ -68,6 +69,16 @@ public class ActivityController {
     public ResponseEntity<Void> delete(@PathVariable UUID id, Authentication authentication) {
         boolean deleted = activityService.delete(authentication.getName(), id);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    // planner_spec_027_archive_before_delete.md (PLANNER-027-AC-05/AC-08/AC-09) -- read-only, no
+    // archived-state precondition, reachable for any activity the caller owns.
+    @GetMapping("/{id}/deletion-impact")
+    public ResponseEntity<ActivityDeletionImpactResponse> deletionImpact(@PathVariable UUID id,
+            Authentication authentication) {
+        return activityService.getDeletionImpact(authentication.getName(), id)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/archive")

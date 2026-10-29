@@ -2,11 +2,14 @@ package uk.co.stefirby.behaviouralactivation.service
 
 import spock.lang.Specification
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest
+import uk.co.stefirby.behaviouralactivation.exception.ActivityDeleteNotAllowedException
 import uk.co.stefirby.behaviouralactivation.model.Activity
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
 import uk.co.stefirby.behaviouralactivation.model.SubTask
 import uk.co.stefirby.behaviouralactivation.model.User
 import uk.co.stefirby.behaviouralactivation.repository.ActivityRepository
+import uk.co.stefirby.behaviouralactivation.repository.CompletionRecordRepository
+import uk.co.stefirby.behaviouralactivation.repository.PlannedOccurrenceRepository
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskCountProjection
 import uk.co.stefirby.behaviouralactivation.repository.SubTaskRepository
 import uk.co.stefirby.behaviouralactivation.repository.UserRepository
@@ -16,7 +19,10 @@ class ActivityServiceSpec extends Specification {
     ActivityRepository activityRepository = Mock()
     UserRepository userRepository = Mock()
     SubTaskRepository subTaskRepository = Mock()
-    ActivityService service = new ActivityService(activityRepository, userRepository, subTaskRepository)
+    PlannedOccurrenceRepository plannedOccurrenceRepository = Mock()
+    CompletionRecordRepository completionRecordRepository = Mock()
+    ActivityService service = new ActivityService(activityRepository, userRepository, subTaskRepository,
+        plannedOccurrenceRepository, completionRecordRepository)
 
     User owner = new User("steve", "hashed-password")
 
@@ -252,11 +258,12 @@ class ActivityServiceSpec extends Specification {
             result.isEmpty()
     }
 
-    def "PLANNER-002-AC-16: delete removes the owner's activity via the repository and returns true"() {
-        given: "the repository finds the owner's activity"
+    def "PLANNER-002-AC-16/PLANNER-027-AC-03: delete removes the owner's archived activity via the repository and returns true"() {
+        given: "the repository finds the owner's already-archived activity"
             def id = UUID.randomUUID()
             userRepository.findByUsername("steve") >> Optional.of(owner)
             def existing = new Activity("Walk", ActivityCategory.ROUTINE, null, owner)
+            existing.archive()
             activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
 
         when: "delete is requested"
@@ -283,6 +290,108 @@ class ActivityServiceSpec extends Specification {
 
         and: "the service reports failure"
             !deleted
+    }
+
+    def "PLANNER-027-AC-01/AC-02: delete throws ActivityDeleteNotAllowedException for an active (non-archived) activity, nothing deleted"() {
+        given: "the repository finds the owner's active activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Go for a walk", ActivityCategory.PLEASURABLE, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+
+        when: "delete is requested"
+            service.delete("steve", id)
+
+        then: "ActivityDeleteNotAllowedException is thrown"
+            thrown(ActivityDeleteNotAllowedException)
+
+        and: "nothing is deleted"
+            0 * activityRepository.delete(_)
+    }
+
+    def "PLANNER-027-AC-04: delete still returns false (404 at the controller) for not-found/not-yours, never evaluating archived state"() {
+        given: "the repository finds no activity for this owner and id"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "delete is attempted"
+            def deleted = service.delete("steve", id)
+
+        then: "no exception is thrown and nothing is deleted"
+            !deleted
+            0 * activityRepository.delete(_)
+    }
+
+    def "PLANNER-027-AC-05/AC-06/AC-07: getDeletionImpact reports zero counts for an activity with no planning history"() {
+        given: "the repository finds the owner's activity, with no occurrences or completions"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Go for a walk", ActivityCategory.PLEASURABLE, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, id) >> 0L
+            plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, id) >> 0L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_Activity_Id(owner, id) >> 0L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_SubTask_Activity_Id(owner, id) >> 0L
+
+        when: "the deletion impact is requested"
+            def result = service.getDeletionImpact("steve", id)
+
+        then: "both counts are zero"
+            result.isPresent()
+            result.get().plannedOccurrenceCount() == 0L
+            result.get().completionCount() == 0L
+    }
+
+    def "PLANNER-027-AC-05/AC-06: getDeletionImpact sums direct-activity and via-sub-task counts independently"() {
+        given: "the repository finds the owner's activity, with both direct and sub-task-routed history"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Deep clean the kitchen", ActivityCategory.NECESSARY, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, id) >> 1L
+            plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, id) >> 1L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_Activity_Id(owner, id) >> 1L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_SubTask_Activity_Id(owner, id) >> 0L
+
+        when: "the deletion impact is requested"
+            def result = service.getDeletionImpact("steve", id)
+
+        then: "plannedOccurrenceCount sums both sources, completionCount is computed independently"
+            result.isPresent()
+            result.get().plannedOccurrenceCount() == 2L
+            result.get().completionCount() == 1L
+    }
+
+    def "PLANNER-027-AC-08: getDeletionImpact returns empty when the id doesn't exist or belongs to a different owner"() {
+        given: "the repository finds no activity for this owner and id"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.empty()
+
+        when: "the deletion impact is requested"
+            def result = service.getDeletionImpact("steve", id)
+
+        then: "the result is empty"
+            result.isEmpty()
+    }
+
+    def "PLANNER-027-AC-09: getDeletionImpact is reachable for an active (non-archived) activity too, no precondition"() {
+        given: "the repository finds the owner's active activity"
+            def id = UUID.randomUUID()
+            userRepository.findByUsername("steve") >> Optional.of(owner)
+            def existing = new Activity("Go for a walk", ActivityCategory.PLEASURABLE, null, owner)
+            activityRepository.findByIdAndOwner(id, owner) >> Optional.of(existing)
+            plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, id) >> 0L
+            plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, id) >> 0L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_Activity_Id(owner, id) >> 0L
+            completionRecordRepository.countByOwnerAndPlannedOccurrence_SubTask_Activity_Id(owner, id) >> 0L
+
+        when: "the deletion impact is requested"
+            def result = service.getDeletionImpact("steve", id)
+
+        then: "it succeeds, with no archived-state check"
+            result.isPresent()
     }
 
     def "PLANNER-006-AC-01: create defaults repeatable to true when the request omits it"() {

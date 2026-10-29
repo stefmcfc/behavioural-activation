@@ -26,4 +26,11 @@ public interface CompletionRecordRepository extends JpaRepository<CompletionReco
     // week, for ExportService. Distinct from findByOwnerAndPlannedOccurrenceIdIn above, which is
     // scoped to one week's occurrence ids.
     List<CompletionRecord> findByOwner(User owner);
+
+    // planner_spec_027_archive_before_delete.md (PLANNER-027-AC-06) -- feeds
+    // ActivityService.getDeletionImpact's completionCount: completion records whose occurrence
+    // targets the activity directly, and (separately) via one of its sub-tasks.
+    long countByOwnerAndPlannedOccurrence_Activity_Id(User owner, UUID activityId);
+
+    long countByOwnerAndPlannedOccurrence_SubTask_Activity_Id(User owner, UUID activityId);
 }

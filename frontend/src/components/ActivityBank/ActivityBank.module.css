@@ -7,6 +7,29 @@
   color: var(--text-h);
 }
 
+/* FRONTEND-058-AC-04/AC-06: the new "Archived activities" disclosure -- same shape as
+   SuggestedActivities.module.css's own .details/.sectionHeading pair (summary rendered as a
+   flex row with a rotating ChevronIcon), reused a third time in this codebase. */
+.archivedDetails {
+  margin-top: 2rem;
+}
+
+.archivedDetails > .sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.archivedDetails > .sectionHeading::-webkit-details-marker {
+  display: none;
+}
+
+.archivedDetails[open] > .sectionHeading svg {
+  transform: rotate(180deg);
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -149,14 +172,6 @@
   display: flex;
   gap: 0.4rem;
   margin-left: auto;
-}
-
-.archivedLabel {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text);
 }
 
 .favouriteToggle {

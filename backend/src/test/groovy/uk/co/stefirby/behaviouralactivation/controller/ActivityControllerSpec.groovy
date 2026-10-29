@@ -9,7 +9,9 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Specification
 import uk.co.stefirby.behaviouralactivation.config.CorsConfig
+import uk.co.stefirby.behaviouralactivation.dto.ActivityDeletionImpactResponse
 import uk.co.stefirby.behaviouralactivation.dto.ActivityRequest
+import uk.co.stefirby.behaviouralactivation.exception.ActivityDeleteNotAllowedException
 import uk.co.stefirby.behaviouralactivation.model.Activity
 import uk.co.stefirby.behaviouralactivation.model.ActivityCategory
 import uk.co.stefirby.behaviouralactivation.model.User
@@ -375,6 +377,62 @@ class ActivityControllerSpec extends Specification {
 
         then: "the response is 404"
             result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-027-AC-01/AC-02: DELETE on an active (non-archived) activity returns 409, not 204"() {
+        given: "the service throws because the activity isn't archived yet"
+            def id = UUID.randomUUID()
+            activityService.delete("steve", id) >> {
+                throw new ActivityDeleteNotAllowedException(
+                    "An active activity must be archived before it can be deleted")
+            }
+
+        when: "DELETE /api/v1/activities/{id} is requested"
+            def result = mockMvc.perform(delete("/api/v1/activities/${id}")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 409 Conflict, mapped by GlobalExceptionHandler"
+            result.andExpect(status().isConflict())
+            result.andExpect(jsonPath('$.message').value(
+                "An active activity must be archived before it can be deleted"))
+    }
+
+    def "PLANNER-027-AC-05/AC-06/AC-07: GET .../deletion-impact returns 200 with the reported counts"() {
+        given: "the service reports a deletion impact"
+            def id = UUID.randomUUID()
+            activityService.getDeletionImpact("steve", id) >>
+                Optional.of(new ActivityDeletionImpactResponse(2, 1))
+
+        when: "GET /api/v1/activities/{id}/deletion-impact is requested"
+            def result = mockMvc.perform(get("/api/v1/activities/${id}/deletion-impact")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response carries both counts"
+            result.andExpect(status().isOk())
+            result.andExpect(jsonPath('$.plannedOccurrenceCount').value(2))
+            result.andExpect(jsonPath('$.completionCount').value(1))
+    }
+
+    def "PLANNER-027-AC-08: GET .../deletion-impact on another owner's (or nonexistent) activity returns 404"() {
+        given: "the service reports no matching activity for this owner"
+            def id = UUID.randomUUID()
+            activityService.getDeletionImpact("steve", id) >> Optional.empty()
+
+        when: "GET /api/v1/activities/{id}/deletion-impact is requested"
+            def result = mockMvc.perform(get("/api/v1/activities/${id}/deletion-impact")
+                .with(SecurityMockMvcRequestPostProcessors.user("steve")))
+
+        then: "the response is 404"
+            result.andExpect(status().isNotFound())
+    }
+
+    def "PLANNER-027-AC-10: an unauthenticated request to GET .../deletion-impact returns 401 (inherited SecurityFilterChain rule)"() {
+        when: "GET .../deletion-impact is requested with no session"
+            def result = mockMvc.perform(get("/api/v1/activities/${UUID.randomUUID()}/deletion-impact"))
+
+        then: "the response is 401, not reaching the controller/service"
+            result.andExpect(status().isUnauthorized())
+            0 * activityService.getDeletionImpact(_, _)
     }
 
     def "PLANNER-002-AC-19: an unauthenticated request to /api/v1/activities returns 401 (inherited SecurityFilterChain rule)"() {

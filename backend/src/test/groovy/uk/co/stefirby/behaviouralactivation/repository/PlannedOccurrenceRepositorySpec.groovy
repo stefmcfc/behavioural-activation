@@ -192,4 +192,39 @@ class PlannedOccurrenceRepositorySpec extends Specification {
         cleanup:
             activityRepository.delete(activity)
     }
+
+    def "PLANNER-027-AC-05: countByOwnerAndActivity_Id/countByOwnerAndSubTask_Activity_Id count direct and sub-task-routed occurrences independently"() {
+        given: "an activity with one direct occurrence and a sub-task with two occurrences"
+            def activity = activityRepository.save(
+                new Activity("Deep clean the kitchen", ActivityCategory.NECESSARY, null, owner))
+            def subTask = subTaskRepository.save(
+                new SubTask(activity, "Clean the oven", ActivityCategory.NECESSARY, owner))
+            plannedOccurrenceRepository.save(
+                new PlannedOccurrence(activity, null, ActivityCategory.NECESSARY, monday,
+                    DayOfWeek.MONDAY, PlanSlot.MORNING, owner))
+            plannedOccurrenceRepository.save(
+                new PlannedOccurrence(null, subTask, ActivityCategory.NECESSARY, monday, null, null, owner))
+            plannedOccurrenceRepository.save(
+                new PlannedOccurrence(null, subTask, ActivityCategory.NECESSARY, monday.plusDays(7), null, null, owner))
+
+        expect: "each count query reports only its own target type"
+            plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, activity.id) == 1L
+            plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, activity.id) == 2L
+
+        cleanup:
+            activityRepository.delete(activity)
+    }
+
+    def "PLANNER-027-AC-07: both count queries report zero for an activity that has never been planned"() {
+        given: "an activity with no occurrences at all"
+            def activity = activityRepository.save(
+                new Activity("Go for a walk", ActivityCategory.PLEASURABLE, null, owner))
+
+        expect: "both counts are zero"
+            plannedOccurrenceRepository.countByOwnerAndActivity_Id(owner, activity.id) == 0L
+            plannedOccurrenceRepository.countByOwnerAndSubTask_Activity_Id(owner, activity.id) == 0L
+
+        cleanup:
+            activityRepository.delete(activity)
+    }
 }

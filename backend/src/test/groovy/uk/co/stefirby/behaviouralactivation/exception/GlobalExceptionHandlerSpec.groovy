@@ -61,6 +61,19 @@ class GlobalExceptionHandlerSpec extends Specification {
             response.body.message() != null
     }
 
+    def "PLANNER-027-AC-02: renders an ActivityDeleteNotAllowedException as 409, matching the existing *NotAllowedException pattern"() {
+        when: "an ActivityDeleteNotAllowedException is handled"
+            def response = handler.handleActivityDeleteNotAllowedException(
+                new ActivityDeleteNotAllowedException("An active activity must be archived before it can be deleted"))
+
+        then: "the status is 409"
+            response.statusCode == HttpStatus.CONFLICT
+
+        and: "the body carries the exception's message, with no details"
+            response.body.message() == "An active activity must be archived before it can be deleted"
+            response.body.details() == null
+    }
+
     def "TOOLING-001-AC-01: renders a NoResourceFoundException as 404, not the 500 catch-all"() {
         given: "a NoResourceFoundException, as Spring throws for an unmapped path like '/' or '/favicon.ico'"
             def ex = new NoResourceFoundException(HttpMethod.GET, "/", "/")

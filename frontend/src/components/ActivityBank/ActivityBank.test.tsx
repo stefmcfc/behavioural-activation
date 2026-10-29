@@ -48,17 +48,34 @@ const read: Activity = {
   subTaskCount: 0,
 }
 
+// FRONTEND-058: archived variants of walk/read -- Delete is only reachable from an archived row,
+// so delete/undo-window tests now exercise these instead of the active `walk`/`read` fixtures.
+const archivedWalk: Activity = { ...walk, archived: true }
+const archivedRead: Activity = { ...read, archived: true }
+
 describe('ActivityBank', () => {
   beforeEach(() => {
     vi.mocked(activityApi.getAll).mockReset()
     vi.mocked(activityApi.create).mockReset()
     vi.mocked(activityApi.update).mockReset()
     vi.mocked(activityApi.remove).mockReset()
+    vi.mocked(activityApi.archive).mockReset()
     vi.mocked(activityApi.unarchive).mockReset()
     vi.mocked(activityApi.markFavourite).mockReset()
     vi.mocked(activityApi.unmarkFavourite).mockReset()
+    vi.mocked(activityApi.deletionImpact).mockReset()
     vi.mocked(subTaskApi.getAll).mockReset()
   })
+
+  // FRONTEND-058: Delete is only reachable from an archived row now -- opens the closed-by-default
+  // "Archived activities" section so its rows become part of the accessibility tree. Accepts an
+  // optional pre-configured user (e.g. one set up with `advanceTimers` for a fake-timers test) so
+  // this click goes through the same clock the rest of that test uses.
+  async function openArchivedSection(user: Pick<typeof userEvent, 'click'> = userEvent) {
+    // Anchored to the start -- "No archived activities." (the empty-section message) would also
+    // match an unanchored /archived activities/i.
+    await user.click(await screen.findByText(/^archived activities \(/i))
+  }
 
   // FRONTEND-049: safety net -- if a fake-timer test throws before reaching its own
   // vi.useRealTimers() call, fake timers would otherwise leak into every later test in this file
@@ -288,30 +305,38 @@ describe('ActivityBank', () => {
   describe('FRONTEND-002-AC-22/AC-24: delete uses an inline confirm, not window.confirm', () => {
     it('cancelling the inline confirm does not call activityApi.remove', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm')
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(await screen.findByRole('button', { name: /delete/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }))
       await userEvent.click(screen.getByRole('button', { name: /cancel/i }))
 
       expect(confirmSpy).not.toHaveBeenCalled()
+      expect(activityApi.deletionImpact).not.toHaveBeenCalled()
       expect(activityApi.remove).not.toHaveBeenCalled()
       expect(screen.getByText('Walk')).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-002-AC-23/AC-25 & FRONTEND-049-AC-03: confirming delete removes the activity', () => {
-    it('calls activityApi.remove and removes the row once the undo window expires', async () => {
+  describe('FRONTEND-002-AC-23/AC-25 & FRONTEND-049-AC-03 / FRONTEND-058-AC-09/AC-10: confirming delete checks impact, then removes the activity', () => {
+    it('calls deletionImpact, then activityApi.remove, removing the row once the undo window expires', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       vi.mocked(activityApi.remove).mockResolvedValue(undefined)
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
-      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(await screen.findByRole('button', { name: /^delete$/i }))
       await user.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-      expect(screen.queryByText('Walk')).not.toBeInTheDocument()
+      expect(activityApi.deletionImpact).toHaveBeenCalledWith('1')
+      await vi.waitFor(() => expect(screen.queryByText('Walk')).not.toBeInTheDocument())
       vi.advanceTimersByTime(6000)
       await vi.waitFor(() => expect(activityApi.remove).toHaveBeenCalledWith('1'))
       vi.useRealTimers()
@@ -321,13 +346,19 @@ describe('ActivityBank', () => {
   describe('FRONTEND-002-AC-26 & FRONTEND-049-AC-03: failed delete shows an alert and keeps the activity', () => {
     it('displays the error and restores the row once the deferred delete fails', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       vi.mocked(activityApi.remove).mockRejectedValue({ status: 500, message: 'Server error' })
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
-      await user.click(await screen.findByRole('button', { name: /delete/i }))
+      await user.click(await screen.findByRole('button', { name: /^delete$/i }))
       await user.click(screen.getByRole('button', { name: /confirm delete/i }))
+      await vi.waitFor(() => expect(screen.queryByText('Walk')).not.toBeInTheDocument())
       vi.advanceTimersByTime(6000)
 
       expect(await screen.findByRole('alert')).toHaveTextContent(/server error/i)
@@ -339,15 +370,20 @@ describe('ActivityBank', () => {
   describe('FRONTEND-049-AC-01: confirming delete hides the row and defers the API call', () => {
     it('removes the row from view and shows an undo notice without calling the API yet', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       const removeSpy = vi.mocked(activityApi.remove)
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
       await user.click(await screen.findByRole('button', { name: 'Delete' }))
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
 
-      expect(screen.queryByText('Walk')).not.toBeInTheDocument()
+      await vi.waitFor(() => expect(screen.queryByText('Walk')).not.toBeInTheDocument())
       expect(screen.getByRole('status')).toHaveTextContent(/walk.*deleted/i)
       expect(removeSpy).not.toHaveBeenCalled()
       vi.useRealTimers()
@@ -357,13 +393,19 @@ describe('ActivityBank', () => {
   describe('FRONTEND-049-AC-02: Undo cancels the pending deletion', () => {
     it('restores the row and never calls the delete API', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       const removeSpy = vi.mocked(activityApi.remove)
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
       await user.click(await screen.findByRole('button', { name: 'Delete' }))
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await vi.waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
       await user.click(screen.getByRole('button', { name: 'Undo' }))
 
       expect(screen.getByText('Walk')).toBeInTheDocument()
@@ -376,7 +418,11 @@ describe('ActivityBank', () => {
   describe('FRONTEND-049-AC-02 regression: Undo clicked after the window has already elapsed is a safe no-op', () => {
     it('does not show the row as falsely restored while the already-fired delete is still in flight', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       let resolveRemove: () => void = () => {}
       vi.mocked(activityApi.remove).mockReturnValue(
         new Promise<void>((resolve) => {
@@ -385,9 +431,11 @@ describe('ActivityBank', () => {
       )
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
       await user.click(await screen.findByRole('button', { name: 'Delete' }))
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await vi.waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
       // The window elapses -- commitDelete has started and activityApi.remove is now in flight,
       // but its promise is deliberately held open to simulate the real window this regression
       // guards: the timer has fired, but the undo notice hasn't been cleared by the resolved
@@ -396,9 +444,10 @@ describe('ActivityBank', () => {
 
       await user.click(screen.getByRole('button', { name: 'Undo' }))
 
-      // The row must not reappear as a normal, safe row (Edit button back) while the delete it's
-      // "undoing" is still actually in flight -- that would be a false "it's safe" signal.
-      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+      // The row must not reappear as a normal, safe archived row (Unarchive button back) while
+      // the delete it's "undoing" is still actually in flight -- that would be a false "it's safe"
+      // signal.
+      expect(screen.queryByRole('button', { name: 'Unarchive' })).not.toBeInTheDocument()
       expect(screen.getByRole('status')).toHaveTextContent(/walk.*deleted/i)
 
       resolveRemove()
@@ -410,14 +459,21 @@ describe('ActivityBank', () => {
   describe('FRONTEND-049-AC-04: multiple pending deletions are independent', () => {
     it('undoing one pending deletion leaves a second one still pending', async () => {
       vi.useFakeTimers()
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk, read])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk, archivedRead])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       render(<ActivityBank />)
+      await openArchivedSection(user)
 
       await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await vi.waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(1))
       await user.click((await screen.findAllByRole('button', { name: 'Delete' }))[0])
       await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await vi.waitFor(() => expect(screen.getAllByRole('status')).toHaveLength(2))
 
       await user.click(screen.getAllByRole('button', { name: 'Undo' })[0])
 
@@ -442,62 +498,74 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-006-AC-05: default mount fetch excludes archived activities', () => {
-    it('calls activityApi.getAll(false) on mount', async () => {
+  describe('FRONTEND-058-AC-04: mount fetch always includes archived activities', () => {
+    it('calls activityApi.getAll(true) on mount', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
 
       await screen.findByText('Walk')
-      expect(activityApi.getAll).toHaveBeenCalledWith(false)
+      expect(activityApi.getAll).toHaveBeenCalledWith(true)
     })
   })
 
-  describe('FRONTEND-006-AC-06: "Show archived" toggle, off by default', () => {
-    it('renders an unchecked checkbox', async () => {
+  describe('FRONTEND-058-AC-05: the "Show archived" checkbox is removed entirely', () => {
+    it('renders no "Show archived" checkbox', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([])
       render(<ActivityBank />)
 
-      expect(screen.getByRole('checkbox', { name: /show archived/i })).not.toBeChecked()
+      await screen.findByText(/no activities yet/i)
+      expect(screen.queryByRole('checkbox', { name: /show archived/i })).not.toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-006-AC-07/AC-08: toggling "Show archived" refetches and toggles archived visibility', () => {
-    it('fetches with includeArchived=true when on, and false again when off', async () => {
+  describe('FRONTEND-058-AC-04/AC-06: archived activities render in their own closed-by-default section', () => {
+    it('lists an archived activity under "Archived activities", not in My Activities', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      render(<ActivityBank />)
+
+      expect(await screen.findByText(/archived activities \(1\)/i)).toBeInTheDocument()
+      const details = screen.getByText(/^archived activities \(/i).closest('details')!
+      expect(details).not.toHaveAttribute('open')
+      expect(within(details).getByText('Walk')).toBeInTheDocument()
+    })
+
+    it('renders "Archived activities (0)" and a no-archived message when there are none', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
-      await screen.findByText('Walk')
 
-      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, jobs])
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
-
-      expect(activityApi.getAll).toHaveBeenLastCalledWith(true)
-      expect(await screen.findByText('(Archived)')).toBeInTheDocument()
-
-      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk])
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
-
-      expect(activityApi.getAll).toHaveBeenLastCalledWith(false)
-      await waitFor(() => expect(screen.queryByText('(Archived)')).not.toBeInTheDocument())
+      expect(await screen.findByText(/archived activities \(0\)/i)).toBeInTheDocument()
+      await openArchivedSection()
+      expect(screen.getByText(/no archived activities/i)).toBeInTheDocument()
     })
   })
 
-  describe('FRONTEND-006-AC-09/AC-10/AC-11: Unarchive replaces the normal actions and restores the activity', () => {
-    it('calls unarchive and shows the normal actions again on success', async () => {
+  describe('FRONTEND-058-AC-07: archived rows offer Unarchive and Delete, never Edit', () => {
+    it('renders Unarchive and Delete but no Edit for an archived activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
+      render(<ActivityBank />)
+      await openArchivedSection()
+
+      expect(await screen.findByRole('button', { name: /unarchive/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /sub-tasks/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-006-AC-09/AC-10/AC-11: Unarchive restores the activity to My Activities', () => {
+    it('calls unarchive and moves the row back to the normal, non-archived actions', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
       vi.mocked(activityApi.unarchive).mockResolvedValue(undefined)
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
-      expect(await screen.findByRole('button', { name: /unarchive/i })).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /sub-tasks/i })).toBeInTheDocument()
-
-      await userEvent.click(screen.getByRole('button', { name: /unarchive/i }))
+      await userEvent.click(await screen.findByRole('button', { name: /unarchive/i }))
 
       expect(activityApi.unarchive).toHaveBeenCalledWith('2')
       expect(await screen.findByRole('button', { name: /^edit$/i })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /unarchive/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^archive$/i })).toBeInTheDocument()
     })
   })
 
@@ -515,37 +583,14 @@ describe('ActivityBank', () => {
         },
       ])
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
       await userEvent.click(await screen.findByRole('button', { name: /sub-tasks/i }))
 
-      expect(await screen.findByText('Update CV')).toBeInTheDocument()
-      expect(screen.queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
-    })
-  })
-
-  describe('FRONTEND-006-AC-13: "Show archived" re-fetch failure shows an alert with a working Retry', () => {
-    it('retries the fetch with includeArchived still true, keeping the toggle on', async () => {
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
-      render(<ActivityBank />)
-      await screen.findByText('Walk')
-
-      vi.mocked(activityApi.getAll).mockRejectedValueOnce(
-        new ApiError(500, 'Something went wrong. Please try again.'),
-      )
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
-
-      expect(await screen.findByRole('alert')).toBeInTheDocument()
-      expect(screen.getByRole('checkbox', { name: /show archived/i })).toBeChecked()
-
-      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, jobs])
-      await userEvent.click(screen.getByRole('button', { name: /retry/i }))
-
-      expect(activityApi.getAll).toHaveBeenLastCalledWith(true)
-      expect(await screen.findByText('(Archived)')).toBeInTheDocument()
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      const subTaskPanel = (await screen.findByText('Update CV')).closest('ul')!
+      expect(within(subTaskPanel).queryByRole('textbox', { name: /sub-task name/i })).not.toBeInTheDocument()
+      expect(within(subTaskPanel).queryByRole('button', { name: /rename/i })).not.toBeInTheDocument()
+      expect(within(subTaskPanel).queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
     })
   })
 
@@ -556,8 +601,8 @@ describe('ActivityBank', () => {
         new ApiError(500, 'Something went wrong. Please try again.'),
       )
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
       await userEvent.click(await screen.findByRole('button', { name: /unarchive/i }))
 
       expect(await screen.findByRole('alert')).toBeInTheDocument()
@@ -604,8 +649,8 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-017-AC-03: category filter and Show archived combine with AND logic', () => {
-    it('narrows whatever Show archived already includes (active + archived) to the selected category', async () => {
+  describe('FRONTEND-058: the category filter applies to both "My Activities" and "Archived activities"', () => {
+    it('narrows both sections to the selected category', async () => {
       const oldWalk: Activity = {
         id: '4',
         name: 'Old walk',
@@ -628,12 +673,10 @@ describe('ActivityBank', () => {
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, oldWalk, paint])
       render(<ActivityBank />)
       await screen.findByText('Walk')
-
-      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, oldWalk, paint])
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await openArchivedSection()
       await screen.findByText('Old walk')
 
       await userEvent.click(screen.getByRole('radio', { name: /^routine$/i }))
@@ -698,8 +741,8 @@ describe('ActivityBank', () => {
     })
   })
 
-  describe('FRONTEND-019-AC-04: renders RepeatableIcon before the (Archived) label when both apply', () => {
-    it('places the repeatable icon earlier in the DOM than the archived label', async () => {
+  describe('FRONTEND-058: an archived, repeatable activity still shows its RepeatableIcon, no inline (Archived) label', () => {
+    it('renders the RepeatableIcon and omits any "(Archived)" text, inside the archived section', async () => {
       const oldRoutine: Activity = {
         id: '6',
         name: 'Old routine',
@@ -711,17 +754,14 @@ describe('ActivityBank', () => {
         createdAt: '2026-09-28T00:00:00Z',
         subTaskCount: 0,
       }
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk, oldRoutine])
       render(<ActivityBank />)
       await screen.findByText('Walk')
-
-      vi.mocked(activityApi.getAll).mockResolvedValueOnce([walk, oldRoutine])
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
+      await openArchivedSection()
 
       const row = (await screen.findByText('Old routine')).closest('li')!
-      const icon = within(row).getByRole('img', { name: /repeatable/i })
-      const archivedLabel = within(row).getByText('(Archived)')
-      expect(icon.compareDocumentPosition(archivedLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(within(row).getByRole('img', { name: /repeatable/i })).toBeInTheDocument()
+      expect(within(row).queryByText('(Archived)')).not.toBeInTheDocument()
     })
   })
 
@@ -832,8 +872,8 @@ describe('ActivityBank', () => {
     it('renders the toggle on an archived row too', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
       const row = (await screen.findByText('Apply for jobs')).closest('li')!
       expect(
         within(row).getByRole('button', { name: /favourite/i, pressed: false }),
@@ -894,7 +934,10 @@ describe('ActivityBank', () => {
   describe('FRONTEND-044-AC-10: order preservation across the grouped structure (rescoped from FRONTEND-027-AC-04)', () => {
     it('renders activities in the exact order activityApi.getAll returns, even across categories', async () => {
       const zebraFavourite: Activity = { ...walk, id: '10', name: 'Zebra', favourite: true }
-      const appleActivity: Activity = { ...jobs, id: '11', name: 'Apple', favourite: false }
+      // FRONTEND-058: must be a non-archived NECESSARY activity -- an archived one would render in
+      // the separate, closed-by-default archived section instead of "My Activities", breaking this
+      // test's premise that all three rows are adjacent, in-order siblings.
+      const appleActivity: Activity = { ...jobs, archived: false, id: '11', name: 'Apple', favourite: false }
       const mangoActivity: Activity = { ...read, id: '12', name: 'Mango', favourite: false }
       vi.mocked(activityApi.getAll).mockResolvedValue([zebraFavourite, appleActivity, mangoActivity])
       render(<ActivityBank />)
@@ -964,8 +1007,9 @@ describe('ActivityBank', () => {
 
   describe('FRONTEND-031-AC-13: Delete/Confirm delete are destructive; Cancel is not', () => {
     it('applies destructive to Delete and Confirm delete, and no variant to Cancel', async () => {
-      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
       render(<ActivityBank />)
+      await openArchivedSection()
 
       const deleteButton = await screen.findByRole('button', { name: 'Delete' })
       expect(deleteButton).toHaveClass(buttonStyles.destructive)
@@ -981,16 +1025,17 @@ describe('ActivityBank', () => {
   })
 
   describe('FRONTEND-031-AC-15/AC-16: regression guard -- other ActivityBank buttons stay unstyled', () => {
-    it('leaves Edit, favourite toggle, and sub-tasks disclosure with no variant class', async () => {
+    it('leaves Edit, Archive, favourite toggle, and sub-tasks disclosure with no variant class', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([walk])
       render(<ActivityBank />)
 
       await screen.findByText('Walk')
       const editButton = screen.getByRole('button', { name: /^edit$/i })
+      const archiveButton = screen.getByRole('button', { name: /^archive$/i })
       const favouriteButton = screen.getByRole('button', { name: /favourite/i })
       const subTasksButton = screen.getByRole('button', { name: /sub-tasks/i })
 
-      for (const button of [editButton, favouriteButton, subTasksButton]) {
+      for (const button of [editButton, archiveButton, favouriteButton, subTasksButton]) {
         expect(button).not.toHaveClass(buttonStyles.primary)
         expect(button).not.toHaveClass(buttonStyles.destructive)
       }
@@ -999,8 +1044,8 @@ describe('ActivityBank', () => {
     it('leaves Unarchive with no variant class', async () => {
       vi.mocked(activityApi.getAll).mockResolvedValue([jobs])
       render(<ActivityBank />)
+      await openArchivedSection()
 
-      await userEvent.click(screen.getByRole('checkbox', { name: /show archived/i }))
       const unarchiveButton = await screen.findByRole('button', { name: /unarchive/i })
       expect(unarchiveButton).not.toHaveClass(buttonStyles.primary)
       expect(unarchiveButton).not.toHaveClass(buttonStyles.destructive)
@@ -1071,7 +1116,9 @@ describe('ActivityBank', () => {
     }
 
     it('renders one heading per category with activities, in fixed order', async () => {
-      vi.mocked(activityApi.getAll).mockResolvedValue([read, walk, jobs])
+      // FRONTEND-058: must be a non-archived NECESSARY activity -- jobs itself is archived and
+      // would render its CategoryGroupHeading inside the archived <details> instead.
+      vi.mocked(activityApi.getAll).mockResolvedValue([read, walk, { ...jobs, archived: false }])
       render(<ActivityBank />)
 
       await screen.findByText('Walk')
@@ -1094,6 +1141,182 @@ describe('ActivityBank', () => {
 
       const row = await screen.findByText('Walk')
       expect(row.closest('details')).toBeNull()
+    })
+  })
+
+  describe('FRONTEND-058-AC-01: active rows have no Delete button', () => {
+    it('renders Archive, never Delete, for a non-archived activity', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      render(<ActivityBank />)
+      expect(await screen.findByRole('button', { name: 'Archive' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-058-AC-02/AC-03: Archive moves the row into the archived section', () => {
+    it('calls activityApi.archive and the row no longer appears in My Activities', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.archive).mockResolvedValue({ ...walk, archived: true })
+      render(<ActivityBank />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Archive' }))
+      expect(activityApi.archive).toHaveBeenCalledWith(walk.id)
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Archive' })).not.toBeInTheDocument(),
+      )
+      expect(await screen.findByText(/archived activities \(1\)/i)).toBeInTheDocument()
+    })
+
+    it('shows an alert and keeps the activity active if archive fails', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([walk])
+      vi.mocked(activityApi.archive).mockRejectedValue(new Error('Server error'))
+      render(<ActivityBank />)
+      await userEvent.click(await screen.findByRole('button', { name: 'Archive' }))
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Archive' })).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-058-AC-09/AC-10: zero-impact delete goes straight to the undo window', () => {
+    it('fetches deletion impact, then starts the undo window when both counts are zero', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 0,
+        completionCount: 0,
+      })
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(activityApi.deletionImpact).toHaveBeenCalledWith(archivedWalk.id)
+      expect(await screen.findByRole('status')).toHaveTextContent(/walk.*deleted/i)
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-058-AC-11/AC-12: nonzero impact shows a stronger warning before deleting', () => {
+    it('shows the combined-count warning and only deletes on "Delete anyway"', async () => {
+      vi.useFakeTimers()
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 3,
+        completionCount: 1,
+      })
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(
+        await screen.findByText(/3 planned occurrence.*1 of them completed/i),
+      ).toBeInTheDocument()
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Delete anyway' }))
+      expect(await screen.findByRole('status')).toHaveTextContent(/walk.*deleted/i)
+      vi.useRealTimers()
+    })
+  })
+
+  describe('FRONTEND-058-AC-13: a failed impact check blocks with a retryable error', () => {
+    it('shows an alert with Retry and never starts the undo window', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ plannedOccurrenceCount: 0, completionCount: 0 })
+      const user = userEvent.setup()
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/network error/i)
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Retry' }))
+      expect(await screen.findByRole('status')).toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-058-AC-14: Cancel at any stage returns to idle with no API call', () => {
+    it('cancels from the first confirm step without checking impact', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      const user = userEvent.setup()
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(activityApi.deletionImpact).not.toHaveBeenCalled()
+      expect(activityApi.remove).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    })
+
+    it('cancels from the impact-warning step without deleting', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockResolvedValue({
+        plannedOccurrenceCount: 2,
+        completionCount: 0,
+      })
+      const user = userEvent.setup()
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await user.click(await screen.findByRole('button', { name: 'Cancel' }))
+
+      expect(activityApi.remove).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    })
+
+    it('cancels from the impact-error step without retrying', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      vi.mocked(activityApi.deletionImpact).mockRejectedValue(new Error('Network error'))
+      const user = userEvent.setup()
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      await screen.findByRole('alert')
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      expect(activityApi.remove).not.toHaveBeenCalled()
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('FRONTEND-058-AC-09: Confirm delete and Cancel are disabled while the impact check is in flight', () => {
+    it('disables both buttons until deletionImpact resolves', async () => {
+      vi.mocked(activityApi.getAll).mockResolvedValue([archivedWalk])
+      let resolveImpact: (value: { plannedOccurrenceCount: number; completionCount: number }) => void =
+        () => {}
+      vi.mocked(activityApi.deletionImpact).mockReturnValue(
+        new Promise((resolve) => {
+          resolveImpact = resolve
+        }),
+      )
+      const user = userEvent.setup()
+      render(<ActivityBank />)
+      await openArchivedSection(user)
+
+      await user.click(await screen.findByRole('button', { name: 'Delete' }))
+      await user.click(screen.getByRole('button', { name: 'Confirm delete' }))
+
+      expect(screen.getByRole('button', { name: 'Confirm delete' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+
+      resolveImpact({ plannedOccurrenceCount: 0, completionCount: 0 })
+      await screen.findByRole('status')
     })
   })
 })
