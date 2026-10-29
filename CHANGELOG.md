@@ -6,6 +6,17 @@ All notable changes to this project are documented in this file, in
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-10-29
+
+### Added
+
+- A `hashPassword` Gradle task (`gradlew.bat hashPassword -Ppassword="..."`) that prints a BCrypt
+  hash for manual password recovery of a locked-out user, plus a documented recipe in `RUNBOOK.md`
+  for writing it directly into the `users` table via `docker compose exec postgres psql` — no email
+  field or email-sending infrastructure needed, and no data other than that one row's
+  `password_hash` is touched (`.claude/ideas/future_ideas.md`'s "Password recovery for a locked-out
+  user" entry).
+
 ## [0.42.0] - 2026-10-13
 
 ### Added

@@ -93,6 +93,9 @@ Check `.claude/SPEC_CANDIDATES.md` for further ideas confirmed worth a spec but 
 |---|---|---|---|
 | Undo window for deleting an activity/sub-task | — (frontend-only) | [`frontend_spec_049_undo_delete.md`](.claude/specs/frontend_spec_049_undo_delete.md) | 📝 Specced (2026-10-06), not yet implemented. |
 | Item count on busy Weekly Planner slots | — (frontend-only) | [`frontend_spec_052_slot_item_counts.md`](.claude/specs/frontend_spec_052_slot_item_counts.md) | 📝 Specced (2026-10-06), not yet implemented. |
+| Activity recurrence interval + auto-set/editable due date, plus a read-only Reminders page (Pair 1 of 2; Pair 2 is a follow-up overdue banner/icon, not yet specced) | [`planner_spec_026_activity_recurrence_and_due_dates.md`](.claude/specs/planner_spec_026_activity_recurrence_and_due_dates.md) | [`frontend_spec_055_reminders_page.md`](.claude/specs/frontend_spec_055_reminders_page.md) | 📝 Specced (2026-10-14), not yet implemented. |
+| Duplicate an existing activity (pre-filled create, bare duplicate, no sub-tasks) | — (frontend-only) | [`frontend_spec_056_duplicate_activity.md`](.claude/specs/frontend_spec_056_duplicate_activity.md) | 📝 Specced (2026-10-29), not yet implemented. |
+| Category-colour swatch discoverability in Settings | — (frontend-only) | [`frontend_spec_057_category_colour_swatch_discoverability.md`](.claude/specs/frontend_spec_057_category_colour_swatch_discoverability.md) | 📝 Specced (2026-10-29), not yet implemented. |
 
 ## Internal / maintenance specs
 

@@ -116,29 +116,57 @@ this file.
 
 ---
 
+**Last updated:** `2026-10-14`
+
+- added a new idea, raised by the user: recurring activities with a repeat period and a
+  due/reminder date, plus a new Reminders area and an overdue-activity banner/icon.
+- the same day, in a planning session, the idea was split and most of it moved straight to real
+  specs: the recurrence interval + auto-set/editable due date + the read-only Reminders page is now
+  `planner_spec_026_activity_recurrence_and_due_dates.md` /
+  `frontend_spec_055_reminders_page.md` (see `ROADMAP.md`'s "Specced, coming soon") — removed from
+  this file. Only the remaining, still-unspecced half (the overdue banner/icon, deliberately scoped
+  as a Pair 2 follow-up depending on that pair shipping first) stays below.
+
+---
+
+## Overdue-activity banner/icon (Pair 2 of the recurrence/reminders idea)
+
+```
+Status: Not specced — depends on planner_spec_026/frontend_spec_055 (Pair 1) shipping first.
+```
+
+Raised `2026-10-14` alongside the recurrence/due-date/Reminders-page idea above, which has now
+moved to real specs (`planner_spec_026_activity_recurrence_and_due_dates.md` /
+`frontend_spec_055_reminders_page.md`). This is the remaining half: an icon/banner surfaced
+elsewhere in the app (e.g. header or nav) flagging when there are "unplanned overdue" activities —
+overdue per `nextDueAt`, and not currently sitting anywhere on the live plan (current week's grid or
+bucket list, not yet completed) — so the user notices without having to visit the Reminders page
+proactively.
+
+Not specced yet because it depends on Pair 1's `nextDueAt`/`GET /api/v1/reminders` actually existing
+first, and the precise definition of "unplanned" (no live `PlannedOccurrence` for the activity vs.
+some narrower/broader check) is still an open design question to resolve when this gets picked up.
+
+Open questions, not yet resolved: exact period options (fixed presets like weekly/monthly/every-N-
+months vs. a free interval picker), whether the auto-set reminder date is user-editable afterward,
+how this relates to the existing bucket-list carry-forward automation
+(`frontend_spec_011_bucket_carry_forward_automation.md`) — a distinct concept or a variant of the
+same mechanism — and exactly where the overdue banner/icon should surface.
+
 ## Password recovery for a locked-out user
 
 ```
-Status: Not specced.
+Status: Delivered (2026-10-29) — the lighter-weight RUNBOOK path, not a full email-reset flow.
 ```
 
-Raised `2026-10-06`, prompted by the user asking about `planner_spec_024_change_password.md`'s
-scope. `User` has no `email` column at all (just `username`/`passwordHash`), and no email-sending
-infrastructure exists anywhere in the stack — confirmed via the Flyway migrations and `User.java`.
-Change Password (just shipped) only helps if you're already authenticated; if a user both forgets
-their password *and* has no active session, there is currently **no recovery path at all** short of
-`docker compose down -v`, which destroys every activity, plan, and completion record along with it.
-
-Not yet specced because the right shape is a real open question, not just unwritten effort — a
-traditional "email a reset link" flow needs an email field (schema change) plus real email-sending
-infrastructure (SMTP or a transactional-email API), which is a meaningfully bigger lift than this
-app's actual deployment model probably justifies: self-hosted, single user, who already has direct
-server/database access. A lighter-weight alternative — a documented `RUNBOOK.md` script/command that
-re-hashes a password directly in the database without touching any other data — likely fits better,
-but that's a product/ops-tradeoff decision to make deliberately, not default into. Revisit once
-there's a real opinion on which shape this should take (or if multi-user support ever becomes real,
-at which point email-based reset becomes much more clearly justified — see the "Registration" entry
-below, which would need to land first anyway).
+Raised `2026-10-06`. Delivered as the lighter-weight alternative this entry itself identified: a
+new `hashPassword` Gradle task (`backend/build.gradle.kts`, `security/PasswordHashCli.java` — no
+Spring context, no database access, just prints a BCrypt hash) plus a documented manual `UPDATE`
+recipe, see `RUNBOOK.md`'s "Recovering a locked-out user" section. No email field, no email-sending
+infrastructure, no new spec — matches this app's actual deployment model (self-hosted, single user,
+already has direct database access). The full email-based reset flow this entry considered and
+rejected stays rejected unless multi-user support ever becomes real (see the "Registration" entry
+below).
 
 ## User registration (multi-user sign-up)
 
@@ -216,23 +244,21 @@ nullable specifically so this would most likely be an *additive* future change (
 ## Should a completed occurrence be movable?
 
 ```
-Status: Not specced.
+Status: Resolved (2026-10-29) — current behaviour confirmed correct, no further action.
 ```
 
-Raised 2026-10-02 while reviewing `frontend_spec_025_grid_drag_to_move.md`
-— noticed that dragging a completed grid occurrence to a different day/slot is currently allowed,
-with no check against `occurrence.completed`. Confirmed this isn't a regression introduced by that
-spec: the existing click-based "Rearrange" button (`OccurrenceItem.tsx`) has never been gated on
-`completed` either — only on `isBusy` — so both the old and new ways of moving an occurrence already
-allow moving a completed one. This is a pre-existing product question, not a bug in either feature.
-
-Current lean (not acted on): allow it, don't restrict. Moving an occurrence's day/slot doesn't touch
-its `CompletionRecord` (keyed to the occurrence's id, not its day/slot), so there's no data-integrity
-risk, and there's a real use case — "I did this Tuesday but it was planned for Wednesday, let me fix
-the record after the fact." Restricting it would mean inventing a disabled state, explaining why,
-and deciding what drag feedback looks like for a disallowed drop, for a case that isn't actually
-harmful. Logged here rather than acted on — revisit if this ever actually feels wrong or confusing
-in real use, rather than building a restriction (or a feature toggle for one) ahead of that signal.
+Raised 2026-10-02 while reviewing `frontend_spec_025_grid_drag_to_move.md`. This entry's own
+"current lean" — allow moving a completed occurrence between grid day/slot cells, don't restrict —
+is confirmed still exactly what `PlanService.applyMove` does today (re-checked 2026-10-29): the
+`else` branch (grid-to-grid moves) has no completion check, only the bucket-targeting branch does,
+and that one's gate shipped separately as its own real fix —
+`planner_spec_020_prevent_completed_occurrence_bucket_move.md` (a completed occurrence cannot be
+demoted to the bucket, `409 BucketMoveNotAllowedException`) — which this entry's original framing
+didn't cover (it was specifically about day/slot moves, not bucket demotion). Between the two,
+nothing about this question is still open: grid-to-grid moves stay unrestricted (the real "fix the
+record after the fact" use case this entry identified), and the one case that genuinely needed a
+guard (silently losing a scheduled slot while marked done) already has one. No spec needed for the
+unrestricted half — it's confirmed-correct existing behaviour, not a change.
 
 ## Dedicated activity-history view/endpoint
 
